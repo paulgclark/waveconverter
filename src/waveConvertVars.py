@@ -3,6 +3,11 @@
 # protocol library defines
 TEMP_PROTOCOL = 0
 
+# RF defines
+MOD_UNDEFINED = -1
+MOD_OOK = 1
+MOD_FSK = 2
+
 
 # enumerated type for symbols
 #from enum import Enum

@@ -16,9 +16,10 @@ class ProtocolDefinition:
                  crcLow=0, crcHigh=0, crcDataLow=0, crcDataHigh=0, crcPoly=[1,1,1],
                  crcInit=0, crcBitOrder=0, crcReverseOut=0, crcFinalXor=False,
                  crcPad=0, crcPadCount=0, crcPadVal=0, crcPadCountOptions=0,
-                 name="", protocolID=99999):
+                 name="", protocolID=99999, frequency=-1):
         self.name = name
         self.protocolID = protocolID
+        self.frequency = frequency
         self.interPacketWidth = interPacketWidth
         self.interPacketSymbol = interPacketSymbol
         self.unitWidth = unitWidth

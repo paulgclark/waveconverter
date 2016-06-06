@@ -20,60 +20,36 @@
 # PC - vars to make global controls override parts of protocol def:
 #   unit_error
 #   glitch_filter
+
 from waveConvertVars import *
+from sqlalchemy import *
 
-class ProtocolDefinition:
+from sqlalchemy import Column, Integer, Unicode, UnicodeText, String
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.declarative import declarative_base
 
-  def __init__(self):
-    self.name = ""
+from random import choice
+from string import letters
 
-    # error correction properties, can be overridden by user inputs
-    self.timing_error = 0
-    self.glitch_filter_count = 0
+engine = create_engine('sqlite:////tmp/teste.db', echo=True)
+Base = declarative_base(bind=engine)
 
-    # for discriminating between packets
-    self.interpacket_width_min = 0
-    self.interpacket_symbol = DATA_ZERO
-    self.preamble_sync = False
+class User(Base):
+    __tablename__ = 'users'
+    id = Column(Integer, primary_key=True)
+    name = Column(Unicode(40))
+    address = Column(UnicodeText, nullable=True)
+    password = Column(String(20))
 
-    # preamble definition
-    self.preamble_symbol_width_low = 0
-    self.preamble_symbol_width_high = 0
-    self.preamble_size = [1]
-      # preambles should be defined arbitrarily; but for now we assume
-      # that each one is a regularly repeating sequence
+    def __init__(self, name, address=None, password=None):
+        self.name = name
+        self.address = address
+        if password is None:
+            password = ''.join(choice(letters) for n in xrange(10))
+        self.password = password
 
-    # header definition
-    self.header_level = DATA_ZERO
-    self.header_width = 0
+Base.metadata.create_all()
 
-    # payload characteristics
-    self.unit_width_payload = 0
-    self.packet_size = 0
-    self.encoding = NO_ENCODING
-    
-    # pwm parameters, if necessary
-    self.pwm_zero_timing = [0, 0]
-    self.pwm_one_timing = [0, 0]
-
-    # PACKET DATA STRUCTURE
-    self.id_addr_low = 0
-    self.id_addr_high = 0
-    self.val_addr_low = [0]  # multiple values possible
-    self.val_addr_high = [0]
-
-    # CRC parameters
-    self.crc_addr_low = 0
-    self.crc_addr_high = 0
-    self.crc_target_addr_low = 0 # data on which CRC is calculated
-    self.crc_target_addr_high = 0
-    self.crc_polynomial = [1, 1, 1]
-    self.crc_init = [0, 0, 0]
-    self.crc_bit_order = CRC_NORM # can also reverse or byte-wise reflect
-    self.crc_reverse_output = False
-    self.crc_final_xor = [0, 0, 0]
-    self.crc_pad = CRC_NOPAD # can also pad to even or pad to absolute
-    self.crc_pad_count = 8
-    self.crc_pad_val = 0
-    self.crc_pad_count_options = [0] # for reversing CRC
-
+Session = sessionmaker(bind=engine)
+s = Session()

@@ -262,9 +262,9 @@ def manchesterDecode(encodedPacket, encodingType):
 
 #####################################
 # NEED: move this out of the current file
-def printPacket(outFile, packet, optionFlag):
+def printPacket(outFile, packet, outputHex):
 
-    if optionFlag == "x" or optionFlag == "-x": # output in hex
+    if outputHex: # output in hex
         i = 0
         while i < len(packet)-3:
             hexVal = packet[i]*8 + packet[i+1]*4 + packet[i+2]*2 + packet[i+3]
