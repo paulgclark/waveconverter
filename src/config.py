@@ -7,6 +7,7 @@ from waveConvertVars import *
 # be loaded with information from the selected protocol of the packet library. This 
 # library will contain a number of pre-loaded protocols and allow for saving user-defined
 # protocols as well.
+"""
 class ProtocolDefinition:
     def __init__(self, interPacketWidth=0, interPacketSymbol=0, unitWidth=0, unitError=0,
                  packetSize=0, preambleSync=0, preambleSymbolHigh=0, preambleSymbolLow=0,
@@ -16,30 +17,45 @@ class ProtocolDefinition:
                  crcLow=0, crcHigh=0, crcDataLow=0, crcDataHigh=0, crcPoly=[1,1,1],
                  crcInit=0, crcBitOrder=0, crcReverseOut=0, crcFinalXor=False,
                  crcPad=0, crcPadCount=0, crcPadVal=0, crcPadCountOptions=0,
-                 name="", protocolID=99999, frequency=-1):
+                 name="", protocolID=99999, frequency=-1, fsk_deviation=0):
+
+        # waveconverter protocol library vars
         self.name = name
         self.protocolID = protocolID
+        
+        # RF demodulation vars
         self.frequency = frequency
+        self.fsk_deviation = fsk_deviation
+        
+        # framing vars
         self.interPacketWidth = interPacketWidth
         self.interPacketSymbol = interPacketSymbol
-        self.unitWidth = unitWidth
-        self.unitError = unitError
-        self.packetSize = packetSize
-        self.preambleSync = preambleSync
         self.preambleSymbolHigh = preambleSymbolHigh
         self.preambleSymbolLow = preambleSymbolLow
         self.preambleSize = preambleSize
         self.headerLevel = headerLevel
         self.headerWidth = headerWidth
+        self.packetSize = packetSize
+        self.preambleSync = preambleSync
+        
+        # timing vars
+        self.unitWidth = unitWidth
+        self.unitError = unitError
         self.encodingType = encodingType
         self.pwmOneSymbol = pwmOneSymbol
         self.pwmZeroSymbol = pwmZeroSymbol
         self.pwmSymbolSize = pwmSymbolSize
+        
+        # waveconverter filter vars
         self.glitchFilterCount = glitchFilterCount
+        
+        # payload addresses for statistical analysis
         self.idAddrLow = idAddrLow
         self.idAddrHigh = idAddrHigh
         self.valAddrLow = valAddrLow
         self.valAddrHigh = valAddrHigh
+        
+        # CRC vars
         self.crcLow = crcLow
         self.crcHigh = crcHigh
         self.crcDataLow = crcDataLow
@@ -54,10 +70,8 @@ class ProtocolDefinition:
         self.crcPadVal =crcPadVal
         self.crcPadCountOptions = crcPadCountOptions
         
-    #def __str__(self):
-    #    return "x-value" + str(self.x) + " y-value" + str(self.y)
-
-
+    
+"""
 """
 # The following vars are hard coded globals. Need to move to a class-based model
 volvoFobConfig = 0

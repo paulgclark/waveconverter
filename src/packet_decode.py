@@ -8,21 +8,31 @@
 # This file assumes that each bit of the bitstream is contained in a
 # single byte, each with a value of either 0x00 or 0x01.
 #
+# standard Python libraries
 import sys
 import io
 import os
 import argparse
+
+# global constants
+from waveConvertVars import *
+
+# waveconverter decoding modules
 from breakWave import breakdownWaveform
 from widthToBits import separatePackets
 from widthToBits import decodePacket
 from widthToBits import printPacket
-from waveConvertVars import *
 from config import *
-from manual_protocol_def import *
 
+# RF libraries and modules
 from demod_rf import *
 from gnuradio import gr
-#from protocol_lib import *
+
+# protocol handling
+from protocol_lib import *
+from manual_protocol_def import *
+from protocol_lib import *
+
 
 #####################################
 # handling command line arguments using argparse
@@ -32,6 +42,8 @@ parser.add_argument("-b", "--baseband", help="input digital baseband file name")
 parser.add_argument("-o", "--output", help="output file name")
 parser.add_argument("-s", "--samp_rate", help="sample rate", type=int)
 parser.add_argument("-c", "--center_freq", help="center frequency (Hz)",
+                    type=int)
+parser.add_argument("-p", "--protocol", help="protocol for decode (listed by number, enter 0 for list)", 
                     type=int)
 parser.add_argument("-v", "--verbose", help="increase output verbosity",
                     action="store_true")
@@ -47,6 +59,7 @@ samp_rate = args.samp_rate
 center_freq = args.center_freq
 verbose = args.verbose
 outputHex = args.hex_out
+protocol_number = args.protocol
 
 if verbose:      
     print 'ARGV           :', sys.argv[1:]  
@@ -54,16 +67,66 @@ if verbose:
     print 'IQ FILE        :', iqFileName
     print 'BASEBAND FILE  :', waveformFileName
     print 'OUTPUT         :', outFileName
+    print 'PROTOCOL       :', protocol_number
     print 'SAMPLE RATE    :', samp_rate
     print 'CENTER_FREQ    :', center_freq
     print 'OUTPUT_HEX     :', outputHex
 
-# based on command line, choose the protocol
-# manual assignment
-if (1):
-    protocol = manualProtocolAssign()
-# fetch from database
+"""
+# TEMP
+tempProtocol = ProtocolDefinition(37)
+tempProtocol.name = "temp name 37 was successfully updated again!"
+tempProtocol.saveProtocol()
 
+# get a list of items in database
+for proto in protocolSession.query(ProtocolDefinition):
+    print proto.protocolId, proto.name
+    
+print "Next value: " + str(getNextProtocolId())
+print "Number of Protocols: " + str(getProtocolCount())
+#query = protocolSession.query(func.max(ProtocolDefinition.protocolId).label("maxId"))
+#print query.one().maxId
+"""
+"""
+# get a list of items in database
+for proto in s.query(ProtocolDefinition):
+    print proto.protocolId, proto.name
+
+# create some protocols
+tempProtocol = ProtocolDefinition(11)
+tempProtocol.name = "temp name"
+tempProtocol.crcPoly = [0, 1, 0]
+tempProtocol2 = ProtocolDefinition(13)
+tempProtocol2.name = "temp name 2"
+tempProtocol2.crcPoly = [1, 1, 1]
+tempProtocol.printProtocol()
+
+# upload these to the database
+s.add(tempProtocol)
+s.add(tempProtocol2)
+s.commit()
+
+# get a list of items in database
+for proto in s.query(ProtocolDefinition):
+    print proto.protocolId, proto.name, proto.crcPoly
+"""
+
+# based on command line, choose the protocol
+# if the protocol number was not specified in the command line use
+# manual assignment from manual_protocol_def.py
+if protocol_number == -1:
+    protocol = manualProtocolAssign()
+# if the number passed is zero, then list the contents of the database and exit
+elif protocol_number == 0:
+    print "Printing stored protocol list"
+    listProtocols()
+# fetch from database
+else:
+    print "attempting to retrieve protocol " + str(protocol_number) + "from database"
+    protocol = fetchProtocol(protocol_number)
+    protocol.printProtocolMinimal()
+
+exit()
 
 # if we were given an I-Q file, then we need to demodulate it first to obtain the
 # digital baseband waveform (need future modifications if multiple waveforms are
@@ -83,7 +146,7 @@ if iqFileName:
                                         314938000, # tune_freq
                                         40000, # channel_width
                                         4000,  # transition_width
-                                        0.5,   # threshold
+                                        0.3,   # threshold
                                         iqFileName, # iq_filename 
                                         waveformFileName) # temp dig_out_filename
         flowgraphObject.run()

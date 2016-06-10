@@ -1,6 +1,6 @@
 # This file is used to manually set up a new protocol definition. This 
 # can be saved to the library or simply used and discarded.
-from config import ProtocolDefinition
+from protocol_lib import ProtocolDefinition
 from waveConvertVars import *
 
 def manualProtocolAssign():

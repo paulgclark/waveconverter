@@ -1,4 +1,4 @@
-# these are global defines used throughout the waveConverter app
+# these are global defines and vars used throughout the waveConverter app
 
 # protocol library defines
 TEMP_PROTOCOL = 0
