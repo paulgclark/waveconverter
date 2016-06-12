@@ -5,8 +5,8 @@ TEMP_PROTOCOL = 0
 
 # RF defines
 MOD_UNDEFINED = -1
-MOD_OOK = 1
-MOD_FSK = 2
+MOD_OOK = 0
+MOD_FSK = 1
 
 
 # enumerated type for symbols

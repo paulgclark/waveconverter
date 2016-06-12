@@ -35,18 +35,14 @@ from sqlalchemy.orm import relationship
 from sqlalchemy import Column, ForeignKey, Integer, String, PickleType
 from sqlalchemy.sql import func
 
-#from random import choice
-#from string import letters
-#from IPython.core.magics import namespace
-
 # set up the connection to the protocol library sqllite database
 engine = create_engine('sqlite:///protocol_library.db', echo=True)
 Base = declarative_base(bind=engine)
 
 # create session to connect to database containing stored protocol definitions 
-Base.metadata.create_all()
 Session = sessionmaker(bind=engine)
 protocolSession = Session() # this is a global variable used by many protocol_lib functions
+
 
 # define sqlalchemy class for storage of protocol object
 class ProtocolDefinition(Base):
@@ -58,7 +54,10 @@ class ProtocolDefinition(Base):
       
     # RF demodulation vars
     frequency = Column(Integer)
-    fsk_deviation = Column(String(250))
+    fskDeviation = Column(Integer)
+    channelWidth = Column(Integer)
+    transitionWidth = Column(Integer)
+    modulation = Column(Integer)
         
     # framing vars
     interPacketWidth = Column(Integer)
@@ -112,21 +111,41 @@ class ProtocolDefinition(Base):
         print "name:" + str(self.name)
         
     def printProtocolFull(self):
-        print "protocolId:" + str(self.protocolId)
-        print "name:" + str(self.name)
+        print "Protocol ID:" + str(self.protocolId)
+        print "Name:" + str(self.name)
+        print "RF Properties:"
+        print " Frequency(MHz): " + str(self.frequency)
+        print " Modulation: " + str(self.modulation)
+        print " Channel Width(kHz): " + str(self.channelWidth)
+        print " Transition Width(kHz): " + str(self.transitionWidth)
+        print " FSK Deviation(kHz): " + str(self.fskDeviation)
+        print "Framing Properties:"
+        print " Time between transmissions(us): " + str(self.interPacketWidth)
+        print ""
+        # NEED to plug in the rest of the properties
 
     # - write modified protocol to disk
     def saveProtocol(self):
         global protocolSession
-        protocolSession.merge(self)
+        try:
+            protocolSession.merge(self)
+        except:
+            print "ERROR: problem adding or merging protocol entry to database"
         protocolSession.commit()
+
+# sqlalchemy needs this after database class declaration
+Base.metadata.create_all()
+
 
 # The following functions perform higher level database manipulations    
 # this method finds the next available ID that can be used for a new protocol
 def getNextProtocolId():
     global protocolSession
     query = protocolSession.query(func.max(ProtocolDefinition.protocolId).label("maxId"))
-    return query.one().maxId + 1
+    try:
+        return query.one().maxId + 1 # if table is not empty
+    except:
+        return 1 # if table is empty
         
 # - return size of library (number of protocol definitions)
 def getProtocolCount():
@@ -134,7 +153,6 @@ def getProtocolCount():
     query = protocolSession.query(func.count(ProtocolDefinition.protocolId).label("numIDs"))
     return query.one().numIDs
 
-       
 # - return list of library elements, including the key parameters
 def listProtocols():
     global protocolSession
@@ -148,6 +166,12 @@ def fetchProtocol(protocolId):
     proto = protocolSession.query(ProtocolDefinition).get(protocolId)
     return proto
 
+"""
 # - export library to a text file(?)
 # is this needed?
+def exportProtocolToText(protocolId):
+    global protocolSession
+    proto = protocolSession.query(ProtocolDefinition).get(protocolId)
+    # output data to text file (should this be user readable?)
+"""    
     

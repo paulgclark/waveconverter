@@ -1,17 +1,20 @@
 # This file is used to manually set up a new protocol definition. This 
 # can be saved to the library or simply used and discarded.
-from protocol_lib import ProtocolDefinition
+from protocol_lib import ProtocolDefinition, getNextProtocolId
 from waveConvertVars import *
 
 def manualProtocolAssign():
-    protocol = ProtocolDefinition()
+    protocol = ProtocolDefinition(getNextProtocolId())
     protocol.name = "Temporary Protocol"
     protocol.protocolID = TEMP_PROTOCOL # this value reserved for current, unsaved protocol
     
     # ONLY EDIT THIS SECTION BELOW
-    protocol.frequency = 315000000
+    protocol.frequency = 315
     protocol.modulation = MOD_OOK
-    protocol.fskDeviation = 0
+    protocol.fskDeviation = 10
+    protocol.channelWidth = 50
+    protocol.transitionWidth = 1.5
+    
     protocol.interPacketWidth = 1000
     protocol.interPacketSymbol = DATA_ZERO
     protocol.unitWidth = 90

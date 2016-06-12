@@ -33,8 +33,14 @@ from protocol_lib import *
 from manual_protocol_def import *
 from protocol_lib import *
 
+# waveconverter-specific GUI
+from waveconverter_gui import *
+#from gi.repository import Gtk # note gtk+3 uses Gtk, not gtk
 
 #####################################
+# preset some command line args
+protocol_number = -1 # denotes no protocol given via command line
+
 # handling command line arguments using argparse
 parser = argparse.ArgumentParser("Process input baseband waveforms OR I-Q data files and convert to output binary data")
 parser.add_argument("-q", "--iq", help="input i-q data file name")
@@ -49,6 +55,8 @@ parser.add_argument("-v", "--verbose", help="increase output verbosity",
                     action="store_true")
 parser.add_argument("-x", "--hex_out", help="output data in hex format",
                     action="store_true")
+parser.add_argument("-g", "--gui", help="brings up graphical interface",
+                    action="store_true")
 args = parser.parse_args()
 
 # assign args to variables
@@ -60,6 +68,7 @@ center_freq = args.center_freq
 verbose = args.verbose
 outputHex = args.hex_out
 protocol_number = args.protocol
+runWithGui = args.gui
 
 if verbose:      
     print 'ARGV           :', sys.argv[1:]  
@@ -71,44 +80,23 @@ if verbose:
     print 'SAMPLE RATE    :', samp_rate
     print 'CENTER_FREQ    :', center_freq
     print 'OUTPUT_HEX     :', outputHex
+    print 'RUN WITH GUI   :', runWithGui
 
 """
-# TEMP
-tempProtocol = ProtocolDefinition(37)
-tempProtocol.name = "temp name 37 was successfully updated again!"
-tempProtocol.saveProtocol()
-
-# get a list of items in database
-for proto in protocolSession.query(ProtocolDefinition):
-    print proto.protocolId, proto.name
-    
-print "Next value: " + str(getNextProtocolId())
-print "Number of Protocols: " + str(getProtocolCount())
-#query = protocolSession.query(func.max(ProtocolDefinition.protocolId).label("maxId"))
-#print query.one().maxId
-"""
-"""
-# get a list of items in database
-for proto in s.query(ProtocolDefinition):
-    print proto.protocolId, proto.name
-
-# create some protocols
+## temp code for test
 tempProtocol = ProtocolDefinition(11)
 tempProtocol.name = "temp name"
-tempProtocol.crcPoly = [0, 1, 0]
+tempProtocol.frequency = 94.7
 tempProtocol2 = ProtocolDefinition(13)
 tempProtocol2.name = "temp name 2"
-tempProtocol2.crcPoly = [1, 1, 1]
-tempProtocol.printProtocol()
+tempProtocol2.crcPoly = 105.2
+tempProtocol.printProtocolMinimal()
 
 # upload these to the database
-s.add(tempProtocol)
-s.add(tempProtocol2)
-s.commit()
-
-# get a list of items in database
-for proto in s.query(ProtocolDefinition):
-    print proto.protocolId, proto.name, proto.crcPoly
+protocolSession.add(tempProtocol)
+protocolSession.add(tempProtocol2)
+protocolSession.commit()
+## temp code for test
 """
 
 # based on command line, choose the protocol
@@ -116,87 +104,95 @@ for proto in s.query(ProtocolDefinition):
 # manual assignment from manual_protocol_def.py
 if protocol_number == -1:
     protocol = manualProtocolAssign()
+    protocol.saveProtocol()
 # if the number passed is zero, then list the contents of the database and exit
 elif protocol_number == 0:
     print "Printing stored protocol list"
     listProtocols()
 # fetch from database
 else:
-    print "attempting to retrieve protocol " + str(protocol_number) + "from database"
+    print "attempting to retrieve protocol " + str(protocol_number) + " from database"
     protocol = fetchProtocol(protocol_number)
-    protocol.printProtocolMinimal()
+    protocol.printProtocolFull()
 
-exit()
+#exit()
 
-# if we were given an I-Q file, then we need to demodulate it first to obtain the
-# digital baseband waveform (need future modifications if multiple waveforms are
-# contained in the same I-Q file)
-if iqFileName:
-#if __name__ == '__main__':
-    # since we have an I-Q input file, we will generate the baseband waveform and
-    # temporarily place it in the following file
-    waveformFileName = "../output_files/temp.dig"
-    basebandSampleRate = 400000 # will use a sample rate of 400kHz for the extracted baseband 
-    try:
-        if verbose:
-            print "Running Demodulation Flowgraph"
-        flowgraphObject = ook_flowgraph(samp_rate, # samp_rate_in 
-                                        basebandSampleRate, # samp_rate_out 
-                                        center_freq, # center_freq
-                                        314938000, # tune_freq
-                                        40000, # channel_width
-                                        4000,  # transition_width
-                                        0.3,   # threshold
-                                        iqFileName, # iq_filename 
-                                        waveformFileName) # temp dig_out_filename
-        flowgraphObject.run()
-    except [[KeyboardInterrupt]]:
-        pass
+# if we were not given the GUI flag, run through in command line mode
+if not runWithGui:
 
-# begin decoding baseband waveform
-masterWidthList = [] # contains the widths for the entire file
-packetWidthsList = [] # list of packet width lists
-packetList = [] # list of decoded packets
-rawPacketList = [] # list of pre-decoded packets
+    # if we were given an I-Q file, then we need to demodulate it first to obtain the
+    # digital baseband waveform (need future modifications if multiple waveforms are
+    # contained in the same I-Q file)
+    if iqFileName:
+        #if __name__ == '__main__':
+        # since we have an I-Q input file, we will generate the baseband waveform and
+        # temporarily place it in the following file
+        waveformFileName = "../output_files/temp.dig"
+        basebandSampleRate = 400000 # will use a sample rate of 400kHz for the extracted baseband 
+        try:
+            if verbose:
+                print "Running Demodulation Flowgraph"
+                flowgraphObject = ook_flowgraph(samp_rate, # samp_rate_in 
+                                                basebandSampleRate, # samp_rate_out 
+                                                center_freq, # center_freq
+                                                314938000, # tune_freq
+                                                40000, # channel_width
+                                                4000,  # transition_width
+                                                0.3,   # threshold
+                                                iqFileName, # iq_filename 
+                                                waveformFileName) # temp dig_out_filename
+                flowgraphObject.run()
+        except [[KeyboardInterrupt]]:
+            pass
 
-# open input file for read access in binary mode
-with io.open(waveformFileName, 'rb') as waveformFile: 
+    # begin decoding baseband waveform
+    masterWidthList = [] # contains the widths for the entire file
+    packetWidthsList = [] # list of packet width lists
+    packetList = [] # list of decoded packets
+    rawPacketList = [] # list of pre-decoded packets
 
-    # open output file for write access
-    outFile = open(outFileName, 'w')
+    # open input file for read access in binary mode
+    with io.open(waveformFileName, 'rb') as waveformFile: 
 
-    # scan through waveform and get widths
-    if (breakdownWaveform(protocol, waveformFile, masterWidthList) == END_OF_FILE):
+        # open output file for write access
+        outFile = open(outFileName, 'w')
 
-        # separate master list into list of packets
-        separatePackets(protocol, masterWidthList, packetWidthsList)
+        # scan through waveform and get widths
+        if (breakdownWaveform(protocol, waveformFile, masterWidthList) == END_OF_FILE):
 
-        # decode each packet and add it to the list
-        i=0
-        for packetWidths in packetWidthsList:
-            # print("Packet #" + str(i+1) + ": ") 
-            # print(packetWidths)
-            decodedPacket = [] # move out of loop to main vars?
-            rawPacket = [] # move out of loop to main vars?
-            decodePacket(protocol, packetWidths, decodedPacket, rawPacket)
-            # print "Raw and Decoded Packets:"
-            # print(rawPacket)
-            # print(decodedPacket)
-            packetList.append(decodedPacket[:])
-            rawPacketList.append(rawPacket[:])
-            i+=1
-            #break # debug - only do first packet
+            # separate master list into list of packets
+            separatePackets(protocol, masterWidthList, packetWidthsList)
 
-        # print packets to file
-        # print masterWidthList
-        # print packetWidthsList
-        i=0
-        for packet in packetList:
-            outFile.write("Packet #" + str(i+1) + ": ") 
-            printPacket(outFile, packet, outputHex)
-            i+=1
+            # decode each packet and add it to the list
+            i=0
+            for packetWidths in packetWidthsList:
+                # print("Packet #" + str(i+1) + ": ") 
+                # print(packetWidths)
+                decodedPacket = [] # move out of loop to main vars?
+                rawPacket = [] # move out of loop to main vars?
+                decodePacket(protocol, packetWidths, decodedPacket, rawPacket)
+                # print "Raw and Decoded Packets:"
+                # print(rawPacket)
+                # print(decodedPacket)
+                packetList.append(decodedPacket[:])
+                rawPacketList.append(rawPacket[:])
+                i+=1
+                #break # debug - only do first packet
+
+            # print packets to file
+            # print masterWidthList
+            # print packetWidthsList
+            i=0
+            for packet in packetList:
+                outFile.write("Packet #" + str(i+1) + ": ") 
+                printPacket(outFile, packet, outputHex)
+                i+=1
     
-
+else: # start up the GUI
+    if __name__ == "__main__":
+        main = TopWindow(protocol_number, protocol)
+        Gtk.main()
+  
 # after we finish, close out files and exit
 outFile.close()
 waveformFile.close()
