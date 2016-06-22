@@ -14,6 +14,7 @@ def manualProtocolAssign():
     protocol.fskDeviation = 10
     protocol.channelWidth = 50
     protocol.transitionWidth = 1.5
+    protocol.threshold = 0.3
     
     protocol.interPacketWidth = 1000
     protocol.interPacketSymbol = DATA_ZERO

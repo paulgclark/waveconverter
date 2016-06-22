@@ -58,6 +58,7 @@ class ProtocolDefinition(Base):
     channelWidth = Column(Integer)
     transitionWidth = Column(Integer)
     modulation = Column(Integer)
+    threshold = Column(Integer)
         
     # framing vars
     interPacketWidth = Column(Integer)

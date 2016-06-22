@@ -1,4 +1,24 @@
 # these are global defines and vars used throughout the waveConverter app
+verbose = False
+outFileName = "../output_files/temp_out_file.dat"
+outputHex = False
+protocol_number = 0
+runWithGui = True
+waveformFileName = "../output_files/temp_dig_file.bin"
+outFileName = ""
+
+# these global variables are associated with the current IQ File, not any
+# specific protocol
+iqFileName = ""
+center_freq = 0
+samp_rate = 0
+
+# this value is used for the sample rate of the digital baseband file
+basebandSampleRate = 400000 # good default rate
+
+# define a global protocol variable
+from protocol_lib import ProtocolDefinition
+protocol = ProtocolDefinition(-1)
 
 # protocol library defines
 TEMP_PROTOCOL = 0
