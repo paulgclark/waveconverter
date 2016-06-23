@@ -1,7 +1,19 @@
-# add includes
+#############################################################################################3
+########### copyright 2015 Factoria Labs
+# This file contains  
+#
+
+# waveconverter decoding modules
+from breakWave import breakdownWaveform
+from widthToBits import separatePackets
+from widthToBits import decodePacket
+from widthToBits import printPacket
+from config import *
 from protocol_lib import ProtocolDefinition
 
-def decodeBaseband(waveformFileName, basebandSampRate, outFileName,
+import io
+
+def decodeBaseband(waveformFileName, basebandSampleRate, outFileName,
                    protocol, outputHex):
 
     masterWidthList = [] # contains the widths for the entire file
@@ -50,3 +62,7 @@ def decodeBaseband(waveformFileName, basebandSampRate, outFileName,
                 outFile.write("Packet #" + str(i+1) + ": ")
                 printPacket(outFile, packet, outputHex)
                 i+=1
+                
+                # after we finish, close out files and exit
+    outFile.close()
+    waveformFile.close()

@@ -9,7 +9,7 @@ def manualProtocolAssign():
     protocol.protocolID = TEMP_PROTOCOL # this value reserved for current, unsaved protocol
     
     # ONLY EDIT THIS SECTION BELOW
-    protocol.frequency = 315
+    protocol.frequency = 310
     protocol.modulation = MOD_OOK
     protocol.fskDeviation = 10
     protocol.channelWidth = 50

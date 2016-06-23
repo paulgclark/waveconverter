@@ -9,6 +9,7 @@ outFileName = ""
 
 # these global variables are associated with the current IQ File, not any
 # specific protocol
+# NEED: extract these from the filename if formatted with "c100M" or "s8M"
 iqFileName = ""
 center_freq = 0
 samp_rate = 0

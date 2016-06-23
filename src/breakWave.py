@@ -6,11 +6,11 @@
 # This file assumes that each bit of the bitstream is contained in a
 # single byte, each with a value of either 0x00 or 0x01.
 #
-import sys
-import io
-import os
-from waveConvertVars import *
-from config import *
+import sys # NEED
+import io # NEED
+import os # NEED
+from waveConvertVars import * # NEED
+from config import * # NEED
 
 #class edgeEnum(Enum):
 FALLING_EDGE = 0

@@ -9,34 +9,32 @@
 # single byte, each with a value of either 0x00 or 0x01.
 #
 # standard Python libraries
-import sys
-import io
-import os
+import sys # NEED: remove?
+import io # NEED: remove?
+import os # NEED: remove?
 import argparse
 
-# waveconverter decoding modules
+# waveconverter decoding modules: NEED: remove when engine code separated
 from breakWave import breakdownWaveform
 from widthToBits import separatePackets
 from widthToBits import decodePacket
 from widthToBits import printPacket
-from config import *
+from config import * # NEED: what do we need from the *; delete as config no longer used?
 
 # RF libraries and modules
-from demod_rf import *
-from gnuradio import gr
+from demod_rf import * # NEED: remove
+from gnuradio import gr # NEED: remove
 
 # protocol handling
-from protocol_lib import *
-from manual_protocol_def import *
-from protocol_lib import *
+from protocol_lib import * # NEED: no *
+from manual_protocol_def import * # NEED: no * 
+from protocol_lib import * # NEED: no *
 
 # waveconverter-specific GUI
-from waveconverter_gui import *
-#from gi.repository import Gtk # note gtk+3 uses Gtk, not gtk
-
+from waveconverter_gui import * # NEED: no *
+from waveconverterEngine import decodeBaseband
 
 # global constants
-#from waveConvertVars import *
 import waveConvertVars as wcv
 
 
@@ -64,7 +62,8 @@ args = parser.parse_args()
 
 # assign args to variables
 wcv.iqFileName = args.iq
-wcv.waveformFileName = args.baseband
+if not args.baseband == None: # if not argument passed, used default
+    wcv.waveformFileName = args.baseband
 wcv.outFileName = args.output
 wcv.samp_rate = args.samp_rate
 wcv.center_freq = args.center_freq
@@ -117,13 +116,16 @@ elif wcv.protocol_number == 0:
 else:
     print "attempting to retrieve protocol " + \
         str(wcv.protocol_number) + " from database"
-    wcv.protocol = fetchProtocol(wcv.protocol_number)
-    wcv.protocol.printProtocolFull()
+    if wcv.verbose:
+        wcv.protocol = fetchProtocol(wcv.protocol_number)
+        wcv.protocol.printProtocolFull()
 
 #exit()
 
 # if we were not given the GUI flag, run through in command line mode
 if not wcv.runWithGui:
+    
+    # NEED: pull checking code into flowgraph method and simplify this block
 
     # if we were given an I-Q file, then we need to demodulate it first to 
     # obtain the digital baseband waveform (need future modifications if 
@@ -135,16 +137,20 @@ if not wcv.runWithGui:
         try:
             if wcv.verbose:
                 print "Running Demodulation Flowgraph"
+                print wcv.iqFileName
+                print wcv.waveformFileName
             flowgraphObject = ook_flowgraph(wcv.samp_rate, # samp_rate_in 
                                             wcv.basebandSampleRate, # rate_out 
                                             wcv.center_freq, # center_freq
                                             314938000, # tune_freq
-                                            40000, # channel_width
-                                            4000,  # transition_width
+                                            20000, # channel_width
+                                            1000,  # transition_width
                                             0.3,   # threshold
                                             wcv.iqFileName, # iq_filename 
                                             wcv.waveformFileName) # temp file
             flowgraphObject.run()
+            if wcv.verbose:
+                print "flowgraph completed"
         except [[KeyboardInterrupt]]:
             pass
 
@@ -154,8 +160,14 @@ if not wcv.runWithGui:
     #                             wcv.outFileName,
     #                             wcv.protocol,
     #                             wcv.outputHex)
+    
+    decodeBaseband(wcv.waveformFileName, wcv.basebandSampleRate, wcv.outFileName,
+                   wcv.protocol, wcv.outputHex)
 
+    """
     # begin decoding baseband waveform
+    if wcv.verbose:
+        print "begining decode process"
     masterWidthList = [] # contains the widths for the entire file
     packetWidthsList = [] # list of packet width lists
     packetList = [] # list of decoded packets
@@ -168,10 +180,13 @@ if not wcv.runWithGui:
         outFile = open(wcv.outFileName, 'w')
 
         # scan through waveform and get widths
-        if (breakdownWaveform(protocol, waveformFile, masterWidthList) == END_OF_FILE):
+        print waveformFile
+        if (breakdownWaveform(wcv.protocol, waveformFile, masterWidthList) == END_OF_FILE):
 
+            print masterWidthList
+            
             # separate master list into list of packets
-            separatePackets(protocol, masterWidthList, packetWidthsList)
+            separatePackets(wcv.protocol, masterWidthList, packetWidthsList)
 
             # decode each packet and add it to the list
             i=0
@@ -180,7 +195,7 @@ if not wcv.runWithGui:
                 # print(packetWidths)
                 decodedPacket = [] # move out of loop to main vars?
                 rawPacket = [] # move out of loop to main vars?
-                decodePacket(protocol, packetWidths, decodedPacket, rawPacket)
+                decodePacket(wcv.protocol, packetWidths, decodedPacket, rawPacket)
                 # print "Raw and Decoded Packets:"
                 # print(rawPacket)
                 # print(decodedPacket)
@@ -197,15 +212,14 @@ if not wcv.runWithGui:
                 outFile.write("Packet #" + str(i+1) + ": ") 
                 printPacket(outFile, packet, outputHex)
                 i+=1
+                """ 
     
 else: # start up the GUI
     if __name__ == "__main__":
         main = TopWindow(protocol_number, protocol)
         Gtk.main()
   
-# after we finish, close out files and exit
-outFile.close()
-waveformFile.close()
+
 print("Exiting")
 exit(0)
 
