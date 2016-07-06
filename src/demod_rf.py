@@ -64,7 +64,7 @@ class ook_flowgraph(gr.top_block):
         self.connect((self.blocks_file_source_0, 0), (self.tuning_filter_0, 0))
         self.connect((self.digital_binary_slicer_fb_0, 0), (self.blocks_file_sink_0, 0))
         self.connect((self.tuning_filter_0, 0), (self.blocks_complex_to_mag_0, 0))
-
+        
 
 
 ##############################################################
@@ -76,10 +76,41 @@ class ook_flowgraph(gr.top_block):
 #   it around zero on the y-axis
 # - a Binary Slicer that converts centered signal from floating point to binary
 # - a File Sink that outputs 
-"""
+
 class fsk_flowgraph(gr.top_block):
     def __init__(self, samp_rate_in, samp_rate_out, center_freq, 
-                 tune_freq, channel_width, transition_width, threshold, fsk_deviation
+                 tune_freq, channel_width, transition_width, threshold, fsk_deviation,
                  iq_filename, dig_out_filename):
         gr.top_block.__init__(self)
-        """
+        
+        ##################################################
+        # Variables
+        ##################################################
+        self.cutoff_freq = channel_width/2
+        self.firdes_taps = firdes.low_pass(1, samp_rate_in, 
+                                           self.cutoff_freq, 
+                                           transition_width)
+        
+        ##################################################
+        # Blocks
+        ##################################################
+        self.tuning_filter_0 = filter.freq_xlating_fir_filter_ccc(int(samp_rate_in/samp_rate_out), 
+                                                                  (self.firdes_taps), 
+                                                                  tune_freq-center_freq, 
+                                                                  samp_rate_in)
+        self.digital_binary_slicer_fb_0 = digital.binary_slicer_fb()
+        self.blocks_file_source_0 = blocks.file_source(gr.sizeof_gr_complex*1, iq_filename, False)
+        self.blocks_file_sink_0 = blocks.file_sink(gr.sizeof_char*1, dig_out_filename, False)
+        self.blocks_file_sink_0.set_unbuffered(False)
+        self.blocks_complex_to_mag_0 = blocks.complex_to_mag(1)
+        self.blocks_add_const_vxx_0 = blocks.add_const_vff((-1*threshold, ))
+
+        ##################################################
+        # Connections
+        ##################################################
+        self.connect((self.blocks_add_const_vxx_0, 0), (self.digital_binary_slicer_fb_0, 0))
+        self.connect((self.blocks_complex_to_mag_0, 0), (self.blocks_add_const_vxx_0, 0))
+        self.connect((self.blocks_file_source_0, 0), (self.tuning_filter_0, 0))
+        self.connect((self.digital_binary_slicer_fb_0, 0), (self.blocks_file_sink_0, 0))
+        self.connect((self.tuning_filter_0, 0), (self.blocks_complex_to_mag_0, 0))
+        

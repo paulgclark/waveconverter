@@ -9,12 +9,69 @@
 import sys # NEED
 import io # NEED
 import os # NEED
-from waveConvertVars import * # NEED
-from config import * # NEED
+import waveConvertVars as wcv
+#from waveConvertVars import * # NEED
+#from config import * # NEED
 
-#class edgeEnum(Enum):
 FALLING_EDGE = 0
 RISING_EDGE = 1
+
+#####################################
+# reads through a file and produces list
+def basebandFileToList(basebandFileName):
+    basebandList = []
+    # open file
+    with io.open(basebandFileName, 'rb') as basebandFile:
+        # read each byte and add to list
+        try:
+            byte = basebandFile.read(1)
+            while byte != "":
+                if byte == b'\x01':
+                    basebandList.append(1)
+                else:
+                    basebandList.append(0)                    
+                byte = basebandFile.read(1)
+        finally:
+            basebandFile.close()
+
+    return basebandList
+
+#####################################
+# reads through the list representing the baseband data and divides it
+# into smaller lists (one for each transmission), also cutting out dead time
+def breakBaseband(basebandData, minTimeBetweenTx):
+    basebandTransmissionList = []
+    newTx = []
+    i = 0
+    deadAirCount = 0
+    currentStartIndex = 0
+    
+    if wcv.verbose:
+        print "Breaking baseband into individual transmissions..."
+    # run through file and find large swaths of dead air
+    while True:
+        if i == len(basebandData):
+            newTx = basebandTransmissionList[currentStartIndex:i]
+            basebandTransmissionList.append(newTx)
+            break
+        elif basebandData[i] == 0:
+            deadAirCount += 1
+        elif (basebandData[i] == 1) and deadAirCount > minTimeBetweenTx:
+            newTx = basebandData[currentStartIndex:i]
+            if wcv.verbose:
+                print "Got Tx starting at:" + str(currentStartIndex) + " ending at index: " + str(i) + "length = " + str(len(newTx)) 
+                #print newTx
+            if len(newTx) > 2000:
+                basebandTransmissionList.append(newTx)
+            if i > 10:
+                currentStartIndex = i - 10
+            deadAirCount = 0
+        i+=1
+            
+    # now remove the trailing zeroes from each transmission
+    # NEED to implement
+    print "number of transmissions: " + str(len(basebandTransmissionList))
+    return basebandTransmissionList
 
 #####################################
 # reads through a file, byte-by-byte until a 0x00 is followed by a 0x01
@@ -28,12 +85,12 @@ def timeToNextEdge(bitFile, edge):
         newByte = bitFile.peek(1)[:1] # look ahead at the next byte in buffer
         # if we come to EOF before a rising edge, pass on EOF
         if not newByte:
-            return(END_OF_FILE)
+            return(wcv.END_OF_FILE)
 
         # if the value is not 0 or 1, exit immediately
         if (newByte != b'\x00') and (newByte != b'\x01'):
             print (bitFile.tell(), ': Illegal binary value : ', newByte, '\n');
-            return(ILLEGAL_VALUE)
+            return(wcv.ILLEGAL_VALUE)
 
         # look for rising edge or a falling edge
         if ((edge==RISING_EDGE)and(lastByte==b'\x00')and(newByte==b'\x01')) or \
@@ -54,9 +111,9 @@ def timeToNextEdge(bitFile, edge):
 # NEED: If a period longer than the interpacket comes up, resync to IPSYMBOL
 def breakdownWaveform(protocol, waveformFile, masterWidthList):
 
-    if protocol.interPacketSymbol == DATA_ZERO:
+    if protocol.interPacketSymbol == wcv.DATA_ZERO:
         nextEdge = RISING_EDGE 
-    elif protocol.interPacketSymbol == DATA_ONE:
+    elif protocol.interPacketSymbol == wcv.DATA_ONE:
         nextEdge = FALLING_EDGE 
     width = 0
 
@@ -74,10 +131,10 @@ def breakdownWaveform(protocol, waveformFile, masterWidthList):
             
 
         # error checking
-        if (width == END_OF_FILE):
+        if (width == wcv.END_OF_FILE):
             break
-        elif (width == ILLEGAL_VALUE):
-            return(ILLEGAL_VALUE)
+        elif (width == wcv.ILLEGAL_VALUE):
+            return(wcv.ILLEGAL_VALUE)
         else:
             masterWidthList.append(width)
 
@@ -89,10 +146,11 @@ def breakdownWaveform(protocol, waveformFile, masterWidthList):
     #print("\n\n\nPre-glitch:")
     #print(masterWidthList)
     if protocol.glitchFilterCount > 0:
-        glitchFilter(masterWidthList, protocol.glitchFilterCount)
+        glitchFilter(masterWidthList, wcv.glitchFilterCount) 
+        # glitch filter behavior not part of protocol, but top level WC control
     #print("\n\n\nPost-glitch:")
     #print(masterWidthList)
-    return(END_OF_FILE)
+    return(wcv.END_OF_FILE)
 
 #####################################
 def glitchFilter(masterWidthList, glitchMax):

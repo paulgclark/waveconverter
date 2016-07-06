@@ -9,7 +9,7 @@
 #import sys
 #import io
 #import os
-from waveConvertVars import *
+import waveConvertVars as wcv
 from config import *
 
 # NEED: parameterize these values
@@ -42,7 +42,7 @@ def separatePackets(protocol, masterWidthList, packetWidthsList):
             preambleWidthList.append(protocol.preambleSymbolHigh)
         del preambleWidthList[0] # first zero width swallowed by interpacket
         # now add the header if there is one
-        if protocol.headerLevel != DATA_NULL:
+        if protocol.headerLevel != wcv.DATA_NULL:
             preambleWidthList.append(protocol.headerWidth)
 
         # scan through width list and find a match; record each packet start
@@ -92,7 +92,7 @@ def preambleSyncFound(protocol, masterWidthList, preambleWidthList, start):
     # for each width in the preamble
     while i < len(preambleWidthList):
         # if it matches the width in the packet
-        if not widthCheck(masterWidthList[start+i], preambleWidthList[i], protocol.unitError):
+        if not widthCheck(masterWidthList[start+i], preambleWidthList[i], wcv.timingError):
             return False
         i+=1
 
@@ -115,20 +115,20 @@ def decodePacket(protocol, packetWidths, decodedPacket, rawPacket):
 
     # this should be tied to the interpacket width
     if (i % 2) == 0:
-        currentLevel = DATA_ZERO
+        currentLevel = wcv.DATA_ZERO
     else:
-        currentLevel = DATA_ONE
+        currentLevel = wcv.DATA_ONE
  
-    measurement = BAD_WIDTH
+    measurement = wcv.BAD_WIDTH
 
     # note: the decodedPacket list has been passed to this fn as an empty list
-    if (protocol.encodingType == STD_MANCHESTER) or (protocol.encodingType == INV_MANCHESTER):
+    if (protocol.encodingType == wcv.STD_MANCHESTER) or (protocol.encodingType == wcv.INV_MANCHESTER):
         # extract data
         while i < len(packetWidths):
-            measurement = widthMeasure(packetWidths[i], protocol.unitWidth, protocol.unitError)
-            if (measurement == UNIT_1X):
+            measurement = widthMeasure(packetWidths[i], protocol.unitWidth, wcv.timingError)
+            if (measurement == wcv.UNIT_1X):
                 rawPacket.append(currentLevel)
-            elif (measurement == UNIT_2X):
+            elif (measurement == wcv.UNIT_2X):
                 rawPacket.append(currentLevel)
                 rawPacket.append(currentLevel)
             else:
@@ -136,39 +136,39 @@ def decodePacket(protocol, packetWidths, decodedPacket, rawPacket):
 
             # flip level and increment index
             i = i + 1
-            if (currentLevel == DATA_ZERO):
-                currentLevel = DATA_ONE
-            elif (currentLevel == DATA_ONE):
-                currentLevel = DATA_ZERO
+            if (currentLevel == wcv.DATA_ZERO):
+                currentLevel = wcv.DATA_ONE
+            elif (currentLevel == wcv.DATA_ONE):
+                currentLevel = wcv.DATA_ZERO
             else:
                 print("Level isn't either one or zero")
 
         # remember that the last Manchester symbol will be swallowed
-        rawPacket.append(DATA_ZERO)
+        rawPacket.append(wcv.DATA_ZERO)
         # now that we have raw bits, do the decoding
         #print rawPacket
         decodedPacket += manchesterDecode(rawPacket, protocol.encodingType) 
         # NEED code here for rev
 
-    elif protocol.encodingType == PWM: # may want to kill this and decode from widths
+    elif protocol.encodingType == wcv.PWM: # may want to kill this and decode from widths
         # the last symbol will have its zero time swallowed, so add it
-        if widthCheck(packetWidths[-1], protocol.pwmZeroSymbol[0], protocol.unitError):
+        if widthCheck(packetWidths[-1], protocol.pwmZeroSymbol[0], wcv.timingError):
             packetWidths.append(protocol.pwmZeroSymbol[1]) # add a zero trail width
-        elif widthCheck(packetWidths[-1], protocol.pwmOneSymbol[0], protocol.unitError):
+        elif widthCheck(packetWidths[-1], protocol.pwmOneSymbol[0], wcv.timingError):
             packetWidths.append(protocol.pwmOneSymbol[1]) # add a one trail width
         else:
             print("bad symbol encountered")
 
         # go through each width pair and determine long or short duty cycle
         while i < len(packetWidths)-1:
-            if (widthCheck(packetWidths[i], protocol.pwmZeroSymbol[0], protocol.unitError) and \
-                widthCheck(packetWidths[i+1], protocol.pwmZeroSymbol[1], protocol.unitError)):
+            if (widthCheck(packetWidths[i], protocol.pwmZeroSymbol[0], wcv.timingError) and \
+                widthCheck(packetWidths[i+1], protocol.pwmZeroSymbol[1], wcv.timingError)):
                 # we have a zero if both the high and low portions check out
-                rawPacket.append(DATA_ZERO)
-            elif widthCheck(packetWidths[i], protocol.pwmOneSymbol[0], protocol.unitError) and \
-                widthCheck(packetWidths[i+1], protocol.pwmOneSymbol[1], protocol.unitError):
+                rawPacket.append(wcv.DATA_ZERO)
+            elif widthCheck(packetWidths[i], protocol.pwmOneSymbol[0], wcv.timingError) and \
+                widthCheck(packetWidths[i+1], protocol.pwmOneSymbol[1], wcv.timingError):
                 # we have a zero if both the high and low portions check out
-                rawPacket.append(DATA_ONE)
+                rawPacket.append(wcv.DATA_ONE)
             else:
                 print("bad symbol encountered")
 
@@ -178,7 +178,7 @@ def decodePacket(protocol, packetWidths, decodedPacket, rawPacket):
         #print "raw length: " + str(len(rawPacket))
         #print rawPacket
 
-    elif protocol.encodingType == NO_ENCODING:
+    elif protocol.encodingType == wcv.NO_ENCODING:
         decodedPacket += rawPacket
 
     return(0)
@@ -205,12 +205,12 @@ def widthMeasure(width, unitWidth, unitError):
     maxLong = 2 * unitWidth * (1 + unitError)
 
     if (width >= minShort) and (width <= maxShort):
-        return(UNIT_1X)
+        return(wcv.UNIT_1X)
     elif (width >= minLong) and (width <= maxLong):
-        return(UNIT_2X)
+        return(wcv.UNIT_2X)
     else:
         print("Bad Level Width: " + str(width))
-        return(BAD_WIDTH)
+        return(wcv.BAD_WIDTH)
  
 
 #####################################
@@ -221,15 +221,15 @@ def pwmDecode(encodedPacket):
 
     # sometimes we miss trailing zeros because they look like inter-packet
     # levels; so we add the interpacket symbol to the end if necessary
-    while (len(encodedPacket) % PWM_SYMBOL_SIZE) != 0:
+    while (len(encodedPacket) % PWM_SYMBOL_SIZE) != 0: # NEED to fix this function
         encodedPacket.append(INTERPACKET_SYMBOL)
         
     while i < (len(encodedPacket)+1):
         # each PWM symbol has been defined in terms of unit width
         if (encodedPacket[i:i+3] == PWM_ONE_SYMBOL):
-            packet.append(DATA_ONE)
+            packet.append(wcv.DATA_ONE)
         elif (encodedPacket[i:i+3] == PWM_ZERO_SYMBOL):
-            packet.append(DATA_ZERO)
+            packet.append(wcv.DATA_ZERO)
 
         # move to next PWM symbol
         i = i + 3
@@ -249,9 +249,9 @@ def manchesterDecode(encodedPacket, encodingType):
             return (packet)
         
         # now just take the second bit of the pair (assuming IEEE 802.3)
-        if encodingType == STD_MANCHESTER:
+        if encodingType == wcv.STD_MANCHESTER:
             packet.append(encodedPacket[i])
-        elif encodingType == INV_MANCHESTER:
+        elif encodingType == wcv.INV_MANCHESTER:
             packet.append(encodedPacket[i-1])
         i = i + 2 # move to next pair
     #print "i = " + str(i)
@@ -276,9 +276,9 @@ def printPacket(outFile, packet, outputHex):
         if (len(packet) % 4 != 0): # have to display the leftover
             outFile.write(' + b')
             for j in range(i, len(packet)):
-                if packet[j] == DATA_ZERO:
+                if packet[j] == wcv.DATA_ZERO:
                     outFile.write('0')
-                elif packet[j] == DATA_ONE:
+                elif packet[j] == wcv.DATA_ONE:
                     outFile.write('1')
                 else:
                     outFile.write("FATAL ERROR\n")
@@ -290,9 +290,9 @@ def printPacket(outFile, packet, outputHex):
                 outFile.write(' ')
 
             # write each bit in ASCII
-            if packet[i] == DATA_ZERO:
+            if packet[i] == wcv.DATA_ZERO:
                 outFile.write('0')
-            elif packet[i] == DATA_ONE:
+            elif packet[i] == wcv.DATA_ONE:
                 outFile.write('1')
             else:
                 outFile.write("FATAL ERROR\n")
@@ -320,14 +320,14 @@ def checkValidPacket(protocol, packetWidths):
         #measurement = widthMeasure(packetWidths[i], protocol.preambleSymbolHigh, protocol.unitError) 
         i += 1 
         #if measurement == BAD_WIDTH:
-        if not widthCheck(packetWidths[i-1], protocol.preambleSymbolHigh, protocol.unitError):
-            if protocol.headerLevel == DATA_NULL: # if there's no header, get out of loop
+        if not widthCheck(packetWidths[i-1], protocol.preambleSymbolHigh, wcv.timingError):
+            if protocol.headerLevel == wcv.DATA_NULL: # if there's no header, get out of loop
                 print "finished preamble"
                 i+=-2
                 break
 
         # check that low portion is valid
-        if not widthCheck(packetWidths[i], protocol.preambleSymbolHigh, protocol.unitError):
+        if not widthCheck(packetWidths[i], protocol.preambleSymbolHigh, wcv.timingError):
             print "finished preamble"
             break
         else:
@@ -341,13 +341,13 @@ def checkValidPacket(protocol, packetWidths):
         print "Bad preamble length: " + str(preambleSymbolCount)
 
     # check header if there is one
-    if protocol.headerLevel != DATA_NULL:
-        if protocol.headerLevel == DATA_ZERO:
-            if abs(packetWidths[i] - protocol.headerWidth) > protocol.headerWidth*protocol.unitError:
+    if protocol.headerLevel != wcv.DATA_NULL:
+        if protocol.headerLevel == wcv.DATA_ZERO:
+            if abs(packetWidths[i] - protocol.headerWidth) > protocol.headerWidth*wcv.timingError:
                 print "Header length invalid: " + str(packetWidths[i])
             dataStartIndex = i + 1 # next length after header is where data starts
-        elif protocol.headerLevel == DATA_ONE:
-            if abs(packetWidths[i] - protocol.headerWidth) > protocol.headerWidth*protocol.unitError:
+        elif protocol.headerLevel == wcv.DATA_ONE:
+            if abs(packetWidths[i] - protocol.headerWidth) > protocol.headerWidth*wcv.timingError:
                 print "Header length invalid: " + str(packetWidths[i])
             dataStartIndex = i + 1 # next length after header is where data starts
     else: 

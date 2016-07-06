@@ -1,5 +1,6 @@
 # these are global defines and vars used throughout the waveConverter app
 verbose = False
+verboseZoom = False
 outFileName = "../output_files/temp_out_file.dat"
 outputHex = False
 protocol_number = 0
@@ -7,15 +8,29 @@ runWithGui = True
 waveformFileName = "../output_files/temp_dig_file.bin"
 outFileName = ""
 
+# we'll only be working on one transmission at a time, so these are global
+basebandData = []
+basebandDataByTx = [] # broken down by individual transmissions
+payloadList = ""
+decodeOutputString = ""
+
+# these variable maintain the zoom and waveform window positions
+tMin = 0
+tMax = 100
+txNum = 0
+
+
 # these global variables are associated with the current IQ File, not any
 # specific protocol
 # NEED: extract these from the filename if formatted with "c100M" or "s8M"
 iqFileName = ""
-center_freq = 0
-samp_rate = 0
+center_freq = 0.0
+samp_rate = 0.0
+glitchFilterCount = 2
+timingError = 0.1
 
 # this value is used for the sample rate of the digital baseband file
-basebandSampleRate = 400000 # good default rate
+basebandSampleRate = 100000.0 # good default rate
 
 # define a global protocol variable
 from protocol_lib import ProtocolDefinition
