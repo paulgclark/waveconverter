@@ -6,6 +6,7 @@
 # waveconverter decoding modules
 import waveConvertVars as wcv
 from breakWave import breakdownWaveform
+from breakWave import breakdownWaveform2
 from widthToBits import separatePackets
 from widthToBits import decodePacket
 #from widthToBits import printPacket
@@ -132,3 +133,85 @@ def packetToString(packet, outputHex):
 
     packetString += '\n'
     return(packetString)
+
+class basebandTx:
+    txNum = 0
+    timeStamp_us = 0.0 # in microseconds
+    waveformData = []
+    widthList = []
+    preambleValid = False
+    headerValid = False
+    framingValid = False
+    encodingValid = False
+    crcValid = False
+    fullBasebandData = []
+    payloadData = []
+    crcBits = []
+    id = []
+    value1 = 0
+    value2 = 0
+    binaryString = ""
+    hexString = ""
+    
+    def __init__(self, txNum, timeStampIn, waveformDataIn):
+        self.txNum = txNum
+        self.timeStamp = timeStampIn
+        self.waveformData = waveformDataIn
+        self.fullBasebandData = []
+        
+    def decodeTx(self, protocol):
+        if wcv.verbose:
+            print "decoding transmission #" + str(self.txNum)
+                        
+        # scan through waveform and get widths
+        self.widthList = []
+        breakdownWaveform2(protocol, self.waveformData, self.widthList)
+        #print len(self.waveformData)
+        #print self.waveformData
+        #print self.widthList
+
+        tempUnused = []
+        decodePacket(protocol, self.widthList, self.fullBasebandData, tempUnused)
+        #print "Decoded Packet # " + str(self.txNum)
+        #print(self.fullBasebandData)
+        
+        # NEED preamble check
+        # NEED encoding check
+        # NEED CRC check
+        # print(decodedPacket)
+        
+        # NEED break out paylod
+        # NEED break out CRC
+        # NEED check CRC
+        # NEED break out ID
+        # NEED break out Value1
+        # NEED break out Value2
+        
+        self.binaryString = packetToString(self.fullBasebandData, 0)
+        self.hexString = packetToString(self.fullBasebandData, 1)
+        print "data size: " + str(len(self.fullBasebandData))
+        #print self.binaryString
+        
+    def display(self):
+        print "Displaying Transmission Object " + str(self.txNum)
+        print "Time Stamp (us): " + str(self.timeStamp_us)
+        print "Waveform Size (samples): " + str(len(self.waveformData))
+        print "Preamble Valid: " + str(self.preambleValid)
+        print "Header Valid: " + str(self.headerValid)
+        print "Framing Valid: " + str(self.framingValid)
+        print "Encoding Valid: " + str(self.encodingValid)
+        print "CRC Valid: " + str(self.crcValid)
+        print "Widths List:"
+        print self.widthList
+        print "Full baseband data:"
+        print self.fullBasebandData
+        print "Payload Data:"
+        print self.payloadData
+        print "CRC String:"
+        print self.crcBits
+        print "ID:"
+        print self.id
+        print "Value 1: " + str(self.value1)
+        print "Value 2: " + str(self.value2)
+        print "Binary String: " + self.binaryString
+        print "Hex String: " + self.hexString

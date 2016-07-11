@@ -1,3 +1,7 @@
+from breakWave import breakdownWaveform
+from widthToBits import decodePacket
+from waveconverterEngine import packetsToFormattedString
+
 # these are global defines and vars used throughout the waveConverter app
 verbose = False
 verboseZoom = False
@@ -7,6 +11,8 @@ protocol_number = 0
 runWithGui = True
 waveformFileName = "../output_files/temp_dig_file.bin"
 outFileName = ""
+buildNewDatabase = False
+argcHelp = False
 
 # we'll only be working on one transmission at a time, so these are global
 basebandData = []
@@ -19,7 +25,6 @@ tMin = 0
 tMax = 100
 txNum = 0
 
-
 # these global variables are associated with the current IQ File, not any
 # specific protocol
 # NEED: extract these from the filename if formatted with "c100M" or "s8M"
@@ -31,10 +36,16 @@ timingError = 0.1
 
 # this value is used for the sample rate of the digital baseband file
 basebandSampleRate = 100000.0 # good default rate
+#basebandSampleRate = 400000.0
 
 # define a global protocol variable
 from protocol_lib import ProtocolDefinition
 protocol = ProtocolDefinition(-1)
+
+# global transmission list; this will be cleared each time the decode or demod button 
+# is clicked 
+txList = []
+
 
 # protocol library defines
 TEMP_PROTOCOL = 0

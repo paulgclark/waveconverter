@@ -27,7 +27,8 @@ from manual_protocol_def import manualProtocolAssign
 from waveconverter_gui import * # NEED: no *
 from waveconverterEngine import decodeBaseband
 
-
+# for constructing the protocol database from scratch
+from buildProtocolDatabase import buildProtocolDatabase
 
 #####################################
 # preset some command line args
@@ -49,6 +50,8 @@ parser.add_argument("-x", "--hex_out", help="output data in hex format",
                     action="store_true")
 parser.add_argument("-g", "--gui", help="brings up graphical interface",
                     action="store_true")
+parser.add_argument("-d", "--db", help="build new database",
+                    action="store_true")
 args = parser.parse_args()
 
 # assign args to variables
@@ -56,12 +59,20 @@ wcv.iqFileName = args.iq
 if not args.baseband == None: # if not argument passed, used default
     wcv.waveformFileName = args.baseband
 wcv.outFileName = args.output
-wcv.samp_rate = args.samp_rate * 1.0 # ensure this is a float
-wcv.center_freq = args.center_freq * 1.0 # ensure this is a float
+try:
+    wcv.samp_rate = args.samp_rate * 1.0 # ensure this is a float
+except:
+    wcv.samp_rate = 0.0
+try:
+    wcv.center_freq = args.center_freq * 1.0 # ensure this is a float
+except:
+    wcv.center_freq = 0.0
 wcv.verbose = args.verbose
 wcv.outputHex = args.hex_out
 wcv.protocol_number = args.protocol
 wcv.runWithGui = args.gui
+wcv.buildNewDatabase = args.db
+#wcv.argcHelp = args.help
 
 if wcv.verbose:      
     print 'ARGV           :', sys.argv[1:]  
@@ -75,29 +86,19 @@ if wcv.verbose:
     print 'OUTPUT_HEX     :', wcv.outputHex
     print 'RUN WITH GUI   :', wcv.runWithGui
 
-"""
-## temp code for test
-tempProtocol = ProtocolDefinition(11)
-tempProtocol.name = "temp name"
-tempProtocol.frequency = 94.7
-tempProtocol2 = ProtocolDefinition(13)
-tempProtocol2.name = "temp name 2"
-tempProtocol2.crcPoly = 105.2
-tempProtocol.printProtocolMinimal()
-
-# upload these to the database
-protocolSession.add(tempProtocol)
-protocolSession.add(tempProtocol2)
-protocolSession.commit()
-## temp code for test
-"""
+# if we were passed the "build database" flag, then just do that and exit
+if wcv.buildNewDatabase:
+    print "Building new protocol database from manual entries..."
+    buildProtocolDatabase()
+    print "...database build complete."
+    exit(0)
 
 # based on command line, choose the protocol
 # if the protocol number was not specified in the command line use
 # manual assignment from manual_protocol_def.py
 if wcv.protocol_number == -1:
     wcv.protocol = manualProtocolAssign()
-    wcv.protocol.saveProtocol()
+    #wcv.protocol.saveProtocol()
 # if the number passed is zero, then list the contents of the database and exit
 elif wcv.protocol_number == 0:
     print "Printing stored protocol list"

@@ -8,6 +8,12 @@ from waveconverterEngine import decodeBaseband
 from waveconverterEngine import packetsToFormattedString
 from breakWave import basebandFileToList
 from breakWave import breakBaseband
+from protocol_lib import ProtocolDefinition
+from protocol_lib import protocolSession
+from protocol_lib import fetchProtocol
+from waveConvertVars import protocol # NEED to eliminate
+from waveconverterEngine import basebandTx
+
 # for plotting baseband
 try:
     import matplotlib.pyplot as plt
@@ -45,7 +51,53 @@ class TopWindow:
         print "help about selected"
         self.response = self.aboutdialog.run()
         self.aboutdialog.hide()
+        
+    def on_loadProtocol_clicked(self, menuitem, data=None):
+        print "load protocol dialog started"
+        
+        # generate liststore from protocols in database
+        protocolStore = Gtk.ListStore(int, str, str, str, str, float) # ID, name, modulation, freq
+        for proto in protocolSession.query(ProtocolDefinition):
+            if proto.modulation == 0:
+                modString = "OOK"
+            else:
+                modString = "FSK"
+            protocolStore.append([proto.protocolId, 
+                                  proto.deviceType,
+                                  proto.deviceName,
+                                  proto.deviceYear,
+                                  modString, 
+                                  proto.frequency])
+            print "adding protocol to selection list: " + str(proto.protocolId) + "  " + proto.name + "   " + modString + "   " + str(proto.frequency)
+         
+        self.protocolTreeView.set_model(protocolStore)
+        self.protocolName = self.protocolDialog.run()
+        self.protocolDialog.hide()
 
+    # when the user clicks on a protocol selection, store the index
+    # of the selection
+    def on_protocolTreeView_selection_changed(self, data=None):
+        try:
+            (model, pathlist) = self.protocolTreeSelection.get_selected_rows()
+            tree_iter = model.get_iter(pathlist[0])
+            self.currentProtocolDialogSelection = model.get_value(tree_iter,0)
+        except:
+            self.currentProtocolDialogSelection = 0 # first time through, the list will not exist
+        if wcv.verbose:
+            print "Current Selection: " + str(self.currentProtocolDialogSelection)
+        
+    # when the user clicks the OK button, read the selected protocol from the
+    # database, then hide the dialog 
+    def on_protocolDialogOKButton_clicked(self, data=None):
+        print "dialog OK clicked"
+        wcv.protocol = fetchProtocol(self.currentProtocolDialogSelection)
+        self.populateProtocolToGui(protocol)
+        self.protocolDialog.hide()
+        
+    def on_protocolDialogCancelButton_clicked(self, data=None):
+        print "dialog cancel clicked"
+        self.protocolDialog.hide()
+        
     def on_gtk_rfFileOpen_activate(self, menuitem, data=None):
         print "menu RF File Open"
         self.fcd = Gtk.FileChooserDialog("Open IQ File...",
@@ -236,8 +288,8 @@ class TopWindow:
         #if len(waveformDataList) > 18901:
         #    waveformDataList = waveformDataList[0:18900]
         # NEED to replace this with a smart removal of trailing zeroes from each tx 
-        if len(localWaveform) > 12001:
-            localWaveform = localWaveform[0:12000]
+        if len(localWaveform) > 14001:
+            localWaveform = localWaveform[0:14000]
         
         # compute 
         waveformLength = len(localWaveform)
@@ -296,7 +348,7 @@ class TopWindow:
         wcv.protocol.channelWidth = 1000 * self.getFloatFromEntry("channelWidthEntry")
         wcv.protocol.transitionWidth = 1000 * self.getFloatFromEntry("transitionWidthEntry")
         wcv.protocol.threshold = self.getFloatFromEntry("thresholdEntry")
-        wcv.protocol.convertTimingToSamples()
+        wcv.protocol.convertTimingToSamples(wcv.basebandSampleRate)
 
         if wcv.verbose:
             print "modulation (ook=0)    = " + str(wcv.protocol.modulation)
@@ -344,16 +396,28 @@ class TopWindow:
             pass
         
         # read baseband waveform data from file
-        wcv.basebandData = basebandFileToList(wcv.waveformFileName)
-        wcv.basebandDataByTx = breakBaseband(wcv.basebandData, wcv.protocol.interPacketWidth)
+        wcv.basebandData = basebandFileToList(wcv.waveformFileName) # NEED get list from flowgraph; unnecessary file reads kill perf
+        
+        # split the baseband into individual transmissions and then store each
+        # in its own transmission object, to be decoded later
+        wcv.basebandDataByTx = breakBaseband(wcv.basebandData, wcv.protocol.interPacketWidth_samp)
+        runningSampleCount = 0
+        wcv.txList = []
+        for iTx in wcv.basebandDataByTx[1:]: # ignore the first transmission, it's spurious
+            timeStamp_us = 1000000.0 * runningSampleCount/wcv.basebandSampleRate
+            runningSampleCount += len(iTx)
+            #print "baseband size" + str(len(wcv.txList)) + ":  " + str(len(iTx))
+            wcv.txList.append(basebandTx(len(wcv.txList), timeStamp_us, iTx))
         
         # now plot the first transmission, zoomed out
         wcv.tMin = 0
         wcv.tMax = 100
-        self.drawBasebandPlot(wcv.basebandDataByTx[1], wcv.tMin, wcv.tMax, wcv.basebandSampleRate)
+        #self.drawBasebandPlot(wcv.basebandDataByTx[1], wcv.tMin, wcv.tMax, wcv.basebandSampleRate)
+        self.drawBasebandPlot(wcv.txList[1].waveformData, wcv.tMin, wcv.tMax, wcv.basebandSampleRate)
         
         # set range for the tx-select spin button
-        self.txSelectSpinButton.set_range(0, len(wcv.basebandDataByTx)-1)
+        #self.txSelectSpinButton.set_range(0, len(wcv.basebandDataByTx)-1)
+        self.txSelectSpinButton.set_range(0, len(wcv.txList)-1)
         
         # update the transmission status
         
@@ -404,11 +468,26 @@ class TopWindow:
         wcv.protocol.crcPad = self.getIntFromEntryBox("crcPadEntryBox")
         wcv.protocol.crcPadCount = 8*self.getIntFromEntryBox("crcPadCountEntryBox")
         
-        wcv.protocol.convertTimingToSamples()
+        # when we load new values for the protocol, we need to do the
+        # conversion from microseconds to samples
+        wcv.protocol.convertTimingToSamples(wcv.basebandSampleRate)
         
         if wcv.verbose:
+            print "baseband sample rate:" + str(wcv.basebandSampleRate)
             wcv.protocol.printProtocolFull()
+           
+        # call decode engine for each transmission
+        i = 0
+        print "tx list length: " + str(len(wcv.txList))
+        for iTx in wcv.txList:
+            if i == len(wcv.txList) - 1: # NEED: fix this kludge, last tx in list is wonky
+                iTx.display()
+            else:
+                iTx.decodeTx(wcv.protocol)
+            i+=1
             
+            wcv.decodeOutputString += iTx.binaryString
+        """
         # call decode engine
         wcv.payloadList = decodeBaseband(wcv.waveformFileName,
                                          wcv.basebandSampleRate,
@@ -418,7 +497,7 @@ class TopWindow:
         
         wcv.decodeOutputString = packetsToFormattedString(wcv.payloadList, wcv.protocol, 
                                                           wcv.outputHex) 
-        
+        """
         # change the text in all windows (NEED a framed approach)
         self.decodeTextViewWidget1 = self.builder.get_object("decodeTextView1")
         self.decodeTextViewWidget1.modify_font(Pango.font_description_from_string('Courier 12'))
@@ -439,14 +518,6 @@ class TopWindow:
         self.setEntry("sampRateEntry", wcv.samp_rate/1000000.0)
         self.setEntry("glitchFilterEntry", wcv.glitchFilterCount)
         self.setEntry("unitTimingErrorEntry", wcv.timingError*100.0)
-        #centerFreqEntryWidget = self.builder.get_object("centerFreqEntry") 
-        #Gtk.Entry.set_text(centerFreqEntryWidget, str(wcv.center_freq/1000000))
-        #sampRateEntryWidget = self.builder.get_object("sampRateEntry") 
-        #Gtk.Entry.set_text(sampRateEntryWidget, str(wcv.samp_rate/1000000))
-        #glitchFilterEntryWidget = self.builder.get_object("glitchFilterEntry") 
-        #Gtk.Entry.set_text(glitchFilterEntryWidget, str(wcv.glitchFilterCount))
-        #unitTimingErrorEntryWidget = self.builder.get_object("unitTimingErrorEntry") 
-        #Gtk.Entry.set_text(unitTimingErrorEntryWidget, str(wcv.timingError/100))
         
         # add RF properties
         self.setEntry("iqFileNameEntry", wcv.iqFileName)
@@ -457,21 +528,6 @@ class TopWindow:
         self.setEntry("fskDeviationEntry", wcv.protocol.fskDeviation/1000.0)
         self.setEntry("thresholdEntry", wcv.protocol.threshold)
         
-        #iqFileNameEntryWidget = self.builder.get_object("iqFileNameEntry")
-        #Gtk.Entry.set_text(iqFileNameEntryWidget, str(wcv.iqFileName))
-        #frequencyEntryWidget = self.builder.get_object("frequencyEntry") 
-        #Gtk.Entry.set_text(frequencyEntryWidget, str(wcv.protocol.frequency/1000000))
-        #channelWidthEntryWidget = self.builder.get_object("channelWidthEntry") 
-        #Gtk.Entry.set_text(channelWidthEntryWidget, str(wcv.protocol.channelWidth/1000))
-        #transitionWidthEntryWidget = self.builder.get_object("transitionWidthEntry") 
-        #Gtk.Entry.set_text(transitionWidthEntryWidget, str(wcv.protocol.transitionWidth/1000))
-        #modulationEntryBoxWidget = self.builder.get_object("modulationEntryBox") 
-        #Gtk.ComboBox.set_active(modulationEntryBoxWidget, wcv.protocol.modulation)
-        #fskDeviationEntryWidget = self.builder.get_object("fskDeviationEntry") 
-        #Gtk.Entry.set_text(fskDeviationEntryWidget, str(wcv.protocol.fskDeviation/1000))
-        #thresholdEntryWidget = self.builder.get_object("thresholdEntry") 
-        #Gtk.Entry.set_text(thresholdEntryWidget, str(wcv.protocol.threshold))
-        
         # add preamble properties
         self.setEntry("preambleLowEntry", wcv.protocol.preambleSymbolLow)
         self.setEntry("preambleHighEntry", wcv.protocol.preambleSymbolHigh)
@@ -479,20 +535,6 @@ class TopWindow:
         self.setEntry("preambleSize2Entry", wcv.protocol.preambleSize[1])
         self.setEntry("headerLengthEntry", wcv.protocol.headerWidth)
         self.setEntry("interPacketWidthEntry", wcv.protocol.interPacketWidth)
-        
-        #preambleLowEntryWidget = self.builder.get_object("preambleLowEntry") 
-        #Gtk.Entry.set_text(preambleLowEntryWidget, str(wcv.protocol.preambleSymbolLow))
-        #preambleHighEntryWidget = self.builder.get_object("preambleHighEntry") 
-        #Gtk.Entry.set_text(preambleHighEntryWidget, str(wcv.protocol.preambleSymbolHigh))
-        #preambleSize1EntryWidget = self.builder.get_object("preambleSize1Entry")
-        #Gtk.Entry.set_text(preambleSize1EntryWidget, str(wcv.protocol.preambleSize[0]))
-        #if len(wcv.protocol.preambleSize) > 1:
-        #    preambleSize2EntryWidget = self.builder.get_object("preambleSize2Entry")
-        #    Gtk.Entry.set_text(preambleSize2EntryWidget, str(wcv.protocol.preambleSize[1]))
-        #headerLengthEntryWidget = self.builder.get_object("headerLengthEntry") 
-        #Gtk.Entry.set_text(headerLengthEntryWidget, str(wcv.protocol.headerWidth))
-        #interPacketWidthEntryWidget = self.builder.get_object("interPacketWidthEntry") 
-        #Gtk.Entry.set_text(interPacketWidthEntryWidget, str(wcv.protocol.interPacketWidth))
         
         # add payload properties
         self.setEntryBox("encodingEntryBox", wcv.protocol.encodingType)
@@ -503,20 +545,6 @@ class TopWindow:
         self.setEntry("pwmOneEntry", 
                       "{0:.1f}".format(100.0*wcv.protocol.pwmOneSymbol[1]/wcv.protocol.pwmSymbolSize))
 
-        #encodingEntryBoxWidget = self.builder.get_object("encodingEntryBox") 
-        #Gtk.ComboBox.set_active(encodingEntryBoxWidget, wcv.protocol.encodingType) # NEEDs fix
-        #payloadUnitEntryWidget = self.builder.get_object("payloadUnitEntry") 
-        #Gtk.Entry.set_text(payloadUnitEntryWidget, str(wcv.protocol.unitWidth))
-        #pwmPeriodEntryWidget = self.builder.get_object("pwmPeriodEntry") 
-        #Gtk.Entry.set_text(pwmPeriodEntryWidget, str(wcv.protocol.pwmSymbolSize))
-        # PWM Duty Cycle is entered into GUI, while specific lengths are used in protocol
-        #pwmZeroEntryWidget = self.builder.get_object("pwmZeroEntry")
-        #Gtk.Entry.set_text(pwmZeroEntryWidget,
-        #                   "{0:.1f}".format(100.0*wcv.protocol.pwmZeroSymbol[1]/wcv.protocol.pwmSymbolSize))
-        #pwmOneEntryWidget = self.builder.get_object("pwmOneEntry") 
-        #Gtk.Entry.set_text(pwmOneEntryWidget, 
-        #                   "{0:.1f}".format(100.0*wcv.protocol.pwmOneSymbol[1]/wcv.protocol.pwmSymbolSize))
-        
         # add CRC properties
         self.setEntry("crcLengthEntry", len(wcv.protocol.crcPoly))
         self.setEntry("crcStartAddrEntry", wcv.protocol.crcLow)
@@ -529,34 +557,6 @@ class TopWindow:
         self.setEntry("crcFinalXorEntry", wcv.protocol.crcFinalXor)
         self.setEntryBox("crcPadEntryBox", wcv.protocol.crcPad)
         self.setEntryBox("crcPadCountEntryBox", wcv.protocol.crcPadCount/8)
-        
-        #crcLengthEntryWidget = self.builder.get_object("crcLengthEntry") 
-        #Gtk.Entry.set_text(crcLengthEntryWidget, str(len(wcv.protocol.crcPoly)))
-        #crcStartAddrEntryWidget = self.builder.get_object("crcStartAddrEntry") 
-        #Gtk.Entry.set_text(crcStartAddrEntryWidget, str(wcv.protocol.crcLow))
-        #addrDataLowEntryWidget = self.builder.get_object("addrDataLowEntry") 
-        #Gtk.Entry.set_text(addrDataLowEntryWidget, str(wcv.protocol.crcDataLow))
-        #addrDataHighEntryWidget = self.builder.get_object("addrDataHighEntry") 
-        #Gtk.Entry.set_text(addrDataHighEntryWidget, str(wcv.protocol.crcDataHigh))
-        # PWM polynomial is a bitstring
-        #crcPolynomialEntryWidget = self.builder.get_object("crcPolynomialEntry") 
-        #Gtk.Entry.set_text(crcPolynomialEntryWidget, str(wcv.protocol.crcPoly))
-        #crcInitEntryWidget = self.builder.get_object("crcInitEntry") 
-        #Gtk.Entry.set_text(crcInitEntryWidget, str(wcv.protocol.crcInit))
-        #crcReflectEntryBoxWidget = self.builder.get_object("crcReflectEntryBox") 
-        #Gtk.ComboBox.set_active(crcReflectEntryBoxWidget, wcv.protocol.crcBitOrder)
-        #crcReverseOutEntryBoxWidget = self.builder.get_object("crcReverseOutEntryBox")
-        #if  wcv.protocol.crcReverseOut:
-        #    Gtk.ComboBox.set_active(crcReverseOutEntryBoxWidget, 1)
-        #else:
-        #    Gtk.ComboBox.set_active(crcReverseOutEntryBoxWidget, 0)
-        #crcFinalXorEntryWidget = self.builder.get_object("crcFinalXorEntry") 
-        #Gtk.Entry.set_text(crcFinalXorEntryWidget, str(wcv.protocol.crcFinalXor))
-        #crcPadEntryBoxWidget = self.builder.get_object("crcPadEntryBox")
-        #Gtk.ComboBox.set_active(crcPadEntryBoxWidget, wcv.protocol.crcPad)
-        #print "pad count: " + str(wcv.protocol.crcPadCount)
-        #crcPadCountEntryBoxWidget = self.builder.get_object("crcPadCountEntryBox") 
-        #Gtk.ComboBox.set_active(crcPadCountEntryBoxWidget, wcv.protocol.crcPadCount/8)
         
         # add payload statistics properties
         # NEED to fill out
@@ -588,6 +588,31 @@ class TopWindow:
         self.canvas.set_size_request(400,40)
         self.plotWidget.add_with_viewport(self.canvas)
         self.plotWidget.show_all()
+        
+        # setup for protocol dialog
+        self.protocolDialog = self.builder.get_object("protocolDialog")
+        self.protocolTreeView = self.builder.get_object("protocolTreeView")
+        self.protocolTreeSelection = self.builder.get_object("protocolTreeView_selection")
+        
+        # now add cell renderers for each column of protocol dialog
+        renderer_ID = Gtk.CellRendererText()
+        column_ID = Gtk.TreeViewColumn("ID", renderer_ID, text=0)
+        self.protocolTreeView.append_column(column_ID)
+        renderer_type = Gtk.CellRendererText()
+        column_type = Gtk.TreeViewColumn("Type", renderer_type, text=1)
+        self.protocolTreeView.append_column(column_type)
+        renderer_device = Gtk.CellRendererText()
+        column_device = Gtk.TreeViewColumn("Device", renderer_device, text=2)
+        self.protocolTreeView.append_column(column_device)
+        renderer_year = Gtk.CellRendererText()
+        column_year = Gtk.TreeViewColumn("Year", renderer_year, text=3)
+        self.protocolTreeView.append_column(column_year)
+        renderer_mod = Gtk.CellRendererText()
+        column_mod = Gtk.TreeViewColumn("Modulation", renderer_mod, text=4)
+        self.protocolTreeView.append_column(column_mod)
+        renderer_freq = Gtk.CellRendererText()
+        column_freq = Gtk.TreeViewColumn("Frequency", renderer_freq, text=5)
+        self.protocolTreeView.append_column(column_freq)
         
         
         self.window = self.builder.get_object("window1")

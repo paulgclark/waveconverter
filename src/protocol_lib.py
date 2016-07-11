@@ -23,7 +23,7 @@
 #   unit_error
 #   glitch_filter
 
-from waveConvertVars import *
+#from waveConvertVars import *
 from sqlalchemy import *
 import waveConvertVars as wcv
 
@@ -37,9 +37,9 @@ from sqlalchemy import Column, ForeignKey, Integer, String, PickleType
 from sqlalchemy.sql import func
 
 # set up the connection to the protocol library sqllite database
+#if not wcv.argcHelp:
 engine = create_engine('sqlite:///protocol_library.db', echo=True)
 Base = declarative_base(bind=engine)
-
 # create session to connect to database containing stored protocol definitions 
 Session = sessionmaker(bind=engine)
 protocolSession = Session() # this is a global variable used by many protocol_lib functions
@@ -51,6 +51,9 @@ class ProtocolDefinition(Base):
     
     # waveconverter protocol library vars
     protocolId = Column(Integer, primary_key=True)
+    deviceName = Column(String(250), nullable=False)
+    deviceYear = Column(String(250), nullable=False)
+    deviceType = Column(String(250), nullable=False)
     name = Column(String(250), nullable=False)
       
     # RF demodulation vars
@@ -113,7 +116,6 @@ class ProtocolDefinition(Base):
     interPacketWidth_samp = Column(Integer) # 
     preambleSymbolLow_samp = Column(Integer)
     preambleSymbolHigh_samp = Column(Integer)
-    preambleSize_samp = Column(PickleType) # list
     headerWidth_samp = Column(Integer) #
     pwmOneSymbol_samp = Column(PickleType) # list
     pwmZeroSymbol_samp = Column(PickleType) # list
@@ -168,8 +170,15 @@ class ProtocolDefinition(Base):
         print " ID Addr High: " + str(self.idAddrHigh)
         print " Value Addr Low: " + str(self.valAddrLow)
         print " value Addr High: " + str(self.valAddrHigh)
-        print ""
-        # NEED to plug in the rest of the properties
+        print "Timing Propertied Re-Calculated in units of samples:"
+        print " Unit Width (samples): " + str(self.unitWidth_samp)
+        print " Inter-Packet Width (samples): " + str(self.interPacketWidth_samp)
+        print " Preamble Symbol Low (samples): " + str(self.preambleSymbolLow_samp)
+        print " Preamble Symbol High (samples): " + str(self.preambleSymbolHigh_samp)
+        print " Header Width (samples): " + str(self.headerWidth_samp)
+        print " PWM 1 Symbol (samples): " + str(self.pwmOneSymbol_samp)
+        print " PWM 1 Symbol (samples): " + str(self.pwmZeroSymbol_samp)
+        print " PWM Symbol Size (samples): " + str(self.pwmSymbolSize_samp)
 
     # - write modified protocol to disk
     def saveProtocol(self):
@@ -184,20 +193,21 @@ class ProtocolDefinition(Base):
     def convertTimingToSamples(self, samp_rate):
         #microsecondsPerSample = 1000000.0/samp_rate
         samplesPerMicrosecond = samp_rate/1000000.0
-        self.unitWidth_samp = self.unitWidth * samplesPerMicrosecond
-        self.interPacketWidth_samp = self.interPacketWidth * samplesPerMicrosecond
-        self.preambleSymbolLow_samp = self.preambleSymbolLow * samplesPerMicrosecond
-        self.preambleSymbolHigh_samp = self.preambleSymbolHigh * samplesPerMicrosecond
-        self.headerWidth_samp = self.headerWidth * samplesPerMicrosecond
-        self.pwmOneSymbol_samp[0] = self.pwmOneSymbol[0] * samplesPerMicrosecond
-        self.pwmOneSymbol_samp[1] = self.pwmOneSymbol[1] * samplesPerMicrosecond
-        self.pwmZeroSymbol_samp[0] = self.pwmZeroSymbol[0] * samplesPerMicrosecond
-        self.pwmZeroSymbol_samp[1] = self.pwmZeroSymbol[1] * samplesPerMicrosecond
-        self.pwmSymbolSize_samp = sum(wcv.pwmOneSymbol)
+        self.unitWidth_samp = int(self.unitWidth * samplesPerMicrosecond)
+        self.interPacketWidth_samp = int(self.interPacketWidth * samplesPerMicrosecond)
+        self.preambleSymbolLow_samp = int(self.preambleSymbolLow * samplesPerMicrosecond)
+        self.preambleSymbolHigh_samp = int(self.preambleSymbolHigh * samplesPerMicrosecond)
+        self.headerWidth_samp = int(self.headerWidth * samplesPerMicrosecond)
+        self.pwmOneSymbol_samp[0] = int(self.pwmOneSymbol[0] * samplesPerMicrosecond)
+        self.pwmOneSymbol_samp[1] = int(self.pwmOneSymbol[1] * samplesPerMicrosecond)
+        self.pwmZeroSymbol_samp[0] = int(self.pwmZeroSymbol[0] * samplesPerMicrosecond)
+        self.pwmZeroSymbol_samp[1] = int(self.pwmZeroSymbol[1] * samplesPerMicrosecond)
+        self.pwmSymbolSize_samp = sum(self.pwmOneSymbol_samp)
         return(0)
 
 
 # sqlalchemy needs this after database class declaration
+#if not wcv.argcHelp:
 Base.metadata.create_all()
 
 
