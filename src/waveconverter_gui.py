@@ -511,7 +511,6 @@ class TopWindow:
         
     # when a new protocol is loaded, we use its information to populate GUI
     def populateProtocolToGui(self, protocol):
-
     
         # add global WC control values
         self.setEntry("centerFreqEntry", wcv.center_freq/1000000.0)

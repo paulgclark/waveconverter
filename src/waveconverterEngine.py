@@ -139,6 +139,7 @@ class basebandTx:
     timeStamp_us = 0.0 # in microseconds
     waveformData = []
     widthList = []
+    interPacketTimingValid = False
     preambleValid = False
     headerValid = False
     framingValid = False
@@ -171,11 +172,18 @@ class basebandTx:
         #print self.widthList
 
         tempUnused = []
+        #checkInterPacketTiming(protocol, self.widthList)
+        # may be better to embed all of the protocol checks inside of the decodePacket fn
+        
         decodePacket(protocol, self.widthList, self.fullBasebandData, tempUnused)
+        
+        # remove all of the components from the fn above and add them below,
+        # flagging any errors found
         #print "Decoded Packet # " + str(self.txNum)
         #print(self.fullBasebandData)
         
         # NEED preamble check
+        
         # NEED encoding check
         # NEED CRC check
         # print(decodedPacket)

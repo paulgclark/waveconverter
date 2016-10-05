@@ -91,6 +91,38 @@ def breakBaseband(basebandData, minTimeBetweenTx):
     print "number of transmissions: " + str(len(basebandTransmissionList))
     return basebandTransmissionList
 
+###########################################
+# Used for extracting timing between edges given a file input
+#####################################
+# reads through a file, byte-by-byte until a 0x00 is followed by a 0x01
+def timeToNextEdge(bitFile, edge):
+    width=0
+
+    if edge==RISING_EDGE: lastByte = b'\x00'
+    else: lastByte = b'\x01'
+
+    while True: 
+        newByte = bitFile.peek(1)[:1] # look ahead at the next byte in buffer
+        # if we come to EOF before a rising edge, pass on EOF
+        if not newByte:
+            return(wcv.END_OF_FILE)
+
+        # if the value is not 0 or 1, exit immediately
+        if (newByte != b'\x00') and (newByte != b'\x01'):
+            print (bitFile.tell(), ': Illegal binary value : ', newByte, '\n');
+            return(wcv.ILLEGAL_VALUE)
+
+        # look for rising edge or a falling edge
+        if ((edge==RISING_EDGE)and(lastByte==b'\x00')and(newByte==b'\x01')) or \
+           ((edge==FALLING_EDGE)and(lastByte==b'\x01')and(newByte==b'\x00')):
+            lastByte=bitFile.read(1) # advance file pointer
+            #return(float(width)) # found it!
+            return(width) # found it!
+        else:
+            width+=1;
+            lastByte=bitFile.read(1) # advance file pointer
+
+
 #####################################
 # reads through a file, byte-by-byte until a 0x00 is followed by a 0x01
 def timeToNextEdge2(waveformList, edge, i):
@@ -138,8 +170,10 @@ def breakdownWaveform(protocol, waveformFile, masterWidthList):
     width = 0
 
     # run through file and catalog all transition widths
+    #index = 0
     while True:
         # measure the number of samples to the next edge
+        #(width, index) = timeToNextEdge2(waveformFile, nextEdge, index)
         width = timeToNextEdge(waveformFile, nextEdge)
 
 # This should not be necessary; delete
