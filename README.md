@@ -6,7 +6,9 @@ sqlalchemy. Finally, waveform plotting uses matplotlib.
 
 To install pre-requisites for execution:
 sudo apt-get install python-sqlalchemy
+
 sudo apt-get install libgtk-3-dev
+
 sudo apt-get isntall python-matplotlib
 
 If you are contributing to development, you will also need glade:
