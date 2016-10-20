@@ -10,15 +10,11 @@ import sys
 import io
 import os
 from collections import Counter
+from protocol_lib import ProtocolDefinition
+import waveConvertVars as wcv
 
 from waveConvertVars import *
 from config import *
-
-MIN_SHORT = UNIT_WIDTH * (1 - UNIT_ERROR)
-MAX_SHORT = UNIT_WIDTH * (1 + UNIT_ERROR)
-MIN_LONG = 2 * UNIT_WIDTH * (1 - UNIT_ERROR)
-MAX_LONG = 2 * UNIT_WIDTH * (1 + UNIT_ERROR)
-
 
 #####################################
 def bitProb(packetList, bitProbList):
@@ -130,31 +126,22 @@ def checkSum(packetList, lowAddr, highAddr, lowData, highData):
     return(checkSumPassList)
 
 #####################################
-def checkCRC(packetList, lowAddr, highAddr, lowData, highData, crcPoly, \
-             inputBitOrder, initVal, reverseOut, finalXOR, \
-             padType, padCount, padVal):
 
-    crcPassList = []
-
-    # compute CRC for each packet in the list and compare to defined field
-    for packet in packetList:
-        #packet[14] = 0 # debug only
-        payload = packet[lowData:highData+1] # assuming crc at end
-        crcFromPacket = packet[lowAddr:highAddr+1]
-        if crcComputed(payload, crcPoly, inputBitOrder, initVal, reverseOut, \
-                       finalXOR, padType, padCount, padVal) == crcFromPacket:
-            crcPassList.append(CRC_PASS)
-        else:
-            crcPassList.append(CRC_FAIL)
-
-        #print "\nCRC from packet:"
-        #print crcFromPacket
-        #print "CRC computed:"
-        #print crcComputed(payload, crcPoly, inputBitOrder, initVal, \
-        #                  reverseOut, finalXOR, padType, padCount, padVal)
-
-    # single for loop extracting values
-    return(crcPassList)
+# Compute an individual CRC
+def checkCRC(protocol, crcBits, payload):
+    
+    crcValue = crcComputed(payload, protocol.crcPoly, protocol.crcBitOrder, 
+                           protocol.crcInit, protocol.crcReverseOut,
+                           protocol.crcFinalXor, protocol.crcPad, 
+                           protocol.crcPadCount, protocol.crcPadVal)
+    
+    print "CRC Computed:"
+    print crcValue
+    
+    if crcValue == crcBits:
+        return(wcv.CRC_PASS)
+    else:
+        return(wcv.CRC_FAIL)
 
 #####################################
 def crcComputed(payload, crcPoly, inputBitOrder, initVal, reverseFinal,\
@@ -163,10 +150,10 @@ def crcComputed(payload, crcPoly, inputBitOrder, initVal, reverseFinal,\
 
     # pad the packet as instructed
     payloadPad = payload[:];
-    if padType == CRC_PAD_ABS: # add fixed number of bits
+    if padType == wcv.CRC_PAD_ABS: # add fixed number of bits
         for i in range(padCount):
             payloadPad.append(padVal)
-    elif padType == CRC_PAD_TO_EVEN:
+    elif padType == wcv.CRC_PAD_TO_EVEN:
         if padCount != 0:
             numBits = len(payload) % padCount # figure how many short of even
         else:
@@ -176,7 +163,7 @@ def crcComputed(payload, crcPoly, inputBitOrder, initVal, reverseFinal,\
 
     # reflecting means reversing the bits within each byte
     # note, this will only work if the payload is a multiple of 8 long
-    if inputBitOrder == CRC_REFLECT:
+    if inputBitOrder == wcv.CRC_REFLECT:
         payloadIn = payloadPad[:]
         i = 0
         while i <= len(payloadIn)-8:
@@ -184,7 +171,7 @@ def crcComputed(payload, crcPoly, inputBitOrder, initVal, reverseFinal,\
             payloadIn[i:i+8] = payloadByte[::-1] # assign to reversed byte
             i += 8
     # reverse the payload if instructed
-    elif inputBitOrder == CRC_REVERSE:
+    elif inputBitOrder == wcv.CRC_REVERSE:
         payloadIn = payloadPad[::-1]
     # else process normally 
     else:

@@ -17,6 +17,7 @@ from gnuradio import filter
 from gnuradio import gr
 #from gnuradio.eng_option import eng_option
 from gnuradio.filter import firdes
+from math import pi
 
 ##############################################################
 # This flowgraph consists of the following blocks:
@@ -102,7 +103,8 @@ class fsk_flowgraph(gr.top_block):
         self.blocks_file_source_0 = blocks.file_source(gr.sizeof_gr_complex*1, iq_filename, False)
         self.blocks_file_sink_0 = blocks.file_sink(gr.sizeof_char*1, dig_out_filename, False)
         self.blocks_file_sink_0.set_unbuffered(False)
-        self.blocks_complex_to_mag_0 = blocks.complex_to_mag(1)
+        #self.blocks_complex_to_mag_0 = blocks.complex_to_mag(1)
+        self.quadrature_demod_0 = analog.quadrature_demod_cf(samp_rate_out/(2*math.pi*fsk_deviation/2))
         self.blocks_add_const_vxx_0 = blocks.add_const_vff((-1*threshold, ))
 
         ##################################################

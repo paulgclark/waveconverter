@@ -9,6 +9,7 @@ from breakWave import breakdownWaveform
 from breakWave import breakdownWaveform2
 from widthToBits import separatePackets
 from widthToBits import decodePacket
+from statEngine import checkCRC
 #from widthToBits import printPacket
 #from config import *
 from protocol_lib import ProtocolDefinition
@@ -172,24 +173,24 @@ class basebandTx:
         #print self.widthList
 
         tempUnused = []
+        self.fullBasebandData = []     # dump any info from previous decoding attempt
         #checkInterPacketTiming(protocol, self.widthList)
         # may be better to embed all of the protocol checks inside of the decodePacket fn
+        (self.interPacketTimingValid, self.preambleValid, 
+         self.headerValid, self.encodingValid) = \
+            decodePacket(protocol, self.widthList, self.fullBasebandData, tempUnused)
         
-        decodePacket(protocol, self.widthList, self.fullBasebandData, tempUnused)
-        
-        # remove all of the components from the fn above and add them below,
-        # flagging any errors found
-        #print "Decoded Packet # " + str(self.txNum)
-        #print(self.fullBasebandData)
-        
-        # NEED preamble check
-        
-        # NEED encoding check
-        # NEED CRC check
-        # print(decodedPacket)
-        
-        # NEED break out paylod
-        # NEED break out CRC
+        self.framingValid = self.interPacketTimingValid & \
+                            self.preambleValid & \
+                            self.headerValid
+
+        # NEED: add protocol check to ensure bits are legal
+        self.crcBits = self.fullBasebandData[protocol.crcLow:protocol.crcHigh+1]
+        self.payloadData = self.fullBasebandData[protocol.crcDataLow:protocol.crcDataHigh+1]
+        print "crcbits and payload"
+        print self.crcBits
+        print self.payloadData
+        self.crcValid = checkCRC(protocol, self.crcBits, self.payloadData)
         # NEED check CRC
         # NEED break out ID
         # NEED break out Value1

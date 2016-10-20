@@ -13,6 +13,7 @@ from protocol_lib import protocolSession
 from protocol_lib import fetchProtocol
 from waveConvertVars import protocol # NEED to eliminate
 from waveconverterEngine import basebandTx
+from collections import Counter
 
 # for plotting baseband
 try:
@@ -269,6 +270,10 @@ class TopWindow:
         tempWidget = self.builder.get_object(widgetName)
         Gtk.ComboBox.set_active(tempWidget, value)
     
+    def setLabel(self, widgetName, value):
+        tempWidget = self.builder.get_object(widgetName)
+        Gtk.Label.set_text(tempWidget, value)
+        
     #def setIntToEntryBox(self, widgetName, value):
     #    tempWidget = self.builder.get_object(widgetName)
     #    Gtk.ComboBox.set_active(tempWidget, value)
@@ -340,6 +345,10 @@ class TopWindow:
     def on_Demodulate_clicked(self, button, data=None):
         print "pushed RF Demod Button"
         
+        # NEED to get all other globals relevant to demodulation
+        # iq file name? in case it was manually typed?
+        # 
+        
         ## get all of the values entered on this screen
         wcv.center_freq = 1000000 * self.getFloatFromEntry("centerFreqEntry")
         wcv.samp_rate = 1000000 * self.getFloatFromEntry("sampRateEntry")
@@ -399,7 +408,7 @@ class TopWindow:
         wcv.basebandData = basebandFileToList(wcv.waveformFileName) # NEED get list from flowgraph; unnecessary file reads kill perf
         
         # split the baseband into individual transmissions and then store each
-        # in its own transmission object, to be decoded later
+        # in its own transmission list, to be decoded later
         wcv.basebandDataByTx = breakBaseband(wcv.basebandData, wcv.protocol.interPacketWidth_samp)
         runningSampleCount = 0
         wcv.txList = []
@@ -420,7 +429,6 @@ class TopWindow:
         self.txSelectSpinButton.set_range(0, len(wcv.txList)-1)
         
         # update the transmission status
-        
         print "Flowgraph completed"
     
     # when the Decode button is pushed, we need to take all the settings 
@@ -429,6 +437,12 @@ class TopWindow:
     def on_Decode_clicked(self, button, data=None):
         if wcv.verbose:
             print "Now Decoding Baseband"
+        
+        # get global vars
+        wcv.center_freq = self.getFloatFromEntry("centerFreqEntry")*1000000.0
+        wcv.samp_rate = self.getFloatFromEntry("sampRateEntry")*1000000.0
+        wcv.glitchFilterCount = self.getIntFromEntry("glitchFilterEntry")
+        wcv.timingError = self.getFloatFromEntry("unitTimingErrorEntry")/100.0
             
         #wcv.protocol.modulation = self.getIntFromEntryBox("modulationEntryBox")
         #wcv.protocol.frequency = 1000000 * self.getFloatFromEntry("frequencyEntry")
@@ -475,18 +489,19 @@ class TopWindow:
         if wcv.verbose:
             print "baseband sample rate:" + str(wcv.basebandSampleRate)
             wcv.protocol.printProtocolFull()
+            print "tx list length: " + str(len(wcv.txList))
            
         # call decode engine for each transmission
+        wcv.decodeOutputString = "" # need to start over after each decode attempt
         i = 0
-        print "tx list length: " + str(len(wcv.txList))
         for iTx in wcv.txList:
             if i == len(wcv.txList) - 1: # NEED: fix this kludge, last tx in list is wonky
                 iTx.display()
             else:
                 iTx.decodeTx(wcv.protocol)
             i+=1
-            
             wcv.decodeOutputString += iTx.binaryString
+            #break # temp debug, to keep loop to one iter
         """
         # call decode engine
         wcv.payloadList = decodeBaseband(wcv.waveformFileName,
@@ -498,6 +513,30 @@ class TopWindow:
         wcv.decodeOutputString = packetsToFormattedString(wcv.payloadList, wcv.protocol, 
                                                           wcv.outputHex) 
         """
+        # update the display of tx valid flags
+        interPacketValidCount = 0
+        preambleValidCount = 0
+        headerValidCount = 0
+        encodingValidCount = 0
+        crcValidCount = 0
+        for iTx in wcv.txList:
+            interPacketValidCount += iTx.interPacketTimingValid
+            preambleValidCount = preambleValidCount + iTx.preambleValid
+            headerValidCount = headerValidCount + iTx.headerValid
+            encodingValidCount = encodingValidCount + iTx.encodingValid
+            crcValidCount = crcValidCount + iTx.crcValid
+        
+        numTx = len(wcv.txList)
+        self.setLabel("guiPreambleMatches1", str(preambleValidCount) + "/" + str(numTx))
+        self.setLabel("guiEncodingValid1", str(encodingValidCount) + "/" + str(numTx))
+        self.setLabel("guiCrcPass1", str(crcValidCount) + "/" + str(numTx))
+        self.setLabel("guiPreambleMatches2", str(preambleValidCount) + "/" + str(numTx))
+        self.setLabel("guiEncodingValid2", str(encodingValidCount) + "/" + str(numTx))
+        self.setLabel("guiCrcPass2", str(crcValidCount) + "/" + str(numTx))
+        self.setLabel("guiPreambleMatches3", str(preambleValidCount) + "/" + str(numTx))
+        self.setLabel("guiEncodingValid3", str(encodingValidCount) + "/" + str(numTx))
+        self.setLabel("guiCrcPass3", str(crcValidCount) + "/" + str(numTx))
+        
         # change the text in all windows (NEED a framed approach)
         self.decodeTextViewWidget1 = self.builder.get_object("decodeTextView1")
         self.decodeTextViewWidget1.modify_font(Pango.font_description_from_string('Courier 12'))
@@ -510,6 +549,75 @@ class TopWindow:
         self.decodeTextViewWidget3.get_buffer().set_text(wcv.decodeOutputString)
         
     # when a new protocol is loaded, we use its information to populate GUI
+    
+    def on_runStat_clicked(self, button, data=None):
+        if wcv.verbose:
+            print "Now Computing Payload Statistics..."
+            
+        # get stats properties
+        wcv.protocol.idAddrLow = self.getIntFromEntry("idAddrLowEntry")
+        wcv.protocol.idAddrHigh = self.getIntFromEntry("idAddrHighEntry")
+        wcv.protocol.val1AddrLow = self.getIntFromEntry("val1AddrLowEntry")
+        wcv.protocol.val1AddrHigh = self.getIntFromEntry("val1AddrHighEntry")
+        wcv.protocol.val2AddrLow = self.getIntFromEntry("val2AddrLowEntry")
+        wcv.protocol.val2AddrHigh = self.getIntFromEntry("val2AddrHighEntry")
+        wcv.protocol.val3AddrLow = self.getIntFromEntry("val3AddrLowEntry")
+        wcv.protocol.val3AddrHigh = self.getIntFromEntry("val3AddrHighEntry")
+        
+        wcv.bitProbList = []
+        # compute the probability of each bit being equal to 1
+        i=0
+        while i < wcv.protocol.packetSize:
+            sumOfBits = 0
+            totalBits = 0
+            for iTx in wcv.txList:
+                try:
+                    sumOfBits += iTx.fullBasebandData[i]
+                    totalBits += 1
+                except:
+                    totalBits = totalBits
+            try:
+                wcv.bitProbList.append(100.0*sumOfBits/totalBits)
+            except:
+                wcv.bitProbList.append(-1.0) # if no bits at this address, use -1
+            i+=1
+            
+        # build string for display, one probability per line
+        wcv.bitProbString = "Bit: Probability %\n"
+        i=0
+        for bitProb in wcv.bitProbList:
+            wcv.bitProbString += '{:3d}'.format(i) + ": " + '{:6.2f}'.format(bitProb) + "\n"
+            i+=1
+            
+        # display bit probabilities in correct GUI element
+        self.bitProbTextViewWidget = self.builder.get_object("bitProbTextView")
+        self.bitProbTextViewWidget.modify_font(Pango.font_description_from_string('Courier 8'))
+        self.bitProbTextViewWidget.get_buffer().set_text(wcv.bitProbString)
+        #print wcv.bitProbString
+        
+        idList = []
+        # get ID value for each packet and save as string to a new list  
+        for iTx in wcv.txList:
+            binaryString = ''.join(str(s) for s in iTx.fullBasebandData[wcv.protocol.idAddrLow:wcv.protocol.idAddrHigh+1])
+            idList.append(binaryString)
+        idListCounter = Counter(idList)
+        print idListCounter
+
+        # print out values
+        idStatString = "Count ID\n" # NEED: make the whitespace match the length of the IDs
+        for (idVal, idCount) in idListCounter.most_common():
+            idStatString += '{:5d}'.format(idCount) + "  " + idVal + "\n"
+        
+        # display ID frequency data
+        self.idValuesTextViewWidget = self.builder.get_object("idValuesTextView")
+        self.idValuesTextViewWidget.modify_font(Pango.font_description_from_string('Courier 8'))
+        self.idValuesTextViewWidget.get_buffer().set_text(idStatString)
+        print idStatString
+        
+        ### print values
+        
+        
+        
     def populateProtocolToGui(self, protocol):
     
         # add global WC control values
@@ -558,7 +666,14 @@ class TopWindow:
         self.setEntryBox("crcPadCountEntryBox", wcv.protocol.crcPadCount/8)
         
         # add payload statistics properties
-        # NEED to fill out
+        self.setEntry("idAddrLowEntry", wcv.protocol.idAddrLow)
+        self.setEntry("idAddrHighEntry", wcv.protocol.idAddrHigh)
+        self.setEntry("val1AddrLowEntry", wcv.protocol.val1AddrLow)
+        self.setEntry("val1AddrHighEntry", wcv.protocol.val1AddrHigh)
+        self.setEntry("val2AddrLowEntry", wcv.protocol.val2AddrLow)
+        self.setEntry("val2AddrHighEntry", wcv.protocol.val2AddrHigh)
+        self.setEntry("val3AddrLowEntry", wcv.protocol.val3AddrLow)
+        self.setEntry("val3AddrHighEntry", wcv.protocol.val3AddrHigh)
             
         
     def __init__(self, protocol):

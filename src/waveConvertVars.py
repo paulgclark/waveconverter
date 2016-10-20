@@ -19,6 +19,8 @@ basebandData = []
 basebandDataByTx = [] # broken down by individual transmissions
 payloadList = ""
 decodeOutputString = ""
+bitProbString = ""
+bitProbList = []
 
 # these variable maintain the zoom and waveform window positions
 tMin = 0
@@ -32,7 +34,7 @@ iqFileName = ""
 center_freq = 0.0
 samp_rate = 0.0
 glitchFilterCount = 2
-timingError = 0.1
+timingError = 0.2
 
 # this value is used for the sample rate of the digital baseband file
 basebandSampleRate = 100000.0 # good default rate

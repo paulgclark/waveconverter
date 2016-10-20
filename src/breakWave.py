@@ -71,7 +71,8 @@ def breakBaseband(basebandData, minTimeBetweenTx):
             if len(newTx) > 5000: # NEED to programatize this
                 basebandTransmissionList.append(newTx)
             if i > 1:
-                currentStartIndex = i - 1 # make sure we get the first transition on the text tx
+                #currentStartIndex = i - 1 # make sure we get the first transition on the text tx
+                currentStartIndex = i - deadAirCount
             else:
                 currentStartIndex = 0
             deadAirCount = 0
@@ -86,7 +87,7 @@ def breakBaseband(basebandData, minTimeBetweenTx):
             deadAirCount = 0
         i+=1
     # now remove the trailing zeroes from each transmission
-    # NEED to implement
+    # NEED to implement?
     
     print "number of transmissions: " + str(len(basebandTransmissionList))
     return basebandTransmissionList
@@ -251,13 +252,10 @@ def breakdownWaveform2(protocol, waveformList, masterWidthList):
         else:
             nextEdge = RISING_EDGE
 
-    #print("\n\n\nPre-glitch:")
-    #print(masterWidthList)
     if protocol.glitchFilterCount > 0:
         glitchFilter(masterWidthList, wcv.glitchFilterCount) 
         # glitch filter behavior not part of protocol, but top level WC control
-    #print("\n\n\nPost-glitch:")
-    #print(masterWidthList)
+
     return(wcv.END_OF_FILE)
 
 #####################################

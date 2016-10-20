@@ -5,11 +5,14 @@ implemented via Glade. A sqlite database has been implemented via
 sqlalchemy. Finally, waveform plotting uses matplotlib.
 
 To install pre-requisites for execution:
+
 sudo apt-get install python-sqlalchemy
 
 sudo apt-get install libgtk-3-dev
 
-sudo apt-get isntall python-matplotlib
+sudo apt-get install python-matplotlib
+
+sudo apt-get install python-gi-cairo
 
 If you are contributing to development, you will also need glade:
 sudo apt-get install glade

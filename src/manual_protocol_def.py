@@ -29,7 +29,7 @@ def manualProtocolAssign():
     protocol.preambleSync = False # PRO ONLY
     protocol.preambleSize = [10, 999]
     protocol.preambleSymbolLow = 500 # 200
-    protocol.preambleSymbolHigh = 250 # 100
+    protocol.preambleSymbolHigh = 200 # 100
     protocol.headerLevel = wcv.DATA_ZERO # PRO ONLY
     protocol.headerWidth = 2400 # 960 #
     
@@ -55,10 +55,14 @@ def manualProtocolAssign():
     protocol.crcPadCountOptions = [0, 8, 16, 32]
     
     # Payload Data Addresses
-    protocol.idAddrLow = 66
-    protocol.idAddrHigh = 67
-    protocol.valAddrLow = 24
-    protocol.valAddrHigh = 31
+    protocol.idAddrLow = 32
+    protocol.idAddrHigh = 63
+    protocol.val1AddrLow = 24
+    protocol.val1AddrHigh = 31
+    protocol.val2AddrLow = 32
+    protocol.val2AddrHigh = 33
+    protocol.val3AddrLow = 34
+    protocol.val3AddrHigh = 35
     
     # provide initial values for these
     protocol.unitWidth_samp = 1
