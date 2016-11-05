@@ -8,7 +8,7 @@ from waveconverterEngine import decodeBaseband
 from waveconverterEngine import packetsToFormattedString
 from breakWave import basebandFileToList
 from breakWave import breakBaseband
-from protocol_lib import ProtocolDefinition
+from protocol_lib import ProtocolDefinition, getNextProtocolId
 from protocol_lib import protocolSession
 from protocol_lib import fetchProtocol
 from waveConvertVars import protocol # NEED to eliminate
@@ -41,35 +41,123 @@ except:
 class TopWindow:
     
     def on_window1_destroy(self, object, data=None):
-        print "quit with cancel"
+        if wcv.verbose:
+            print "quit with cancel"
         Gtk.main_quit()
     
     def on_gtk_quit_activate(self, menuitem, data=None):
-        print "quit from menu"
+        if wcv.verbose:
+            print "quit from menu"
         Gtk.main_quit()
         
     def on_gtk_about_activate(self, menuitem, data=None):
-        print "help about selected"
+        if wcv.verbose:
+            print "help about selected"
         self.response = self.aboutdialog.run()
         self.aboutdialog.hide()
+    
+    # This function grabs all of the entries that the user has made into the GUI
+    # and stores them in the active protocol object. This function is called before
+    # saving or using any protocol
+    def transferGUIDataToProtocol(self):
+        ## get all of the values entered on the demodulation tab
+        wcv.center_freq = 1000000.0 * self.getFloatFromEntry("centerFreqEntry")
+        wcv.samp_rate = 1000000.0 * self.getFloatFromEntry("sampRateEntry")
+        wcv.protocol.modulation = self.getIntFromEntryBox("modulationEntryBox")
+        wcv.protocol.frequency = 1000000.0 * self.getFloatFromEntry("frequencyEntry")
+        wcv.protocol.channelWidth = 1000.0 * self.getFloatFromEntry("channelWidthEntry")
+        wcv.protocol.transitionWidth = 1000.0 * self.getFloatFromEntry("transitionWidthEntry")
+        wcv.protocol.threshold = self.getFloatFromEntry("thresholdEntry")
+        # may not have an FSK deviation value entered if user is working with OOK
+        try:
+            wcv.protocol.fskDeviation = self.getFloatFromEntry("fskDeviationEntry")
+        except:
+            wcv.protocol.fskDeviation = 0.0
+        
+        # get framing properties
+        wcv.protocol.preambleSymbolLow = self.getIntFromEntry("preambleLowEntry")
+        wcv.protocol.preambleSymbolHigh = self.getIntFromEntry("preambleHighEntry")
+        # the preamble size is a list of possible values
+        wcv.protocol.preambleSize[0] = self.getIntFromEntry("preambleSize1Entry")
+        # there may not be a second value entered into the GUI
+        try:
+            wcv.protocol.preambleSize[1] = self.getIntFromEntry("preambleSize2Entry")
+        except:
+            wcv.protocol.preambleSize[1] = 0
+                
+        wcv.protocol.headerWidth  = self.getIntFromEntry("headerLengthEntry")
+        wcv.protocol.interPacketWidth = self.getIntFromEntry("interPacketWidthEntry")
+        
+        # get decode properties
+        wcv.protocol.encodingType = self.getIntFromEntryBox("encodingEntryBox")
+        wcv.protocol.unitWidth = self.getIntFromEntry("payloadUnitEntry")
+        wcv.protocol.pwmSymbolSize = self.getIntFromEntry("pwmPeriodEntry")
+        # compute PWM units from percentage in GUI
+        wcv.protocol.pwmZeroSymbol[0] = int(wcv.protocol.pwmSymbolSize*(100.0-self.getFloatFromEntry("pwmZeroEntry"))/100.0)
+        wcv.protocol.pwmZeroSymbol[1] = int(wcv.protocol.pwmSymbolSize*self.getFloatFromEntry("pwmZeroEntry")/100.0)
+        wcv.protocol.pwmOneSymbol[0] = int(wcv.protocol.pwmSymbolSize*(100.0-self.getFloatFromEntry("pwmOneEntry"))/100.0)
+        wcv.protocol.pwmOneSymbol[1] = int(wcv.protocol.pwmSymbolSize*self.getFloatFromEntry("pwmOneEntry")/100.0)
+        
+        # load CRC properties
+        wcv.protocol.crcPoly = self.getListFromEntry("crcPolynomialEntry")
+        wcv.protocol.crcLow = self.getIntFromEntry("crcStartAddrEntry")
+        wcv.protocol.crcDataLow = self.getIntFromEntry("addrDataLowEntry")
+        wcv.protocol.crcDataHigh = self.getIntFromEntry("addrDataHighEntry")
+        wcv.protocol.crcInit = self.getIntFromEntry("crcInitEntry")
+        wcv.protocol.crcBitOrder = self.getIntFromEntryBox("crcReflectEntryBox")
+        if self.getIntFromEntryBox("crcReverseOutEntryBox") == 1:
+            wcv.protocol.crcReverseOut = True
+        else:
+            wcv.protocol.crcReverseOut = False
+        wcv.protocol.crcFinalXor = self.getListFromEntry("crcFinalXorEntry")
+        wcv.protocol.crcPad = self.getIntFromEntryBox("crcPadEntryBox")
+        wcv.protocol.crcPadCount = 8*self.getIntFromEntryBox("crcPadCountEntryBox")
+        
+        # get stats properties
+        wcv.protocol.idAddrLow = self.getIntFromEntry("idAddrLowEntry")
+        wcv.protocol.idAddrHigh = self.getIntFromEntry("idAddrHighEntry")
+        wcv.protocol.val1AddrLow = self.getIntFromEntry("val1AddrLowEntry")
+        wcv.protocol.val1AddrHigh = self.getIntFromEntry("val1AddrHighEntry")
+        wcv.protocol.val2AddrLow = self.getIntFromEntry("val2AddrLowEntry")
+        wcv.protocol.val2AddrHigh = self.getIntFromEntry("val2AddrHighEntry")
+        wcv.protocol.val3AddrLow = self.getIntFromEntry("val3AddrLowEntry")
+        wcv.protocol.val3AddrHigh = self.getIntFromEntry("val3AddrHighEntry")
+        
+        # these parameters are currently unused but must be in protocol to keep sqllite happy
+        wcv.protocol.interPacketSymbol = 0
+        wcv.protocol.headerLevel = 0
+        wcv.protocol.packetSize = 0
+        wcv.protocol.preambleSync = False
+        wcv.protocol.crcHigh = 0
+        wcv.protocol.crcPadVal = 0
+                
+        # when we load new values for the protocol, we need to do the
+        # conversion from microseconds to samples
+        wcv.protocol.convertTimingToSamples(wcv.basebandSampleRate)
+        
         
     def on_loadProtocol_clicked(self, menuitem, data=None):
-        print "load protocol dialog started"
+        if wcv.verbose:
+            print "load protocol dialog started"
         
         # generate liststore from protocols in database
         protocolStore = Gtk.ListStore(int, str, str, str, str, float) # ID, name, modulation, freq
         for proto in protocolSession.query(ProtocolDefinition):
+            # use strings to display modulation and device types
             if proto.modulation == 0:
                 modString = "OOK"
             else:
                 modString = "FSK"
+            devTypeString = wcv.devTypeStrings[proto.deviceType]
             protocolStore.append([proto.protocolId, 
-                                  proto.deviceType,
+                                  devTypeString, #proto.deviceType,
                                   proto.deviceName,
                                   proto.deviceYear,
                                   modString, 
                                   proto.frequency])
-            print "adding protocol to selection list: " + str(proto.protocolId) + "  " + proto.name + "   " + modString + "   " + str(proto.frequency)
+            if wcv.verbose:
+                print "adding protocol to selection list: " + str(proto.protocolId) + \
+                      "  " + proto.deviceName + "   " + modString + "   " + str(proto.frequency)
          
         self.protocolTreeView.set_model(protocolStore)
         self.protocolName = self.protocolDialog.run()
@@ -90,14 +178,69 @@ class TopWindow:
     # when the user clicks the OK button, read the selected protocol from the
     # database, then hide the dialog 
     def on_protocolDialogOKButton_clicked(self, data=None):
-        print "dialog OK clicked"
+        if wcv.verbose:
+            print "dialog OK clicked"
         wcv.protocol = fetchProtocol(self.currentProtocolDialogSelection)
         self.populateProtocolToGui(protocol)
         self.protocolDialog.hide()
         
     def on_protocolDialogCancelButton_clicked(self, data=None):
-        print "dialog cancel clicked"
+        if wcv.verbose:
+            print "dialog cancel clicked"
         self.protocolDialog.hide()
+        
+    def on_saveProtocol_clicked(self, menuitem, data=None):
+        if wcv.verbose:
+            print "save protocol dialog started"
+            
+        # pull in all the user-entered data and save to current protocol            
+        self.transferGUIDataToProtocol()
+        
+        # store protocol in database under current ID
+        wcv.protocol.saveProtocol()
+        
+    # this function is called when the toolbar "save as" button is clicked,
+    # it brings up a dialog asking the user for a protocol name for the new
+    # protocol to be stored under
+    def on_saveAsProtocol_clicked(self, menuitem, data=None):
+        if wcv.verbose:
+            print "save as protocol dialog started"
+        
+        # clear any existing text in dialog window (previously entered protocol info)
+        self.setEntry("protocolSaveAsDeviceNameEntry", "")
+        self.setEntry("protocolSaveAsDeviceYearEntry", "")
+        self.setEntryBox("protocolSaveAsDeviceTypeEntryBox", -1)
+        
+        # bring up "Save As" dialog
+        self.protocolSaveAsReturn = self.protocolSaveAsDialog.run()
+        self.protocolSaveAsDialog.hide()
+
+    # when the user clicks the OK button, read the selected protocol from the
+    # database, then hide the dialog 
+    def on_protocolSaveAsOKButton_clicked(self, data=None):
+        if wcv.verbose:
+            print "SAVE-AS OK clicked"
+
+        # pull in all the user-entered data and save to current protocol, plus protocol name
+        wcv.protocol = ProtocolDefinition(getNextProtocolId())
+        self.transferGUIDataToProtocol()
+        wcv.protocol.deviceName = self.getStringFromEntry("protocolSaveAsDeviceNameEntry") 
+        wcv.protocol.deviceYear = self.getIntFromEntry("protocolSaveAsDeviceYearEntry")
+        wcv.protocol.deviceType = self.getIntFromEntryBox("protocolSaveAsDeviceTypeEntryBox")
+        if wcv.verbose:
+            wcv.protocol.printProtocolFull()
+            
+        
+        # store protocol in database under current ID
+        wcv.protocol.saveProtocol()
+        
+        # NEED: check if name already exists, if it does, prompt for new name (loop until name is OK)
+        self.protocolSaveAsDialog.hide()
+        
+    def on_protocolSaveAsCancelButton_clicked(self, data=None):
+        if wcv.verbose:
+            print "SAVE-AS cancel button clicked"
+        self.protocolSaveAsDialog.hide()
         
     def on_gtk_rfFileOpen_activate(self, menuitem, data=None):
         print "menu RF File Open"
@@ -121,10 +264,12 @@ class TopWindow:
         if wcv.verbose:
             print "Selecting TX #" + str(txNum)
             
-        if txNum < len(wcv.basebandDataByTx):
+        if txNum <= len(wcv.basebandDataByTx):
             wcv.txNum = txNum
-            self.drawBasebandPlot(wcv.basebandDataByTx[wcv.txNum], 
+            self.drawBasebandPlot(wcv.basebandDataByTx[wcv.txNum-1], 
                                   wcv.tMin, wcv.tMax, wcv.basebandSampleRate)
+        else:
+            print "Reached end of transmission list"
         
     def on_panRightButton_clicked(self, button, data=None):
         if wcv.verbose:
@@ -239,6 +384,10 @@ class TopWindow:
     def getFloatFromEntry(self, widgetName):
         tempWidget = self.builder.get_object(widgetName)
         return float(tempWidget.get_text())
+
+    def getStringFromEntry(self, widgetName):
+        tempWidget = self.builder.get_object(widgetName)
+        return str(tempWidget.get_text())
     
     def getIntFromEntryBox(self, widgetName):
         tempWidget = self.builder.get_object(widgetName)
@@ -404,32 +553,48 @@ class TopWindow:
         except [[KeyboardInterrupt]]:
             pass
         
+        print "Flowgraph completed"
+        
         # read baseband waveform data from file
         wcv.basebandData = basebandFileToList(wcv.waveformFileName) # NEED get list from flowgraph; unnecessary file reads kill perf
-        
+        print "baseband data length (raw): " + str(len(wcv.basebandData))
+
+        # for debug purposes only - verifies we have some non-zero baseband
+        import sys
+        for point in wcv.basebandData:
+            if point != 0:
+                sys.stdout.write(str(point))
+
         # split the baseband into individual transmissions and then store each
         # in its own transmission list, to be decoded later
         wcv.basebandDataByTx = breakBaseband(wcv.basebandData, wcv.protocol.interPacketWidth_samp)
         runningSampleCount = 0
         wcv.txList = []
-        for iTx in wcv.basebandDataByTx[1:]: # ignore the first transmission, it's spurious
+
+        #for iTx in wcv.basebandDataByTx[1:] # ignore the first transmission, it's spurious
+        for iTx in wcv.basebandDataByTx:
             timeStamp_us = 1000000.0 * runningSampleCount/wcv.basebandSampleRate
             runningSampleCount += len(iTx)
-            #print "baseband size" + str(len(wcv.txList)) + ":  " + str(len(iTx))
             wcv.txList.append(basebandTx(len(wcv.txList), timeStamp_us, iTx))
         
+        # debug only
+        print "Number of transmissions broken down: " + str(len(wcv.txList))
+        for tx in wcv.txList:
+            print "tx list length: " + str(len(tx.waveformData))
+        self.setLabel("signalCountLabel", "Signals Found: " + str(len(wcv.txList)))
+            
         # now plot the first transmission, zoomed out
         wcv.tMin = 0
         wcv.tMax = 100
-        #self.drawBasebandPlot(wcv.basebandDataByTx[1], wcv.tMin, wcv.tMax, wcv.basebandSampleRate)
-        self.drawBasebandPlot(wcv.txList[1].waveformData, wcv.tMin, wcv.tMax, wcv.basebandSampleRate)
+        print "txListLength: " + str(len(wcv.txList[0].waveformData)) + " tMin/Max: " + str(wcv.tMin) + " " + str(wcv.tMax) + " bbsr: " + str(wcv.basebandSampleRate)
+        print wcv.txList[0].waveformData
+        self.drawBasebandPlot(wcv.txList[0].waveformData, wcv.tMin, wcv.tMax, wcv.basebandSampleRate)
         
         # set range for the tx-select spin button
-        #self.txSelectSpinButton.set_range(0, len(wcv.basebandDataByTx)-1)
-        self.txSelectSpinButton.set_range(0, len(wcv.txList)-1)
+        self.txSelectSpinButton.set_range(1, len(wcv.txList)+1)
         
         # update the transmission status
-        print "Flowgraph completed"
+        print "Baseband separated into individual transmissions."
     
     # when the Decode button is pushed, we need to take all the settings 
     # that the user has entered into the gui and place them in the current 
@@ -614,7 +779,7 @@ class TopWindow:
         self.idValuesTextViewWidget.get_buffer().set_text(idStatString)
         print idStatString
         
-        ### print values
+        ### print value ranges
         
         
         
@@ -731,6 +896,7 @@ class TopWindow:
         
         self.window = self.builder.get_object("window1")
         self.aboutdialog = self.builder.get_object("aboutdialog1")
+        self.protocolSaveAsDialog = self.builder.get_object("protocolSaveAsDialog")
         #self.statusbar = self.builder.get_object("statusbar1")
         self.window.show()
         

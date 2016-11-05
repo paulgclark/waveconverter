@@ -48,6 +48,7 @@ protocol = ProtocolDefinition(-1)
 # is clicked 
 txList = []
 
+devTypeStrings = ["KeyFob", "Tire Pressure Monitor Sensor", "Fan Controller", "RC Vechicle", "Weather Station"]
 
 # protocol library defines
 TEMP_PROTOCOL = 0

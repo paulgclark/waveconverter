@@ -9,8 +9,7 @@ def buildProtocolDatabase():
     protocol = ProtocolDefinition(getNextProtocolId())
     protocol.deviceName = "Device Name"
     protocol.deviceYear = "Year"
-    protocol.deviceType = "Type"
-    protocol.name = protocol.deviceName + ":" + protocol.deviceYear + ":" + protocol.deviceType
+    protocol.deviceType = 1
     #protocol.protocolID = wcv.TEMP_PROTOCOL # this value reserved for current, unsaved protocol
     
     # ONLY EDIT THIS SECTION BELOW
@@ -72,6 +71,26 @@ def buildProtocolDatabase():
     protocol.pwmZeroSymbol_samp = [1, 1]
     protocol.pwmSymbolSize_samp = 2
     
+    # Payload Data Addresses
+    protocol.idAddrLow = 32
+    protocol.idAddrHigh = 63
+    protocol.val1AddrLow = 24
+    protocol.val1AddrHigh = 31
+    protocol.val2AddrLow = 32
+    protocol.val2AddrHigh = 33
+    protocol.val3AddrLow = 34
+    protocol.val3AddrHigh = 35
+    
+    # provide initial values for these
+    protocol.unitWidth_samp = 1
+    protocol.interPacketWidth_samp = 1 
+    protocol.preambleSymbolLow_samp = 1
+    protocol.preambleSymbolHigh_samp = 1
+    protocol.headerWidth_samp = 1
+    protocol.pwmOneSymbol_samp = [1, 1]
+    protocol.pwmZeroSymbol_samp = [1, 1]
+    protocol.pwmSymbolSize_samp = 2
+    
     protocol.saveProtocol() # add to database
     
     
@@ -79,8 +98,7 @@ def buildProtocolDatabase():
     protocol = ProtocolDefinition(getNextProtocolId())
     protocol.deviceName = "Chevy Colorado"
     protocol.deviceYear = "2011"
-    protocol.deviceType = "keyfob"
-    protocol.name = protocol.deviceName + ":" + protocol.deviceYear + ":" + protocol.deviceType
+    protocol.deviceType = 1
     #protocol.protocolID = wcv.TEMP_PROTOCOL # this value reserved for current, unsaved protocol
     
     # ONLY EDIT THIS SECTION BELOW
@@ -129,8 +147,12 @@ def buildProtocolDatabase():
     # Payload Data Addresses
     protocol.idAddrLow = 66
     protocol.idAddrHigh = 67
-    protocol.valAddrLow = 24
-    protocol.valAddrHigh = 31
+    protocol.val1AddrLow = 24
+    protocol.val1AddrHigh = 31
+    protocol.val2AddrLow = 32
+    protocol.val2AddrHigh = 33
+    protocol.val3AddrLow = 34
+    protocol.val3AddrHigh = 35
     
     # provide initial values for these
     protocol.unitWidth_samp = 1
@@ -148,8 +170,7 @@ def buildProtocolDatabase():
     protocol = ProtocolDefinition(getNextProtocolId())
     protocol.deviceName = "Volvo S60"
     protocol.deviceYear = "2003"
-    protocol.deviceType = "keyfob"
-    protocol.name = protocol.deviceName + ":" + protocol.deviceYear + ":" + protocol.deviceType
+    protocol.deviceType = 1
     #protocol.protocolID = wcv.TEMP_PROTOCOL # this value reserved for current, unsaved protocol
     
     # ONLY EDIT THIS SECTION BELOW
@@ -198,9 +219,12 @@ def buildProtocolDatabase():
     # Payload Data Addresses
     protocol.idAddrLow = 66
     protocol.idAddrHigh = 67
-    protocol.valAddrLow = 24
-    protocol.valAddrHigh = 31
-    
+    protocol.val1AddrLow = 24
+    protocol.val1AddrHigh = 31
+    protocol.val2AddrLow = 32
+    protocol.val2AddrHigh = 33
+    protocol.val3AddrLow = 34
+    protocol.val3AddrHigh = 35    
     # provide initial values for these
     protocol.unitWidth_samp = 1
     protocol.interPacketWidth_samp = 1 
@@ -217,8 +241,7 @@ def buildProtocolDatabase():
     protocol = ProtocolDefinition(getNextProtocolId())
     protocol.deviceName = "Chevy Colorado"
     protocol.deviceYear = "2011"
-    protocol.deviceType = "tpm"
-    protocol.name = protocol.deviceName + ":" + protocol.deviceYear + ":" + protocol.deviceType
+    protocol.deviceType = 2
     #protocol.protocolID = wcv.TEMP_PROTOCOL # this value reserved for current, unsaved protocol
     
     # ONLY EDIT THIS SECTION BELOW
@@ -267,8 +290,12 @@ def buildProtocolDatabase():
     # Payload Data Addresses
     protocol.idAddrLow = 66 # NEED
     protocol.idAddrHigh = 67 # NEED
-    protocol.valAddrLow = 24 # NEED
-    protocol.valAddrHigh = 31 # NEED
+    protocol.val1AddrLow = 24
+    protocol.val1AddrHigh = 31
+    protocol.val2AddrLow = 32
+    protocol.val2AddrHigh = 33
+    protocol.val3AddrLow = 34
+    protocol.val3AddrHigh = 35
     
     # provide initial values for these
     protocol.unitWidth_samp = 1

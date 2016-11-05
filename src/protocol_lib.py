@@ -53,8 +53,7 @@ class ProtocolDefinition(Base):
     protocolId = Column(Integer, primary_key=True)
     deviceName = Column(String(250), nullable=False)
     deviceYear = Column(String(250), nullable=False)
-    deviceType = Column(String(250), nullable=False)
-    name = Column(String(250), nullable=False)
+    deviceType = Column(Integer)
       
     # RF demodulation vars
     frequency = Column(Integer)
@@ -72,25 +71,25 @@ class ProtocolDefinition(Base):
     preambleSize = Column(PickleType) # list some preambles have different lengths
     headerLevel = Column(Integer)
     headerWidth = Column(Integer)
-    packetSize = Column(Integer)
+    packetSize = Column(Integer) # rename to payloadSize
     preambleSync = Column(Integer)
         
     # timing vars
     unitWidth = Column(Integer)
-    unitError = Column(Integer)
     encodingType = Column(Integer)
     pwmOneSymbol = Column(PickleType) # list with two elements
     pwmZeroSymbol = Column(PickleType) # list with two elements
     pwmSymbolSize = Column(Integer)
         
-    # waveconverter filter vars
-    glitchFilterCount = Column(Integer)
-        
     # payload addresses for statistical analysis
     idAddrLow = Column(Integer)
     idAddrHigh = Column(Integer)
-    valAddrLow = Column(Integer)
-    valAddrHigh = Column(Integer)
+    val1AddrLow = Column(Integer)
+    val1AddrHigh = Column(Integer)
+    val2AddrLow = Column(Integer)
+    val2AddrHigh = Column(Integer)
+    val3AddrLow = Column(Integer)
+    val3AddrHigh = Column(Integer)
         
     # CRC vars
     crcLow = Column(Integer)
@@ -124,15 +123,28 @@ class ProtocolDefinition(Base):
     
     def __init__(self, protocolId):
         self.protocolId = protocolId # maybe search through database to find max value and +1
+        # initializing all the lists with default sizes make things easier later
+        self.preambleSize = [0, 0]
+        self.pwmOneSymbol = [0, 0]
+        self.pwmZeroSymbol = [0, 0]
+        self.pwmOneSymbol_samp = [0, 0]
+        self.pwmZeroSymbol_samp = [0, 0]
+        self.crcFinalXor = []
+        self.crcPadCountOptions = []
+        self.crcPoly = []
         # the rest of the features must be generated manually
     
     def printProtocolMinimal(self):
         print "protocolId:" + str(self.protocolId)
-        print "name:" + str(self.name)
-        
+        print "Device Name:" + str(self.deviceName)
+        print "Device Year:" + str(self.deviceYear)
+        print "Device Type:" + str(self.deviceType)
+
     def printProtocolFull(self):
         print "Protocol ID:" + str(self.protocolId)
-        print "Name:" + str(self.name)
+        print "Device Name:" + str(self.deviceName)
+        print "Device Year:" + str(self.deviceYear)
+        print "Device Type:" + str(self.deviceType)
         print "RF Properties:"
         print " Frequency(MHz): " + str(self.frequency)
         print " Modulation: " + str(self.modulation)
@@ -168,8 +180,12 @@ class ProtocolDefinition(Base):
         print "Stat Properties:"
         print " ID Addr Low: " + str(self.idAddrLow)
         print " ID Addr High: " + str(self.idAddrHigh)
-        print " Value Addr Low: " + str(self.valAddrLow)
-        print " value Addr High: " + str(self.valAddrHigh)
+        print " Value 1 Addr Low: " + str(self.val1AddrLow)
+        print " value 1 Addr High: " + str(self.val1AddrHigh)
+        print " Value 2 Addr Low: " + str(self.val2AddrLow)
+        print " value 2 Addr High: " + str(self.val2AddrHigh)
+        print " Value 3 Addr Low: " + str(self.val3AddrLow)
+        print " value 3 Addr High: " + str(self.val3AddrHigh)
         print "Timing Propertied Re-Calculated in units of samples:"
         print " Unit Width (samples): " + str(self.unitWidth_samp)
         print " Inter-Packet Width (samples): " + str(self.interPacketWidth_samp)
@@ -204,6 +220,41 @@ class ProtocolDefinition(Base):
         self.pwmZeroSymbol_samp[1] = int(self.pwmZeroSymbol[1] * samplesPerMicrosecond)
         self.pwmSymbolSize_samp = sum(self.pwmOneSymbol_samp)
         return(0)
+
+
+    # produces the maximum size, in integer samples, that a transmission
+    # using this protocol can have
+    def maxTransmissionSize(self):
+        maxSize = 0
+        
+        # add the preamble size
+        maxSize += (self.preambleSymbolLow_samp + self.preambleSymbolHigh_samp) * max(self.preambleSize)
+        
+        # add the header
+        maxSize += self.headerWidth_samp 
+        
+        # add the payload and CRC
+        if self.encodingType == 3: # make this PWM
+            maxSize += self.pwmSymbolSize_samp * self.packetSize
+            maxSize += self.pwmSymbolSize_samp * (self.crcHigh - self.crcLow)
+        else: # assume it's a Manchester variant
+            maxSize += (self.unitWidth_samp * 2) * self.packetSize
+            maxSize += (self.unitWidth_samp * 2) * (self.crcHigh - self.crcLow)
+            
+        # scale up by max timing error and additional fudge factor
+        maxSize = maxSize * (wcv.timingError + 0.05)
+        
+        return(int(maxSize))
+    
+    # this produces the max legal duration (in samples) of a signal level equal to zero
+    # we'll use this to distinguish between a legal zero level within a transmission
+    # and the inter-packet dead air
+    def maxZeroTimeInTx(self):
+        if self.encodingType == 3: # PWM
+            maxSize = (wcv.timingError + 0.05) * max([self.headerWidth_samp, self.preambleSymbolLow_samp, self.pwmSymbolSize_samp])
+        else:
+            maxSize = (wcv.timingError + 0.05) * max([self.headerWidth_samp, self.preambleSymbolLow_samp, self.unitWidth_samp * 2])
+        return(int(maxSize))
 
 
 # sqlalchemy needs this after database class declaration

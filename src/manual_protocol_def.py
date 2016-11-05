@@ -7,8 +7,7 @@ def manualProtocolAssign():
     protocol = ProtocolDefinition(getNextProtocolId())
     protocol.deviceName = "Chevy Colorado"
     protocol.deviceYear = "2011"
-    protocol.deviceType = "keyfob"
-    protocol.name = protocol.deviceName + protocol.deviceYear + protocol.deviceType
+    protocol.deviceType = 1
     #protocol.protocolID = wcv.TEMP_PROTOCOL # this value reserved for current, unsaved protocol
     
     # ONLY EDIT THIS SECTION BELOW

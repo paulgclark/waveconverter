@@ -10,6 +10,7 @@ import sys # NEED
 import io # NEED
 import os # NEED
 import waveConvertVars as wcv
+#from protocol_lib import maxTransmissionSize
 #from waveConvertVars import * # NEED
 #from config import * # NEED
 
@@ -49,46 +50,57 @@ def breakBaseband(basebandData, minTimeBetweenTx):
     
     if wcv.verbose:
         print "Breaking baseband into individual transmissions..."
+        print "maxTxSize (samples): " + str(wcv.protocol.maxTransmissionSize())
     # run through file and find large swaths of dead air
+    # two states:
+    #   0) in the middle of dead air
+    #   1) in the middle of a transmission
+    IN_DEAD_AIR = 0
+    IN_TX = 1
+    state = IN_DEAD_AIR 
     while True:
-        # if we reach the end of the waveform, append the current chunk as the final transmission
-        if i >= len(basebandData):
-            newTx = basebandTransmissionList[currentStartIndex:i]
-            basebandTransmissionList.append(newTx)
-            break
-        # if we find dead air, add to the count
-        elif basebandData[i] == 0:
-            deadAirCount += 1
-            consecutiveOnes = 0
-        # if we find a number of 1s greater than the glitch filter min, append
-        # the current chunk of waveform as a new transmission
-        elif (basebandData[i] == 1) and (consecutiveOnes > wcv.glitchFilterCount) and (deadAirCount > minTimeBetweenTx):
-            newTx = basebandData[currentStartIndex:i]
-            #if wcv.verbose:
-            #    print "Got Tx starting at:" + str(currentStartIndex) + " ending at index: " + str(i) + "length = " + str(len(newTx))
-            #    print "consecutive ones: " + str(consecutiveOnes)
-            #    print "glitch filter set: " + str(wcv.glitchFilterCount) 
-            if len(newTx) > 5000: # NEED to programatize this
-                basebandTransmissionList.append(newTx)
-            if i > 1:
-                #currentStartIndex = i - 1 # make sure we get the first transition on the text tx
-                currentStartIndex = i - deadAirCount
+        if state == IN_DEAD_AIR: # if we are in the middle of dead air
+            # if we are at the end of the list, just quit
+            if i >= len(basebandData):
+                break
+            # have we encountered a transmission?
+            if (basebandData[i] == 1) and (consecutiveOnes > wcv.glitchFilterCount):
+                print "Encountered TX at: " + str(i)
+                state = IN_TX # move to signal found state
+                deadAirCount = 0 # restart dead air counter
+                currentStartIndex = i # current transmission starts now
+            # if we have no transmission, just increment stuff
             else:
-                currentStartIndex = 0
-            deadAirCount = 0
-            consecutiveOnes = 0
-        # else if we currently have fewer ones than the glitch filter min, add to 1s count
-        elif (basebandData[i] == 1) and (consecutiveOnes <= wcv.glitchFilterCount):
+                deadAirCount += 1
+        elif state == IN_TX:
+            # if we are at the end of the list, append the current tx list and then quit
+            if i >= len(basebandData):
+                newTx = [0] * 100 + basebandData[currentStartIndex:i] # prepend zeros for nicer display
+                basebandTransmissionList.append(newTx)
+                break
+            # have we encountered the end of a transmission?
+            if deadAirCount > minTimeBetweenTx:
+                newTx = [0] * 100 + basebandData[currentStartIndex:i] # prepend zeros for nicer display
+                basebandTransmissionList.append(newTx)
+                state = IN_DEAD_AIR
+                if wcv.verbose:
+                    print "Got Tx starting at:" + str(currentStartIndex) + " ending at index: " + str(i) + "length = " + str(len(newTx))
+                    print "timestamp: " + str(len(basebandTransmissionList)/wcv.samp_rate)
+            elif (basebandData[i] == 1) and (consecutiveOnes > wcv.glitchFilterCount):
+                deadAirCount = 0
+            else:
+                deadAirCount += 1
+        else:
+            print "Error encountered while breaking down waveform"
+            return(1)
+        # regardless of state or transition, keep a count of the consecutive ones
+        # and increment the index
+        if basebandData[i] == 1:
             consecutiveOnes += 1
-            deadAirCount += 1
-        # if none of the other conditions are met, then we are in the middle of a transmissions,
-        # experiencing a legitimate 1 signal
-        elif (basebandData[i] == 1):
-            deadAirCount = 0
-        i+=1
-    # now remove the trailing zeroes from each transmission
-    # NEED to implement?
-    
+        else:
+            consecutiveOnes = 0            
+        i += 1
+
     print "number of transmissions: " + str(len(basebandTransmissionList))
     return basebandTransmissionList
 
@@ -252,7 +264,7 @@ def breakdownWaveform2(protocol, waveformList, masterWidthList):
         else:
             nextEdge = RISING_EDGE
 
-    if protocol.glitchFilterCount > 0:
+    if wcv.glitchFilterCount > 0:
         glitchFilter(masterWidthList, wcv.glitchFilterCount) 
         # glitch filter behavior not part of protocol, but top level WC control
 

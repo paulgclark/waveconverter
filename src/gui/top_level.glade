@@ -275,6 +275,38 @@
                 <property name="homogeneous">True</property>
               </packing>
             </child>
+            <child>
+              <object class="GtkToolButton" id="saveProtocol">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="tooltip_text" translatable="yes">Load a protocol from the database</property>
+                <property name="is_important">True</property>
+                <property name="label" translatable="yes">Save Protocol</property>
+                <property name="use_underline">True</property>
+                <property name="stock_id">gtk-save</property>
+                <signal name="clicked" handler="on_saveProtocol_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="homogeneous">True</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkToolButton" id="saveAsProtocol">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="tooltip_text" translatable="yes">Load a protocol from the database</property>
+                <property name="is_important">True</property>
+                <property name="label" translatable="yes">Save Protocol As...</property>
+                <property name="use_underline">True</property>
+                <property name="stock_id">gtk-save-as</property>
+                <signal name="clicked" handler="on_saveAsProtocol_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="homogeneous">True</property>
+              </packing>
+            </child>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -624,33 +656,14 @@
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkButton" id="zoomInButton">
-                            <property name="label">gtk-zoom-in</property>
+                          <object class="GtkLabel" id="label37">
                             <property name="visible">True</property>
-                            <property name="can_focus">True</property>
-                            <property name="receives_default">True</property>
-                            <property name="use_stock">True</property>
-                            <property name="yalign">0.54000002145767212</property>
-                            <signal name="clicked" handler="on_zoomInButton_clicked" swapped="no"/>
+                            <property name="can_focus">False</property>
+                            <property name="label" translatable="yes">Transmission 
+Number to Display</property>
                           </object>
                           <packing>
-                            <property name="left_attach">2</property>
-                            <property name="top_attach">0</property>
-                            <property name="width">1</property>
-                            <property name="height">1</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkButton" id="zoomOutButton">
-                            <property name="label">gtk-zoom-out</property>
-                            <property name="visible">True</property>
-                            <property name="can_focus">True</property>
-                            <property name="receives_default">True</property>
-                            <property name="use_stock">True</property>
-                            <signal name="clicked" handler="on_zoomOutButton_clicked" swapped="no"/>
-                          </object>
-                          <packing>
-                            <property name="left_attach">3</property>
+                            <property name="left_attach">0</property>
                             <property name="top_attach">0</property>
                             <property name="width">1</property>
                             <property name="height">1</property>
@@ -666,7 +679,7 @@
                             <signal name="clicked" handler="on_panRightButton_clicked" swapped="no"/>
                           </object>
                           <packing>
-                            <property name="left_attach">6</property>
+                            <property name="left_attach">7</property>
                             <property name="top_attach">0</property>
                             <property name="width">1</property>
                             <property name="height">1</property>
@@ -681,7 +694,7 @@
                             <signal name="clicked" handler="on_panLeftButton_clicked" swapped="no"/>
                           </object>
                           <packing>
-                            <property name="left_attach">5</property>
+                            <property name="left_attach">6</property>
                             <property name="top_attach">0</property>
                             <property name="width">1</property>
                             <property name="height">1</property>
@@ -696,6 +709,22 @@
                             <signal name="clicked" handler="on_zoomFullButton_clicked" swapped="no"/>
                           </object>
                           <packing>
+                            <property name="left_attach">5</property>
+                            <property name="top_attach">0</property>
+                            <property name="width">1</property>
+                            <property name="height">1</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="zoomOutButton">
+                            <property name="label">gtk-zoom-out</property>
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="receives_default">True</property>
+                            <property name="use_stock">True</property>
+                            <signal name="clicked" handler="on_zoomOutButton_clicked" swapped="no"/>
+                          </object>
+                          <packing>
                             <property name="left_attach">4</property>
                             <property name="top_attach">0</property>
                             <property name="width">1</property>
@@ -703,14 +732,31 @@
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkLabel" id="label37">
+                          <object class="GtkButton" id="zoomInButton">
+                            <property name="label">gtk-zoom-in</property>
                             <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="label" translatable="yes">Transmission 
-Number to Display</property>
+                            <property name="can_focus">True</property>
+                            <property name="receives_default">True</property>
+                            <property name="use_stock">True</property>
+                            <property name="yalign">0.54000002145767212</property>
+                            <signal name="clicked" handler="on_zoomInButton_clicked" swapped="no"/>
                           </object>
                           <packing>
-                            <property name="left_attach">0</property>
+                            <property name="left_attach">3</property>
+                            <property name="top_attach">0</property>
+                            <property name="width">1</property>
+                            <property name="height">1</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="signalCountLabel">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="label" translatable="yes">Signals Found = N/A</property>
+                            <property name="lines">1</property>
+                          </object>
+                          <packing>
+                            <property name="left_attach">2</property>
                             <property name="top_attach">0</property>
                             <property name="width">1</property>
                             <property name="height">1</property>
@@ -2341,9 +2387,6 @@ Number to Display</property>
                         <property name="height">1</property>
                       </packing>
                     </child>
-                    <child>
-                      <placeholder/>
-                    </child>
                   </object>
                   <packing>
                     <property name="resize">True</property>
@@ -2462,6 +2505,174 @@ Number to Display</property>
                   </object>
                 </child>
               </object>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+  </object>
+  <object class="GtkDialog" id="protocolSaveAsDialog">
+    <property name="can_focus">False</property>
+    <property name="type_hint">dialog</property>
+    <child internal-child="vbox">
+      <object class="GtkBox" id="dialog-vbox2">
+        <property name="can_focus">False</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">2</property>
+        <child internal-child="action_area">
+          <object class="GtkButtonBox" id="dialog-action_area2">
+            <property name="can_focus">False</property>
+            <property name="layout_style">end</property>
+            <child>
+              <object class="GtkButton" id="protocolSaveAsOKButton">
+                <property name="label" translatable="yes">OK</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <signal name="clicked" handler="on_protocolSaveAsOKButton_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="protocolSaveAsCancelButton">
+                <property name="label" translatable="yes">Cancel</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <signal name="clicked" handler="on_protocolSaveAsCancelButton_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="pack_type">end</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkGrid" id="grid12">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <child>
+              <object class="GtkLabel" id="label56">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes">Please enter the device information
+related to the protocol you would like 
+to save</property>
+                <attributes>
+                  <attribute name="style" value="italic"/>
+                </attributes>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">0</property>
+                <property name="width">1</property>
+                <property name="height">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="protocolSaveAsDeviceNameEntry">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="input_purpose">alpha</property>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">1</property>
+                <property name="width">1</property>
+                <property name="height">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="label57">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes">Device Name</property>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">1</property>
+                <property name="width">1</property>
+                <property name="height">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="label58">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes">Year Device Was Built</property>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">2</property>
+                <property name="width">1</property>
+                <property name="height">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="label59">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes">Device Type</property>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">3</property>
+                <property name="width">1</property>
+                <property name="height">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkComboBoxText" id="protocolSaveAsDeviceTypeEntryBox">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <items>
+                  <item id="0" translatable="yes">Unknown</item>
+                  <item id="1" translatable="yes">Automobile Keyfob</item>
+                  <item id="2" translatable="yes">Tire Pressure Monitor Sensor</item>
+                  <item id="3" translatable="yes">Weather Station</item>
+                  <item id="4" translatable="yes">Fan Controller</item>
+                  <item id="5" translatable="yes">Remote Controlled Vehicle</item>
+                </items>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">3</property>
+                <property name="width">1</property>
+                <property name="height">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="protocolSaveAsDeviceYearEntry">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="input_purpose">number</property>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">2</property>
+                <property name="width">1</property>
+                <property name="height">1</property>
+              </packing>
+            </child>
+            <child>
+              <placeholder/>
             </child>
           </object>
           <packing>
