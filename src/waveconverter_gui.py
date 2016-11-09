@@ -261,6 +261,10 @@ class TopWindow:
             
     def on_transmissionNumberSelect_value_changed(self, spinButton, data=None):
         txNum = spinButton.get_value_as_int()
+        # reset the Min and Max extents of plot for new waveform
+        wcv.tMin = 0
+        wcv.tMax = 100
+        
         if wcv.verbose:
             print "Selecting TX #" + str(txNum)
             
@@ -419,9 +423,12 @@ class TopWindow:
         tempWidget = self.builder.get_object(widgetName)
         Gtk.ComboBox.set_active(tempWidget, value)
     
-    def setLabel(self, widgetName, value):
+    def setLabel(self, widgetName, value, style = 0):
         tempWidget = self.builder.get_object(widgetName)
-        Gtk.Label.set_text(tempWidget, value)
+        if style == 1:
+            Gtk.Label.set_markup(tempWidget, value)
+        else:
+            Gtk.Label.set_text(tempWidget, value)
         
     #def setIntToEntryBox(self, widgetName, value):
     #    tempWidget = self.builder.get_object(widgetName)
@@ -438,6 +445,8 @@ class TopWindow:
     def drawBasebandPlot(self, waveformDataList, tMin, tMax, waveformSampleRate):
         
         localWaveform = list(waveformDataList) # make local copy
+        
+        # NEED to decimate larger lists to fit under 18k
         # truncate large input lists; cairo can only handle 18980 point plots
         #if len(waveformDataList) > 18901:
         #    waveformDataList = waveformDataList[0:18900]
@@ -581,8 +590,13 @@ class TopWindow:
         print "Number of transmissions broken down: " + str(len(wcv.txList))
         for tx in wcv.txList:
             print "tx list length: " + str(len(tx.waveformData))
-        self.setLabel("signalCountLabel", "Signals Found: " + str(len(wcv.txList)))
-            
+        if len(wcv.txList) == 0:
+            self.setLabel("signalCountLabel", "<b>NO SIGNALS FOUND</b>", 1) # NEED: use bold and/or red text?
+            print "NO SIGNALS FOUND AFTER DEMODULATION"
+            return(1)
+        else:
+            self.setLabel("signalCountLabel", "Signals Found: " + str(len(wcv.txList)))
+        
         # now plot the first transmission, zoomed out
         wcv.tMin = 0
         wcv.tMax = 100
