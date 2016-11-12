@@ -109,7 +109,7 @@ def decodePacket(protocol, packetWidths, decodedPacket, rawPacket):
 
     # check the packet's preamble, header, etc.
     encodingValid = True
-    (dataStartIndex, interPacketValid, preambleValid, headerValid) = checkValidPacket(protocol, packetWidths)
+    (dataStartIndex, interPacketValid, preambleValid, headerValid) = checkValidPacket2(protocol, packetWidths)
 
     # set loop index to the start of the data portion of the packet
     i = dataStartIndex
@@ -201,10 +201,15 @@ def decodePacket(protocol, packetWidths, decodedPacket, rawPacket):
 
 #####################################
 def widthCheck(width, expectedWidth, unitError):
-    if (width >= expectedWidth * (1 - unitError)) and \
-       (width <= expectedWidth * (1 + unitError)):
-        return(True)
-    else:
+    try:
+        if (width >= expectedWidth * (1 - unitError)) and \
+           (width <= expectedWidth * (1 + unitError)):
+            return(True)
+        else:
+            return(False)
+    except:
+        if wcv.verbose:
+            print "Encountered NULL value in width check"
         return(False)
 
 #####################################
@@ -316,6 +321,70 @@ def printPacket(outFile, packet, outputHex):
     outFile.write('\n')
     return(0)
 
+#####################################
+# Rewritten version of original function to check inter-tx width, preamble and header
+# This version generates a list of the ideal expected timing widths based on the 
+# protocol given. A second function then executes the comparison with the actual
+# waveform's list of widths. 
+def checkValidPacket2(protocol, packetWidths):
+    interPacketValid = True
+    preambleValid = True
+    headerValid = True
+    
+    # build ideal timing list
+    framingList = []
+    # add the preamble
+    for n in range(0, protocol.preambleSize[0]):
+        framingList.append(protocol.preambleSymbolLow_samp)
+        framingList.append(protocol.preambleSymbolHigh_samp)
+        
+    # add the header
+    if protocol.headerWidth >= 0:
+        framingList.append(protocol.headerWidth_samp)
+
+    print framingList        
+    # check this ideal framing list against the one passed into the fn
+    if sequenceCompare(protocol, framingList, packetWidths):
+        if wcv.verbose:
+            print "Primary preamble and header match transmission"
+        return (len(framingList), True, True, True)
+    
+    # add the preamble
+    for i in range(0, protocol.preambleSize[1]):
+        framingList.append(protocol.preambleSymbolLow_samp)
+        framingList.append(protocol.preambleSymbolHigh_samp)
+        
+    # add the header
+    if protocol.headerWidth >= 0:
+        framingList.append(protocol.headerWidth_samp)
+        
+    # check this ideal framing list against the one passed into the fn
+    if sequenceCompare(protocol, framingList, packetWidths):
+        if wcv.verbose:
+            print "Secondary preamble and header match transmission"
+        return (len(framingList), True, True, True)
+    
+    # if we got this far, then nothing matched
+    if wcv.verbose:
+        print "Preamble and header match FAIL"
+    return (len(framingList), False, False, False)
+
+    
+# this function checks all of the widths in two lists, returning True if they all 
+# match withing the tolerance specified    
+def sequenceCompare(protocol, idealTxList, realTxList):
+    for i in range(1, len(idealTxList)): # skip the first timing, as the zero gets swallowed up by the inter-packet timing
+        print "i = " + str(i)
+        try:
+            if not widthCheck(realTxList[i], idealTxList[i], wcv.timingError):
+                return(False)
+        except:
+            if wcv.verbose:
+                print "NULL value encountered during sequence compare"
+                print "len(realTxList): " + str(len(realTxList))
+                print "len(idealTxList): " + str(len(idealTxList))
+            return(False)    
+    return True
 
 #####################################
 # NEED: move this into a different section; want raw and decoded for display
@@ -356,7 +425,12 @@ def checkValidPacket(protocol, packetWidths):
         # check that low portion is valid
         if not widthCheck(packetWidths[i], protocol.preambleSymbolLow_samp, wcv.timingError):
             print "bad width in preamble (second half of cycle, but this may be OK; checking header)"
-            if widthCheck(packetWidths[i], protocol.headerWidth_samp, wcv.timingError):
+            print protocol.headerWidth_samp
+            if protocol.headerWidth_samp <= 0: # skip check
+                print "skipping header check and moving on to payload"
+                headerValid = True
+                break
+            elif widthCheck(packetWidths[i], protocol.headerWidth_samp, wcv.timingError):
                 print "encountered good header"
                 headerValid = True
             else:

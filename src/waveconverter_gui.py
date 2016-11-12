@@ -193,9 +193,9 @@ class TopWindow:
         if wcv.verbose:
             print "save protocol dialog started"
             
-        # pull in all the user-entered data and save to current protocol            
+        # pull in all the user-entered data and save to current protocol         
         self.transferGUIDataToProtocol()
-        
+
         # store protocol in database under current ID
         wcv.protocol.saveProtocol()
         
@@ -229,8 +229,7 @@ class TopWindow:
         wcv.protocol.deviceType = self.getIntFromEntryBox("protocolSaveAsDeviceTypeEntryBox")
         if wcv.verbose:
             wcv.protocol.printProtocolFull()
-            
-        
+                    
         # store protocol in database under current ID
         wcv.protocol.saveProtocol()
         
@@ -452,6 +451,7 @@ class TopWindow:
         #    waveformDataList = waveformDataList[0:18900]
         # NEED to replace this with a smart removal of trailing zeroes from each tx 
         if len(localWaveform) > 14001:
+            # NEED to replace this with decimated waveform
             localWaveform = localWaveform[0:14000]
         
         # compute 
@@ -623,9 +623,11 @@ class TopWindow:
         wcv.glitchFilterCount = self.getIntFromEntry("glitchFilterEntry")
         wcv.timingError = self.getFloatFromEntry("unitTimingErrorEntry")/100.0
             
+        self.transferGUIDataToProtocol()
         #wcv.protocol.modulation = self.getIntFromEntryBox("modulationEntryBox")
         #wcv.protocol.frequency = 1000000 * self.getFloatFromEntry("frequencyEntry")
         # get framing properties
+        """
         wcv.protocol.preambleSymbolLow = self.getIntFromEntry("preambleLowEntry")
         wcv.protocol.preambleSymbolHigh = self.getIntFromEntry("preambleHighEntry")
         wcv.protocol.preambleSize[0] = self.getIntFromEntry("preambleSize1Entry")
@@ -664,7 +666,7 @@ class TopWindow:
         # when we load new values for the protocol, we need to do the
         # conversion from microseconds to samples
         wcv.protocol.convertTimingToSamples(wcv.basebandSampleRate)
-        
+        """
         if wcv.verbose:
             print "baseband sample rate:" + str(wcv.basebandSampleRate)
             wcv.protocol.printProtocolFull()
@@ -818,7 +820,7 @@ class TopWindow:
         self.setEntry("preambleLowEntry", wcv.protocol.preambleSymbolLow)
         self.setEntry("preambleHighEntry", wcv.protocol.preambleSymbolHigh)
         self.setEntry("preambleSize1Entry", int(wcv.protocol.preambleSize[0]))
-        self.setEntry("preambleSize2Entry", wcv.protocol.preambleSize[1])
+        self.setEntry("preambleSize2Entry", int(wcv.protocol.preambleSize[1]))
         self.setEntry("headerLengthEntry", wcv.protocol.headerWidth)
         self.setEntry("interPacketWidthEntry", wcv.protocol.interPacketWidth)
         

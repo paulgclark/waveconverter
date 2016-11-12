@@ -600,6 +600,78 @@
                       </packing>
                     </child>
                     <child>
+                      <object class="GtkLabel" id="rfHeadingLabel3">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">TX Timing</property>
+                        <attributes>
+                          <attribute name="style" value="italic"/>
+                          <attribute name="underline" value="True"/>
+                        </attributes>
+                      </object>
+                      <packing>
+                        <property name="left_attach">0</property>
+                        <property name="top_attach">11</property>
+                        <property name="width">1</property>
+                        <property name="height">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label10">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Glitch Filter</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">0</property>
+                        <property name="top_attach">13</property>
+                        <property name="width">1</property>
+                        <property name="height">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="glitchFilterEntry">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="input_purpose">number</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">1</property>
+                        <property name="top_attach">13</property>
+                        <property name="width">1</property>
+                        <property name="height">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label2">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Min Time Btw TX (us)</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">0</property>
+                        <property name="top_attach">12</property>
+                        <property name="width">1</property>
+                        <property name="height">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="interPacketWidthEntry">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="input_purpose">number</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">1</property>
+                        <property name="top_attach">12</property>
+                        <property name="width">1</property>
+                        <property name="height">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
+                    <child>
                       <placeholder/>
                     </child>
                     <child>
@@ -1048,19 +1120,6 @@ Number to Display</property>
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkLabel" id="label2">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Min Time Btw TX (us)</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">0</property>
-                        <property name="top_attach">12</property>
-                        <property name="width">1</property>
-                        <property name="height">1</property>
-                      </packing>
-                    </child>
-                    <child>
                       <object class="GtkEntry" id="preambleSize1Entry">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
@@ -1100,19 +1159,6 @@ Number to Display</property>
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkEntry" id="interPacketWidthEntry">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="input_purpose">number</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">1</property>
-                        <property name="top_attach">12</property>
-                        <property name="width">1</property>
-                        <property name="height">1</property>
-                      </packing>
-                    </child>
-                    <child>
                       <object class="GtkLabel" id="label25">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
@@ -1143,19 +1189,6 @@ Number to Display</property>
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkLabel" id="label10">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Glitch Filter</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">0</property>
-                        <property name="top_attach">17</property>
-                        <property name="width">1</property>
-                        <property name="height">1</property>
-                      </packing>
-                    </child>
-                    <child>
                       <object class="GtkEntry" id="unitTimingErrorEntry">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
@@ -1169,17 +1202,16 @@ Number to Display</property>
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkEntry" id="glitchFilterEntry">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="input_purpose">number</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">1</property>
-                        <property name="top_attach">17</property>
-                        <property name="width">1</property>
-                        <property name="height">1</property>
-                      </packing>
+                      <placeholder/>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
+                    <child>
+                      <placeholder/>
                     </child>
                     <child>
                       <placeholder/>

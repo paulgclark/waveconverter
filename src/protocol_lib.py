@@ -199,6 +199,33 @@ class ProtocolDefinition(Base):
     # - write modified protocol to disk
     def saveProtocol(self):
         global protocolSession
+        
+        # explicitly copy and assign all list variables, else sqlalchemy will not catch changes
+        # more elegant solution is to define the pickled objects as a mutable list
+        copiedList = self.preambleSize[:]
+        del self.preambleSize[:]
+        self.preambleSize = copiedList
+        
+        copiedList = self.pwmOneSymbol[:]
+        del self.pwmOneSymbol[:]
+        self.pwmOneSymbol = copiedList
+        
+        copiedList = self.pwmZeroSymbol[:]
+        del self.pwmZeroSymbol[:]
+        self.pwmZeroSymbol = copiedList
+        
+        copiedList = self.crcPoly[:]
+        del self.crcPoly[:]
+        self.crcPoly = copiedList
+        
+        copiedList = self.crcFinalXor[:]
+        del self.crcFinalXor[:]
+        self.crcFinalXor = copiedList
+     
+        copiedList = self.crcPadCountOptions[:]
+        del self.crcPadCountOptions[:]
+        self.crcPadCountOptions = copiedList
+            
         try:
             protocolSession.merge(self)
         except:
