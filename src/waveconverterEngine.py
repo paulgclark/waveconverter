@@ -146,6 +146,7 @@ class basebandTx:
     framingValid = False
     encodingValid = False
     crcValid = False
+    txValid = False
     fullBasebandData = []
     payloadData = []
     crcBits = []
@@ -174,8 +175,6 @@ class basebandTx:
 
         tempUnused = []
         self.fullBasebandData = []     # dump any info from previous decoding attempt
-        #checkInterPacketTiming(protocol, self.widthList)
-        # may be better to embed all of the protocol checks inside of the decodePacket fn
         (self.interPacketTimingValid, self.preambleValid, 
          self.headerValid, self.encodingValid) = \
             decodePacket(protocol, self.widthList, self.fullBasebandData, tempUnused)
@@ -187,11 +186,19 @@ class basebandTx:
         # NEED: add protocol check to ensure bits are legal
         self.crcBits = self.fullBasebandData[protocol.crcLow:protocol.crcHigh+1]
         self.payloadData = self.fullBasebandData[protocol.crcDataLow:protocol.crcDataHigh+1]
-        print "crcbits and payload"
-        print self.crcBits
-        print self.payloadData
-        self.crcValid = checkCRC(protocol, self.crcBits, self.payloadData)
-        # NEED check CRC
+        if wcv.verbose:
+            print "crcbits and payload"
+            print self.crcBits
+            print self.payloadData
+        
+        if len(protocol.crcPoly) == 0: # if no CRC given, then assume valid
+            self.crcValid = True
+        else:
+            self.crcValid = checkCRC(protocol, self.crcBits, self.payloadData)
+
+        if self.preambleValid and self.headerValid and self.encodingValid and self.crcValid:
+            self.txValid = True
+            
         # NEED break out ID
         # NEED break out Value1
         # NEED break out Value2

@@ -42,8 +42,9 @@
     <property name="stock">gtk-open</property>
   </object>
   <object class="GtkWindow" id="window1">
-    <property name="width_request">1024</property>
+    <property name="width_request">1105</property>
     <property name="can_focus">False</property>
+    <property name="title" translatable="yes">WaveConverter</property>
     <signal name="destroy" handler="on_window1_destroy" swapped="no"/>
     <child>
       <object class="GtkBox" id="box1">
@@ -322,6 +323,7 @@
               <object class="GtkPaned" id="paned1">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
+                <property name="halign">start</property>
                 <child>
                   <object class="GtkGrid" id="grid1">
                     <property name="visible">True</property>
@@ -331,10 +333,8 @@
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="label" translatable="yes">File Properties</property>
-                        <attributes>
-                          <attribute name="style" value="italic"/>
-                          <attribute name="underline" value="True"/>
-                        </attributes>
+                        <property name="width_chars">25</property>
+                        <property name="max_width_chars">20</property>
                       </object>
                       <packing>
                         <property name="left_attach">0</property>
@@ -360,6 +360,8 @@
                       <object class="GtkEntry" id="thresholdEntry">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
+                        <property name="halign">start</property>
+                        <property name="width_chars">10</property>
                         <property name="input_purpose">number</property>
                       </object>
                       <packing>
@@ -373,6 +375,8 @@
                       <object class="GtkEntry" id="fskDeviationEntry">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
+                        <property name="halign">start</property>
+                        <property name="width_chars">10</property>
                         <property name="input_purpose">number</property>
                       </object>
                       <packing>
@@ -399,7 +403,7 @@
                       <object class="GtkLabel" id="transitionWidthLabel">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Transition Width (kHz)</property>
+                        <property name="label" translatable="yes">Trans Width (kHz)</property>
                       </object>
                       <packing>
                         <property name="left_attach">0</property>
@@ -412,6 +416,8 @@
                       <object class="GtkEntry" id="transitionWidthEntry">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
+                        <property name="halign">start</property>
+                        <property name="width_chars">10</property>
                         <property name="input_purpose">number</property>
                       </object>
                       <packing>
@@ -438,6 +444,8 @@
                       <object class="GtkEntry" id="channelWidthEntry">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
+                        <property name="halign">start</property>
+                        <property name="width_chars">10</property>
                         <property name="input_purpose">number</property>
                       </object>
                       <packing>
@@ -451,6 +459,8 @@
                       <object class="GtkEntry" id="frequencyEntry">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
+                        <property name="halign">start</property>
+                        <property name="width_chars">10</property>
                         <property name="input_purpose">number</property>
                       </object>
                       <packing>
@@ -520,6 +530,8 @@
                       <object class="GtkEntry" id="sampRateEntry">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
+                        <property name="halign">start</property>
+                        <property name="width_chars">10</property>
                         <property name="text" translatable="yes">8.0</property>
                         <property name="input_purpose">number</property>
                       </object>
@@ -534,6 +546,8 @@
                       <object class="GtkEntry" id="centerFreqEntry">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
+                        <property name="halign">start</property>
+                        <property name="width_chars">10</property>
                         <property name="text" translatable="yes">100.0</property>
                         <property name="input_purpose">number</property>
                       </object>
@@ -548,7 +562,7 @@
                       <object class="GtkLabel" id="centerFreqLabel">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Center Frequency (MHz)</property>
+                        <property name="label" translatable="yes">Center Freq (MHz)</property>
                         <property name="lines">1</property>
                       </object>
                       <packing>
@@ -575,6 +589,8 @@
                       <object class="GtkEntry" id="iqFileNameEntry">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
+                        <property name="halign">start</property>
+                        <property name="width_chars">10</property>
                       </object>
                       <packing>
                         <property name="left_attach">1</property>
@@ -587,6 +603,7 @@
                       <object class="GtkComboBoxText" id="modulationEntryBox">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="halign">start</property>
                         <items>
                           <item id="0" translatable="yes">OOK</item>
                           <item id="1" translatable="yes">FSK</item>
@@ -633,6 +650,8 @@
                       <object class="GtkEntry" id="glitchFilterEntry">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
+                        <property name="halign">start</property>
+                        <property name="width_chars">4</property>
                         <property name="input_purpose">number</property>
                       </object>
                       <packing>
@@ -659,6 +678,8 @@
                       <object class="GtkEntry" id="interPacketWidthEntry">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
+                        <property name="halign">start</property>
+                        <property name="width_chars">10</property>
                         <property name="input_purpose">number</property>
                       </object>
                       <packing>
@@ -669,7 +690,18 @@
                       </packing>
                     </child>
                     <child>
-                      <placeholder/>
+                      <object class="GtkLabel" id="label60">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="ellipsize">end</property>
+                        <property name="width_chars">15</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">1</property>
+                        <property name="top_attach">0</property>
+                        <property name="width">1</property>
+                        <property name="height">1</property>
+                      </packing>
                     </child>
                     <child>
                       <placeholder/>
@@ -685,13 +717,12 @@
                 </child>
                 <child>
                   <object class="GtkBox" id="box4">
-                    <property name="width_request">700</property>
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="orientation">vertical</property>
                     <child>
                       <object class="GtkScrolledWindow" id="basebandPlot">
-                        <property name="width_request">700</property>
+                        <property name="width_request">750</property>
                         <property name="height_request">320</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
@@ -701,7 +732,7 @@
                         </child>
                       </object>
                       <packing>
-                        <property name="expand">False</property>
+                        <property name="expand">True</property>
                         <property name="fill">True</property>
                         <property name="position">0</property>
                       </packing>
@@ -718,6 +749,7 @@
                             <property name="climb_rate">0.47999999999999998</property>
                             <property name="numeric">True</property>
                             <property name="wrap">True</property>
+                            <property name="value">0.039999999105930328</property>
                             <signal name="value-changed" handler="on_transmissionNumberSelect_value_changed" swapped="no"/>
                           </object>
                           <packing>
@@ -794,6 +826,7 @@ Number to Display</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">True</property>
                             <property name="use_stock">True</property>
+                            <property name="always_show_image">True</property>
                             <signal name="clicked" handler="on_zoomOutButton_clicked" swapped="no"/>
                           </object>
                           <packing>
@@ -811,6 +844,7 @@ Number to Display</property>
                             <property name="receives_default">True</property>
                             <property name="use_stock">True</property>
                             <property name="yalign">0.54000002145767212</property>
+                            <property name="always_show_image">True</property>
                             <signal name="clicked" handler="on_zoomInButton_clicked" swapped="no"/>
                           </object>
                           <packing>
@@ -836,14 +870,14 @@ Number to Display</property>
                         </child>
                       </object>
                       <packing>
-                        <property name="expand">False</property>
+                        <property name="expand">True</property>
                         <property name="fill">True</property>
                         <property name="position">1</property>
                       </packing>
                     </child>
                     <child>
                       <object class="GtkScrolledWindow" id="scrolledwindow1">
-                        <property name="width_request">700</property>
+                        <property name="width_request">750</property>
                         <property name="height_request">300</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
@@ -851,15 +885,13 @@ Number to Display</property>
                         <property name="shadow_type">in</property>
                         <child>
                           <object class="GtkTextView" id="decodeTextView1">
-                            <property name="width_request">700</property>
-                            <property name="height_request">300</property>
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                           </object>
                         </child>
                       </object>
                       <packing>
-                        <property name="expand">False</property>
+                        <property name="expand">True</property>
                         <property name="fill">True</property>
                         <property name="position">2</property>
                       </packing>
@@ -894,7 +926,10 @@ Number to Display</property>
                       <object class="GtkLabel" id="label4">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="halign">start</property>
                         <property name="label" translatable="yes">CURRENT RESULTS</property>
+                        <property name="width_chars">25</property>
+                        <property name="max_width_chars">20</property>
                         <attributes>
                           <attribute name="style" value="italic"/>
                           <attribute name="weight" value="bold"/>
@@ -912,7 +947,9 @@ Number to Display</property>
                       <object class="GtkLabel" id="label5">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="halign">end</property>
                         <property name="label" translatable="yes">Good Packets</property>
+                        <property name="max_width_chars">20</property>
                       </object>
                       <packing>
                         <property name="left_attach">0</property>
@@ -925,7 +962,9 @@ Number to Display</property>
                       <object class="GtkLabel" id="label6">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="halign">end</property>
                         <property name="label" translatable="yes">Preamble Matches</property>
+                        <property name="max_width_chars">20</property>
                       </object>
                       <packing>
                         <property name="left_attach">0</property>
@@ -938,7 +977,9 @@ Number to Display</property>
                       <object class="GtkLabel" id="label7">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="halign">end</property>
                         <property name="label" translatable="yes">Encoding Valid</property>
+                        <property name="max_width_chars">20</property>
                       </object>
                       <packing>
                         <property name="left_attach">0</property>
@@ -951,7 +992,9 @@ Number to Display</property>
                       <object class="GtkLabel" id="label8">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="halign">end</property>
                         <property name="label" translatable="yes">CRC Pass</property>
+                        <property name="max_width_chars">20</property>
                       </object>
                       <packing>
                         <property name="left_attach">0</property>
@@ -964,7 +1007,9 @@ Number to Display</property>
                       <object class="GtkLabel" id="guiGoodPackets1">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="halign">center</property>
                         <property name="label" translatable="yes">0/0</property>
+                        <property name="max_width_chars">10</property>
                       </object>
                       <packing>
                         <property name="left_attach">1</property>
@@ -977,7 +1022,9 @@ Number to Display</property>
                       <object class="GtkLabel" id="guiPreambleMatches1">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="halign">center</property>
                         <property name="label" translatable="yes">0/0</property>
+                        <property name="max_width_chars">10</property>
                       </object>
                       <packing>
                         <property name="left_attach">1</property>
@@ -990,7 +1037,9 @@ Number to Display</property>
                       <object class="GtkLabel" id="guiEncodingValid1">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="halign">center</property>
                         <property name="label" translatable="yes">0/0</property>
+                        <property name="max_width_chars">10</property>
                       </object>
                       <packing>
                         <property name="left_attach">1</property>
@@ -1003,7 +1052,9 @@ Number to Display</property>
                       <object class="GtkLabel" id="guiCrcPass1">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="halign">center</property>
                         <property name="label" translatable="yes">0/0</property>
+                        <property name="max_width_chars">10</property>
                       </object>
                       <packing>
                         <property name="left_attach">1</property>
@@ -1016,9 +1067,12 @@ Number to Display</property>
                       <object class="GtkLabel" id="label1">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="halign">start</property>
                         <property name="label" translatable="yes">Preamble Timing</property>
+                        <property name="max_width_chars">20</property>
                         <attributes>
                           <attribute name="style" value="italic"/>
+                          <attribute name="underline" value="True"/>
                         </attributes>
                       </object>
                       <packing>
@@ -1032,7 +1086,9 @@ Number to Display</property>
                       <object class="GtkLabel" id="label3">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="halign">end</property>
                         <property name="label" translatable="yes">Preamble Low (us)</property>
+                        <property name="max_width_chars">20</property>
                       </object>
                       <packing>
                         <property name="left_attach">0</property>
@@ -1045,6 +1101,8 @@ Number to Display</property>
                       <object class="GtkEntry" id="preambleLowEntry">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
+                        <property name="halign">start</property>
+                        <property name="width_chars">5</property>
                         <property name="input_purpose">number</property>
                       </object>
                       <packing>
@@ -1058,7 +1116,9 @@ Number to Display</property>
                       <object class="GtkLabel" id="label11">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="halign">end</property>
                         <property name="label" translatable="yes">Preamble High (us)</property>
+                        <property name="max_width_chars">20</property>
                       </object>
                       <packing>
                         <property name="left_attach">0</property>
@@ -1071,6 +1131,8 @@ Number to Display</property>
                       <object class="GtkEntry" id="preambleHighEntry">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
+                        <property name="halign">start</property>
+                        <property name="width_chars">5</property>
                         <property name="input_purpose">number</property>
                       </object>
                       <packing>
@@ -1084,7 +1146,9 @@ Number to Display</property>
                       <object class="GtkLabel" id="label12">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="halign">end</property>
                         <property name="label" translatable="yes">Preamble Size</property>
+                        <property name="max_width_chars">20</property>
                       </object>
                       <packing>
                         <property name="left_attach">0</property>
@@ -1097,7 +1161,9 @@ Number to Display</property>
                       <object class="GtkLabel" id="label14">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="halign">end</property>
                         <property name="label" translatable="yes">Preamble Size 2</property>
+                        <property name="max_width_chars">20</property>
                       </object>
                       <packing>
                         <property name="left_attach">0</property>
@@ -1110,7 +1176,9 @@ Number to Display</property>
                       <object class="GtkLabel" id="label27">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="halign">end</property>
                         <property name="label" translatable="yes">Header Length (us)</property>
+                        <property name="max_width_chars">20</property>
                       </object>
                       <packing>
                         <property name="left_attach">0</property>
@@ -1123,6 +1191,8 @@ Number to Display</property>
                       <object class="GtkEntry" id="preambleSize1Entry">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
+                        <property name="halign">start</property>
+                        <property name="width_chars">5</property>
                         <property name="input_purpose">number</property>
                       </object>
                       <packing>
@@ -1136,6 +1206,8 @@ Number to Display</property>
                       <object class="GtkEntry" id="preambleSize2Entry">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
+                        <property name="halign">start</property>
+                        <property name="width_chars">5</property>
                         <property name="input_purpose">number</property>
                       </object>
                       <packing>
@@ -1149,6 +1221,8 @@ Number to Display</property>
                       <object class="GtkEntry" id="headerLengthEntry">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
+                        <property name="halign">start</property>
+                        <property name="width_chars">5</property>
                         <property name="input_purpose">number</property>
                       </object>
                       <packing>
@@ -1162,7 +1236,9 @@ Number to Display</property>
                       <object class="GtkLabel" id="label25">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="halign">start</property>
                         <property name="label" translatable="yes">Error Tolerance</property>
+                        <property name="max_width_chars">20</property>
                         <attributes>
                           <attribute name="style" value="italic"/>
                           <attribute name="underline" value="True"/>
@@ -1179,7 +1255,9 @@ Number to Display</property>
                       <object class="GtkLabel" id="label26">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="halign">end</property>
                         <property name="label" translatable="yes">Timing (%)</property>
+                        <property name="max_width_chars">20</property>
                       </object>
                       <packing>
                         <property name="left_attach">0</property>
@@ -1192,6 +1270,8 @@ Number to Display</property>
                       <object class="GtkEntry" id="unitTimingErrorEntry">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
+                        <property name="halign">start</property>
+                        <property name="width_chars">5</property>
                         <property name="input_purpose">number</property>
                       </object>
                       <packing>
@@ -1202,13 +1282,17 @@ Number to Display</property>
                       </packing>
                     </child>
                     <child>
-                      <placeholder/>
-                    </child>
-                    <child>
-                      <placeholder/>
-                    </child>
-                    <child>
-                      <placeholder/>
+                      <object class="GtkLabel" id="label61">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="width_chars">15</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">1</property>
+                        <property name="top_attach">0</property>
+                        <property name="width">1</property>
+                        <property name="height">1</property>
+                      </packing>
                     </child>
                     <child>
                       <placeholder/>
@@ -1252,31 +1336,42 @@ Number to Display</property>
                     <property name="can_focus">False</property>
                     <property name="orientation">vertical</property>
                     <child>
-                      <object class="GtkTextView" id="decodeTextView2">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">0</property>
-                      </packing>
-                    </child>
-                    <child>
                       <object class="GtkScrolledWindow" id="basebandPlot1">
-                        <property name="width_request">700</property>
-                        <property name="height_request">300</property>
+                        <property name="width_request">750</property>
+                        <property name="height_request">320</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
+                        <property name="valign">start</property>
                         <property name="shadow_type">in</property>
                         <child>
                           <placeholder/>
                         </child>
                       </object>
                       <packing>
-                        <property name="expand">False</property>
+                        <property name="expand">True</property>
                         <property name="fill">True</property>
                         <property name="position">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkScrolledWindow" id="scrolledwindow4">
+                        <property name="width_request">750</property>
+                        <property name="height_request">340</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="vscrollbar_policy">always</property>
+                        <property name="shadow_type">in</property>
+                        <child>
+                          <object class="GtkTextView" id="decodeTextView2">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                          </object>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">True</property>
+                        <property name="fill">True</property>
+                        <property name="position">2</property>
                       </packing>
                     </child>
                   </object>
@@ -1292,6 +1387,7 @@ Number to Display</property>
             </child>
             <child type="tab">
               <object class="GtkLabel" id="framingTab">
+                <property name="width_request">-1</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="label" translatable="yes">Framing</property>
@@ -1317,6 +1413,7 @@ Number to Display</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="label" translatable="yes">CURRENT RESULTS</property>
+                        <property name="width_chars">25</property>
                         <attributes>
                           <attribute name="style" value="italic"/>
                           <attribute name="weight" value="bold"/>
@@ -1481,7 +1578,8 @@ Number to Display</property>
                       <object class="GtkEntry" id="payloadUnitEntry">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
-                        <property name="width_chars">4</property>
+                        <property name="halign">start</property>
+                        <property name="width_chars">6</property>
                         <property name="input_purpose">number</property>
                       </object>
                       <packing>
@@ -1521,6 +1619,8 @@ Number to Display</property>
                       <object class="GtkEntry" id="pwmPeriodEntry">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
+                        <property name="halign">start</property>
+                        <property name="width_chars">6</property>
                         <property name="input_purpose">number</property>
                       </object>
                       <packing>
@@ -1547,6 +1647,9 @@ Number to Display</property>
                       <object class="GtkEntry" id="pwmZeroEntry">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
+                        <property name="halign">start</property>
+                        <property name="valign">baseline</property>
+                        <property name="width_chars">6</property>
                         <property name="input_purpose">number</property>
                       </object>
                       <packing>
@@ -1573,6 +1676,8 @@ Number to Display</property>
                       <object class="GtkEntry" id="pwmOneEntry">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
+                        <property name="halign">start</property>
+                        <property name="width_chars">6</property>
                       </object>
                       <packing>
                         <property name="left_attach">1</property>
@@ -1615,6 +1720,8 @@ Number to Display</property>
                       <object class="GtkEntry" id="crcInitEntry">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
+                        <property name="halign">start</property>
+                        <property name="width_chars">12</property>
                         <property name="input_purpose">number</property>
                       </object>
                       <packing>
@@ -1641,6 +1748,8 @@ Number to Display</property>
                       <object class="GtkEntry" id="crcPolynomialEntry">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
+                        <property name="halign">start</property>
+                        <property name="width_chars">6</property>
                       </object>
                       <packing>
                         <property name="left_attach">1</property>
@@ -1679,6 +1788,8 @@ Number to Display</property>
                       <object class="GtkEntry" id="crcLengthEntry">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
+                        <property name="halign">start</property>
+                        <property name="width_chars">6</property>
                         <property name="input_purpose">number</property>
                       </object>
                       <packing>
@@ -1692,6 +1803,8 @@ Number to Display</property>
                       <object class="GtkEntry" id="crcStartAddrEntry">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
+                        <property name="halign">start</property>
+                        <property name="width_chars">6</property>
                         <property name="input_purpose">number</property>
                       </object>
                       <packing>
@@ -1731,6 +1844,8 @@ Number to Display</property>
                       <object class="GtkEntry" id="addrDataLowEntry">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
+                        <property name="halign">start</property>
+                        <property name="width_chars">6</property>
                         <property name="input_purpose">number</property>
                       </object>
                       <packing>
@@ -1744,6 +1859,8 @@ Number to Display</property>
                       <object class="GtkEntry" id="addrDataHighEntry">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
+                        <property name="halign">start</property>
+                        <property name="width_chars">6</property>
                         <property name="input_purpose">number</property>
                       </object>
                       <packing>
@@ -1783,6 +1900,8 @@ Number to Display</property>
                       <object class="GtkEntry" id="crcFinalXorEntry">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
+                        <property name="halign">start</property>
+                        <property name="width_chars">12</property>
                       </object>
                       <packing>
                         <property name="left_attach">1</property>
@@ -1795,10 +1914,11 @@ Number to Display</property>
                       <object class="GtkComboBoxText" id="encodingEntryBox">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="halign">start</property>
                         <items>
                           <item id="0" translatable="yes">None</item>
                           <item id="1" translatable="yes">Manchester</item>
-                          <item id="2" translatable="yes">Manchester - Inv</item>
+                          <item id="2" translatable="yes">Manch - Inv</item>
                           <item id="3" translatable="yes">PWM</item>
                         </items>
                       </object>
@@ -1813,6 +1933,7 @@ Number to Display</property>
                       <object class="GtkComboBoxText" id="crcReflectEntryBox">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="halign">start</property>
                         <items>
                           <item id="0" translatable="yes">MSB-&gt;LSB</item>
                           <item id="1" translatable="yes">LSB-&gt;MSB</item>
@@ -1830,6 +1951,7 @@ Number to Display</property>
                       <object class="GtkComboBoxText" id="crcReverseOutEntryBox">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="halign">start</property>
                         <items>
                           <item id="0" translatable="yes">No</item>
                           <item id="1" translatable="yes">Yes</item>
@@ -1859,6 +1981,7 @@ Number to Display</property>
                       <object class="GtkComboBoxText" id="crcPadCountEntryBox">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="halign">start</property>
                         <items>
                           <item id="0" translatable="yes">0</item>
                           <item id="1" translatable="yes">8</item>
@@ -1890,10 +2013,11 @@ Number to Display</property>
                       <object class="GtkComboBoxText" id="crcPadEntryBox">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="halign">start</property>
                         <items>
                           <item id="0" translatable="yes">No Pad</item>
-                          <item id="1" translatable="yes">Pad to Multiple</item>
-                          <item id="2" translatable="yes">Pad Absolute</item>
+                          <item id="1" translatable="yes">Pad to Byte</item>
+                          <item id="2" translatable="yes">Absolute</item>
                         </items>
                       </object>
                       <packing>
@@ -1904,7 +2028,18 @@ Number to Display</property>
                       </packing>
                     </child>
                     <child>
-                      <placeholder/>
+                      <object class="GtkLabel" id="label62">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="wrap">True</property>
+                        <property name="width_chars">15</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">1</property>
+                        <property name="top_attach">0</property>
+                        <property name="width">1</property>
+                        <property name="height">1</property>
+                      </packing>
                     </child>
                     <child>
                       <placeholder/>
@@ -1936,31 +2071,42 @@ Number to Display</property>
                     <property name="can_focus">False</property>
                     <property name="orientation">vertical</property>
                     <child>
-                      <object class="GtkTextView" id="decodeTextView3">
+                      <object class="GtkScrolledWindow" id="basebandPlot2">
+                        <property name="width_request">750</property>
+                        <property name="height_request">320</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">0</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkScrolledWindow" id="basebandPlot3">
-                        <property name="width_request">700</property>
-                        <property name="height_request">300</property>
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
+                        <property name="valign">start</property>
                         <property name="shadow_type">in</property>
                         <child>
                           <placeholder/>
                         </child>
                       </object>
                       <packing>
-                        <property name="expand">False</property>
+                        <property name="expand">True</property>
                         <property name="fill">True</property>
                         <property name="position">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkScrolledWindow" id="scrolledwindow5">
+                        <property name="width_request">750</property>
+                        <property name="height_request">340</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="vscrollbar_policy">always</property>
+                        <property name="shadow_type">in</property>
+                        <child>
+                          <object class="GtkTextView" id="decodeTextView3">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                          </object>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">True</property>
+                        <property name="fill">True</property>
+                        <property name="position">2</property>
                       </packing>
                     </child>
                   </object>
@@ -1998,6 +2144,7 @@ Number to Display</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="label" translatable="yes">CURRENT RESULTS</property>
+                        <property name="width_chars">25</property>
                         <attributes>
                           <attribute name="style" value="italic"/>
                           <attribute name="weight" value="bold"/>
@@ -2149,10 +2296,12 @@ Number to Display</property>
                       <object class="GtkGrid" id="grid6">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="halign">center</property>
                         <child>
                           <object class="GtkEntry" id="idAddrLowEntry">
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
+                            <property name="width_chars">5</property>
                             <property name="input_purpose">digits</property>
                           </object>
                           <packing>
@@ -2166,6 +2315,7 @@ Number to Display</property>
                           <object class="GtkEntry" id="idAddrHighEntry">
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
+                            <property name="width_chars">5</property>
                             <property name="input_purpose">digits</property>
                           </object>
                           <packing>
@@ -2192,7 +2342,8 @@ Number to Display</property>
                           <object class="GtkLabel" id="label51">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
-                            <property name="label" translatable="yes">Low Addr</property>
+                            <property name="halign">end</property>
+                            <property name="label" translatable="yes">Lo Addr</property>
                           </object>
                           <packing>
                             <property name="left_attach">0</property>
@@ -2205,7 +2356,8 @@ Number to Display</property>
                           <object class="GtkLabel" id="label52">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
-                            <property name="label" translatable="yes">High Addr</property>
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">Hi Addr</property>
                           </object>
                           <packing>
                             <property name="left_attach">1</property>
@@ -2265,10 +2417,12 @@ Number to Display</property>
                       <object class="GtkGrid" id="grid8">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="halign">center</property>
                         <child>
                           <object class="GtkEntry" id="val1AddrLowEntry">
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
+                            <property name="width_chars">5</property>
                             <property name="text" translatable="yes"> </property>
                             <property name="input_purpose">digits</property>
                           </object>
@@ -2283,6 +2437,7 @@ Number to Display</property>
                           <object class="GtkEntry" id="val1AddrHighEntry">
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
+                            <property name="width_chars">5</property>
                             <property name="input_purpose">digits</property>
                           </object>
                           <packing>
@@ -2304,10 +2459,12 @@ Number to Display</property>
                       <object class="GtkGrid" id="grid9">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="halign">center</property>
                         <child>
                           <object class="GtkEntry" id="val2AddrLowEntry">
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
+                            <property name="width_chars">5</property>
                             <property name="input_purpose">digits</property>
                           </object>
                           <packing>
@@ -2321,6 +2478,7 @@ Number to Display</property>
                           <object class="GtkEntry" id="val2AddrHighEntry">
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
+                            <property name="width_chars">5</property>
                             <property name="input_purpose">digits</property>
                           </object>
                           <packing>
@@ -2342,10 +2500,12 @@ Number to Display</property>
                       <object class="GtkGrid" id="grid10">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="halign">center</property>
                         <child>
                           <object class="GtkEntry" id="val3AddrLowEntry">
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
+                            <property name="width_chars">5</property>
                             <property name="input_purpose">digits</property>
                           </object>
                           <packing>
@@ -2359,6 +2519,7 @@ Number to Display</property>
                           <object class="GtkEntry" id="val3AddrHighEntry">
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
+                            <property name="width_chars">5</property>
                             <property name="input_purpose">digits</property>
                           </object>
                           <packing>
@@ -2377,7 +2538,18 @@ Number to Display</property>
                       </packing>
                     </child>
                     <child>
-                      <placeholder/>
+                      <object class="GtkLabel" id="label63">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="wrap">True</property>
+                        <property name="width_chars">15</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">1</property>
+                        <property name="top_attach">0</property>
+                        <property name="width">1</property>
+                        <property name="height">1</property>
+                      </packing>
                     </child>
                     <child>
                       <placeholder/>
@@ -2395,10 +2567,19 @@ Number to Display</property>
                   <object class="GtkGrid" id="grid11">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
+                    <property name="row_homogeneous">True</property>
+                    <property name="column_homogeneous">True</property>
                     <child>
-                      <object class="GtkTextView" id="bitProbTextView">
+                      <object class="GtkScrolledWindow" id="scrolledwindow3">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
+                        <property name="shadow_type">in</property>
+                        <child>
+                          <object class="GtkTextView" id="bitProbTextView">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                          </object>
+                        </child>
                       </object>
                       <packing>
                         <property name="left_attach">0</property>
@@ -2408,9 +2589,16 @@ Number to Display</property>
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkTextView" id="idValuesTextView">
+                      <object class="GtkScrolledWindow" id="scrolledwindow8">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
+                        <property name="shadow_type">in</property>
+                        <child>
+                          <object class="GtkTextView" id="idValuesTextView">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                          </object>
+                        </child>
                       </object>
                       <packing>
                         <property name="left_attach">1</property>

@@ -101,6 +101,7 @@ class TopWindow:
         # load CRC properties
         wcv.protocol.crcPoly = self.getListFromEntry("crcPolynomialEntry")
         wcv.protocol.crcLow = self.getIntFromEntry("crcStartAddrEntry")
+        wcv.protocol.crcHigh = wcv.protocol.crcLow + len(wcv.protocol.crcPoly)
         wcv.protocol.crcDataLow = self.getIntFromEntry("addrDataLowEntry")
         wcv.protocol.crcDataHigh = self.getIntFromEntry("addrDataHighEntry")
         wcv.protocol.crcInit = self.getIntFromEntry("crcInitEntry")
@@ -401,9 +402,14 @@ class TopWindow:
         listString = tempWidget.get_text().strip('[]') # resolves to comma-separated list of values
         listItemsText = listString.split(',')
         tempList = []
+        
+        # first check if we have an empty list
+        if listItemsText:
+            return []
+        
+        # otherwise build the list and return it
         for item in listItemsText:
             tempList.append(int(item))
-        
         return tempList
              
     #def setIntToEntry(self, widgetName, value):
@@ -451,7 +457,8 @@ class TopWindow:
         #    waveformDataList = waveformDataList[0:18900]
         # NEED to replace this with a smart removal of trailing zeroes from each tx 
         if len(localWaveform) > 14001:
-            # NEED to replace this with decimated waveform
+            # NEED to replace this with decimated waveform, not truncated
+            print "Warning: baseband waveform longer than 14k samples, truncating..."
             localWaveform = localWaveform[0:14000]
         
         # compute 
@@ -481,19 +488,27 @@ class TopWindow:
         
         t = arange(startTime, stopTime, stepSize)
         s = localWaveform[startIndex:stopIndex]
-        # NEED: sometimes t and s arrays are sized differently, probably due to rounding
+        # sometimes t and s arrays are sized differently, probably due to rounding
+        minSize = min(len(t), len(s))
+        if len(t) != minSize:
+            t = t[0:minSize]
+        if len(s) != minSize:
+            s = s[0:minSize]
+        
         if wcv.verboseZoom:
             print "length of waveform list: " + str(len(s))
             print "step size:               " + str(stepSize)
             print "length of time vector:   " + str(len(t))
         self.axis.clear() # clear plot before re-plotting
         self.axis.plot(t,s)
+        self.axis.grid(True)
 
-        #self.axis.axis([0, len(waveformDataList)*stepSize, -0.1, 1.1])
         self.axis.axis([startTime, stopTime, -0.1, 1.1])
         self.axis.set_xlabel('time (ms)') # replace with time unit
         self.axis.set_ylabel('Baseband Signal') # replace with ???
         self.canvas.draw()
+        self.canvas1.draw()
+        self.canvas2.draw()
         
        
     # when the RF Demod button is pushed, we need to take all the settings 
@@ -624,49 +639,6 @@ class TopWindow:
         wcv.timingError = self.getFloatFromEntry("unitTimingErrorEntry")/100.0
             
         self.transferGUIDataToProtocol()
-        #wcv.protocol.modulation = self.getIntFromEntryBox("modulationEntryBox")
-        #wcv.protocol.frequency = 1000000 * self.getFloatFromEntry("frequencyEntry")
-        # get framing properties
-        """
-        wcv.protocol.preambleSymbolLow = self.getIntFromEntry("preambleLowEntry")
-        wcv.protocol.preambleSymbolHigh = self.getIntFromEntry("preambleHighEntry")
-        wcv.protocol.preambleSize[0] = self.getIntFromEntry("preambleSize1Entry")
-        try:
-            wcv.protocol.preambleSize[1] = self.getIntFromEntry("preambleSize2Entry")
-        except:
-            wcv.protocol.preambleSize[1] = 0
-        wcv.protocol.headerWidth  = self.getIntFromEntry("headerLengthEntry")
-        wcv.protocol.interPacketWidth = self.getIntFromEntry("interPacketWidthEntry")
-        
-        # get decode properties
-        wcv.protocol.encodingType = self.getIntFromEntryBox("encodingEntryBox")
-        wcv.protocol.unitWidth = self.getIntFromEntry("payloadUnitEntry")
-        wcv.protocol.pwmSymbolSize = self.getIntFromEntry("pwmPeriodEntry")
-        # compute PWM units from percentage in GUI
-        wcv.protocol.pwmZeroSymbol[0] = int(wcv.protocol.pwmSymbolSize*(100-self.getFloatFromEntry("pwmZeroEntry"))/100.0)
-        wcv.protocol.pwmZeroSymbol[1] = int(wcv.protocol.pwmSymbolSize*self.getFloatFromEntry("pwmZeroEntry")/100.0)
-        wcv.protocol.pwmOneSymbol[0] = int(wcv.protocol.pwmSymbolSize*(100-self.getFloatFromEntry("pwmOneEntry"))/100.0)
-        wcv.protocol.pwmOneSymbol[1] = int(wcv.protocol.pwmSymbolSize*self.getFloatFromEntry("pwmOneEntry")/100.0)
-        
-        # load CRC properties
-        wcv.protocol.crcPoly = self.getListFromEntry("crcPolynomialEntry")
-        wcv.protocol.crcLow = self.getIntFromEntry("crcStartAddrEntry")
-        wcv.protocol.crcDataLow = self.getIntFromEntry("addrDataLowEntry")
-        wcv.protocol.crcDataHigh = self.getIntFromEntry("addrDataHighEntry")
-        wcv.protocol.crcInit = self.getIntFromEntry("crcInitEntry")
-        wcv.protocol.crcBitOrder = self.getIntFromEntryBox("crcReflectEntryBox")
-        if self.getIntFromEntryBox("crcReverseOutEntryBox") == 1:
-            wcv.protocol.crcReverseOut = True
-        else:
-            wcv.protocol.crcReverseOut = False
-        wcv.protocol.crcFinalXor = self.getListFromEntry("crcFinalXorEntry")
-        wcv.protocol.crcPad = self.getIntFromEntryBox("crcPadEntryBox")
-        wcv.protocol.crcPadCount = 8*self.getIntFromEntryBox("crcPadCountEntryBox")
-        
-        # when we load new values for the protocol, we need to do the
-        # conversion from microseconds to samples
-        wcv.protocol.convertTimingToSamples(wcv.basebandSampleRate)
-        """
         if wcv.verbose:
             print "baseband sample rate:" + str(wcv.basebandSampleRate)
             wcv.protocol.printProtocolFull()
@@ -676,44 +648,44 @@ class TopWindow:
         wcv.decodeOutputString = "" # need to start over after each decode attempt
         i = 0
         for iTx in wcv.txList:
-            if i == len(wcv.txList) - 1: # NEED: fix this kludge, last tx in list is wonky
+            if i == len(wcv.txList): # - 1: # NEED: fix this kludge, last tx in list is wonky
                 iTx.display()
             else:
                 iTx.decodeTx(wcv.protocol)
+            if wcv.outputHex:
+                wcv.decodeOutputString += '{}{:>4}: {}'.format("TX#", str(i+1), iTx.hexString)
+            else:
+                wcv.decodeOutputString += '{}{:>4}: {}'.format("TX#", str(i+1), iTx.binaryString)
             i+=1
-            wcv.decodeOutputString += iTx.binaryString
-            #break # temp debug, to keep loop to one iter
-        """
-        # call decode engine
-        wcv.payloadList = decodeBaseband(wcv.waveformFileName,
-                                         wcv.basebandSampleRate,
-                                         wcv.outFileName,
-                                         wcv.protocol,
-                                         wcv.outputHex)
-        
-        wcv.decodeOutputString = packetsToFormattedString(wcv.payloadList, wcv.protocol, 
-                                                          wcv.outputHex) 
-        """
+            
+
         # update the display of tx valid flags
         interPacketValidCount = 0
         preambleValidCount = 0
         headerValidCount = 0
         encodingValidCount = 0
         crcValidCount = 0
+        txValidCount = 0
         for iTx in wcv.txList:
             interPacketValidCount += iTx.interPacketTimingValid
-            preambleValidCount = preambleValidCount + iTx.preambleValid
-            headerValidCount = headerValidCount + iTx.headerValid
-            encodingValidCount = encodingValidCount + iTx.encodingValid
-            crcValidCount = crcValidCount + iTx.crcValid
+            preambleValidCount += iTx.preambleValid
+            headerValidCount += iTx.headerValid
+            encodingValidCount += iTx.encodingValid
+            crcValidCount += iTx.crcValid
+            txValidCount += iTx.txValid
         
         numTx = len(wcv.txList)
+        self.setLabel("guiGoodPackets1", str(txValidCount) + "/" + str(numTx))
         self.setLabel("guiPreambleMatches1", str(preambleValidCount) + "/" + str(numTx))
         self.setLabel("guiEncodingValid1", str(encodingValidCount) + "/" + str(numTx))
         self.setLabel("guiCrcPass1", str(crcValidCount) + "/" + str(numTx))
+        
+        self.setLabel("guiGoodPackets2", str(txValidCount) + "/" + str(numTx))
         self.setLabel("guiPreambleMatches2", str(preambleValidCount) + "/" + str(numTx))
         self.setLabel("guiEncodingValid2", str(encodingValidCount) + "/" + str(numTx))
         self.setLabel("guiCrcPass2", str(crcValidCount) + "/" + str(numTx))
+        
+        self.setLabel("guiGoodPackets3", str(txValidCount) + "/" + str(numTx))
         self.setLabel("guiPreambleMatches3", str(preambleValidCount) + "/" + str(numTx))
         self.setLabel("guiEncodingValid3", str(encodingValidCount) + "/" + str(numTx))
         self.setLabel("guiCrcPass3", str(crcValidCount) + "/" + str(numTx))
@@ -729,7 +701,6 @@ class TopWindow:
         self.decodeTextViewWidget3.modify_font(Pango.font_description_from_string('Courier 12'))
         self.decodeTextViewWidget3.get_buffer().set_text(wcv.decodeOutputString)
         
-    # when a new protocol is loaded, we use its information to populate GUI
     
     def on_runStat_clicked(self, button, data=None):
         if wcv.verbose:
@@ -798,7 +769,7 @@ class TopWindow:
         ### print value ranges
         
         
-        
+    # when a new protocol is loaded, we use its information to populate GUI        
     def populateProtocolToGui(self, protocol):
     
         # add global WC control values
@@ -869,20 +840,32 @@ class TopWindow:
         self.spinButtonAdjustment = Gtk.Adjustment(0, 0, 0, 1, 1, 1)
         self.txSelectSpinButton.set_adjustment(self.spinButtonAdjustment)
         
-        # setup for plot window
-        self.plotWidget = self.builder.get_object("basebandPlot")
+        # setup axis, canvas and figure
         self.figure = Figure(figsize=(8,6), dpi=71) # replace with ???
         self.axis = self.figure.add_subplot(111)
         t = arange(0, 100, 1)
         s = arange(0, 100, 1)
         self.axis.plot(t,s)
         self.axis.axis([0, 100, -0.1, 1.1])
-        self.axis.set_xlabel('time (ms)') # replace with time unit
-        self.axis.set_ylabel('Baseband Signal') # replace with ???
+        self.axis.set_xlabel('time (ms)')
+        self.axis.set_ylabel('Baseband Signal')
         self.canvas = FigureCanvas(self.figure)  # a Gtk.DrawingArea
+        self.canvas1 = FigureCanvas(self.figure)
+        self.canvas2 = FigureCanvas(self.figure)
         self.canvas.set_size_request(400,40)
+        self.canvas1.set_size_request(400,40)
+        self.canvas2.set_size_request(400,40)
+        
+        # each canvas should be identical; assign to the widgets on 3 tabs
+        self.plotWidget = self.builder.get_object("basebandPlot")
+        self.plotWidget1 = self.builder.get_object("basebandPlot1")
+        self.plotWidget2 = self.builder.get_object("basebandPlot2")
         self.plotWidget.add_with_viewport(self.canvas)
+        self.plotWidget1.add_with_viewport(self.canvas1)
+        self.plotWidget2.add_with_viewport(self.canvas2)
         self.plotWidget.show_all()
+        self.plotWidget1.show_all()
+        self.plotWidget2.show_all()
         
         # setup for protocol dialog
         self.protocolDialog = self.builder.get_object("protocolDialog")
@@ -914,10 +897,10 @@ class TopWindow:
         self.aboutdialog = self.builder.get_object("aboutdialog1")
         self.protocolSaveAsDialog = self.builder.get_object("protocolSaveAsDialog")
         #self.statusbar = self.builder.get_object("statusbar1")
+        self.window.unmaximize() # doesn't seem to work
         self.window.show()
         
         # if we were passed a protocol via the command line or via
         # manual definition, populate gui with those values
         #if not (protocol_number == -1):
         self.populateProtocolToGui(protocol) 
-            

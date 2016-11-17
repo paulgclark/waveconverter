@@ -7,8 +7,8 @@ import waveConvertVars as wcv
 def buildProtocolDatabase():
     # zeroth protocol, the default that is loaded when none is specified
     protocol = ProtocolDefinition(getNextProtocolId())
-    protocol.deviceName = "Device Name"
-    protocol.deviceYear = "Year"
+    protocol.deviceName = "Chevy Colorado"
+    protocol.deviceYear = "2011"
     protocol.deviceType = 1
     #protocol.protocolID = wcv.TEMP_PROTOCOL # this value reserved for current, unsaved protocol
     

@@ -109,7 +109,7 @@ def decodePacket(protocol, packetWidths, decodedPacket, rawPacket):
 
     # check the packet's preamble, header, etc.
     encodingValid = True
-    (dataStartIndex, interPacketValid, preambleValid, headerValid) = checkValidPacket2(protocol, packetWidths)
+    (dataStartIndex, interPacketValid, preambleValid, headerValid) = checkValidPacket(protocol, packetWidths)
 
     # set loop index to the start of the data portion of the packet
     i = dataStartIndex
@@ -326,10 +326,7 @@ def printPacket(outFile, packet, outputHex):
 # This version generates a list of the ideal expected timing widths based on the 
 # protocol given. A second function then executes the comparison with the actual
 # waveform's list of widths. 
-def checkValidPacket2(protocol, packetWidths):
-    interPacketValid = True
-    preambleValid = True
-    headerValid = True
+def checkValidPacket(protocol, packetWidths):
     
     # build ideal timing list
     framingList = []
@@ -385,100 +382,4 @@ def sequenceCompare(protocol, idealTxList, realTxList):
                 print "len(idealTxList): " + str(len(idealTxList))
             return(False)    
     return True
-
-#####################################
-# NEED: move this into a different section; want raw and decoded for display
-# NEED: store any error info in the packet object
-def checkValidPacket(protocol, packetWidths):
-
-    # return vars for saving transmission status back to txList item
-    interPacketValid = True
-    preambleValid = True
-    headerValid = True
-    
-    # check for sufficiently long low period preceding packet
-    print "initial packet widths:"
-    print packetWidths
-    if packetWidths[0] < protocol.interPacketWidth_samp:
-        interPacketValid = False
-        print "Bad interpacket timing: " + str(packetWidths[0]) + " < " + str(protocol.interPacketWidth_samp)
-    else:
-        interPacketValid = True
-
-    # check preamble
-    i = 1
-    while i < (len(packetWidths)-2):
-        print "iteration: i=" + str(i)
-        # check that high portion is valid
-        # NEED to use a simple width check function, not measure
-        # NEED to build measure off the width check function
-        #measurement = widthMeasure(packetWidths[i], protocol.preambleSymbolHigh, protocol.unitError) 
-        i += 1 
-        #if measurement == BAD_WIDTH:
-        if not widthCheck(packetWidths[i-1], protocol.preambleSymbolHigh_samp, wcv.timingError):
-            print "bad width in preamble (first half of cycle) got: " + str(packetWidths[i-1]) + " expected: " + str(protocol.preambleSymbolHigh_samp) 
-            if protocol.headerLevel == wcv.DATA_NULL: # if there's no header, get out of loop
-                print "finished preamble"
-                i+=-2
-                break
-
-        # check that low portion is valid
-        if not widthCheck(packetWidths[i], protocol.preambleSymbolLow_samp, wcv.timingError):
-            print "bad width in preamble (second half of cycle, but this may be OK; checking header)"
-            print protocol.headerWidth_samp
-            if protocol.headerWidth_samp <= 0: # skip check
-                print "skipping header check and moving on to payload"
-                headerValid = True
-                break
-            elif widthCheck(packetWidths[i], protocol.headerWidth_samp, wcv.timingError):
-                print "encountered good header"
-                headerValid = True
-            else:
-                print "bad header duration"
-                headerValid = False
-            break
-        else:
-            i += 1
-
-    # check number of preamble symbols (need to handle multiple preamble lengths, right now, it only works for smallest one in list)
-    preambleSymbolCount = int(i/2)
-    if preambleSymbolCount in protocol.preambleSize:
-        print "Got good preamble with length: " + str(preambleSymbolCount)
-        preambleValid = True
-    else:
-        print "Bad preamble length: " + str(preambleSymbolCount) 
-        preambleValid = False
-
-    #print "(inside fn) DataStartIndex = " + str(dataStartIndex)
-    #print "preamble: "
-    #print preambleValid
-    dataStartIndex = i + 1
-    return (dataStartIndex, interPacketValid, preambleValid, headerValid)
-
-
-"""            
-
-
-# NEED: to figure out if the header should be defined as the entire low period, or as an addional
-# time at the end of a low preamble cycle
-    # check header if there is one
-    if protocol.headerLevel != wcv.DATA_NULL:
-        if protocol.headerLevel == wcv.DATA_ZERO:
-            if abs(packetWidths[i] - protocol.headerWidth_samp) > protocol.headerWidth_samp*wcv.timingError:
-                print "Header length invalid: " + str(packetWidths[i])
-            dataStartIndex = i + 1 # next length after header is where data starts
-        elif protocol.headerLevel == wcv.DATA_ONE:
-            if abs(packetWidths[i] - protocol.headerWidth_samp) > protocol.headerWidth_samp*wcv.timingError:
-                print "Header length invalid: " + str(packetWidths[i])
-            dataStartIndex = i + 1 # next length after header is where data starts
-    else: 
-        dataStartIndex = i # no header so don't increment
-"""
-    # check width of each data pulse
-    # presently doing this in the main decode loop, could move here
-
-    # check data size
-    # presently doing this in the main decode loop, could move here
-
-    #return(0)
 
