@@ -718,8 +718,14 @@ class TopWindow:
         
         wcv.bitProbList = []
         # compute the probability of each bit being equal to 1
+        # first figure out the longest transmission length
+        maxTxLen = 0
+        for iTx in wcv.txList:
+            if len(iTx.fullBasebandData) > maxTxLen:
+                maxTxLen = len(iTx.fullBasebandData)
+
         i=0
-        while i < wcv.protocol.packetSize:
+        while i < maxTxLen:
             sumOfBits = 0
             totalBits = 0
             for iTx in wcv.txList:
@@ -733,7 +739,7 @@ class TopWindow:
             except:
                 wcv.bitProbList.append(-1.0) # if no bits at this address, use -1
             i+=1
-            
+
         # build string for display, one probability per line
         wcv.bitProbString = "Bit: Probability %\n"
         i=0
@@ -743,9 +749,9 @@ class TopWindow:
             
         # display bit probabilities in correct GUI element
         self.bitProbTextViewWidget = self.builder.get_object("bitProbTextView")
-        self.bitProbTextViewWidget.modify_font(Pango.font_description_from_string('Courier 8'))
+        #self.bitProbTextViewWidget.modify_font(Pango.font_description_from_string('Courier 8'))
         self.bitProbTextViewWidget.get_buffer().set_text(wcv.bitProbString)
-        #print wcv.bitProbString
+        print wcv.bitProbString
         
         idList = []
         # get ID value for each packet and save as string to a new list  
@@ -762,12 +768,40 @@ class TopWindow:
         
         # display ID frequency data
         self.idValuesTextViewWidget = self.builder.get_object("idValuesTextView")
-        self.idValuesTextViewWidget.modify_font(Pango.font_description_from_string('Courier 8'))
+        #self.idValuesTextViewWidget.modify_font(Pango.font_description_from_string('Courier 8'))
         self.idValuesTextViewWidget.get_buffer().set_text(idStatString)
         print idStatString
         
+        # need to trap for bad indices
+        value1List = []
+        value2List = []
+        for iTx in wcv.txList:
+            # if any of the transmissions are too short to include the value bit range, skip
+            if wcv.protocol.val1AddrLow < len(iTx.fullBasebandData) or wcv.protocol.val1AddrHigh < iTx.fullBasebandData:
+                # get bits that comprise the value
+                bitList = iTx.fullBasebandData[wcv.protocol.val1AddrLow:wcv.protocol.val1AddrHigh]
+                # convert bits to number
+                value = 0
+                for bit in bitList:
+                    value = (value << 1) | bit
+                # add to list
+                value1List.append(int(value))
+            
+        # build string of values
+        if value1List[0] == -1:
+            valuesString = "Value 1: Illegal Values"
+        else:
+            valuesString = "Value 1:\n"
+            valuesString += "  Average:  " + str(sum(value1List)/len(value1List)) + "\n" 
+            valuesString += "  Low Val:  " + str(min(value1List)) + "\n"
+            valuesString += "  High Val: " + str(max(value1List)) + "\n\n"
+
+        # need to add values 2 and 3 (or make into a list)        
         ### print value ranges
-        
+        self.idValuesTextViewWidget = self.builder.get_object("fieldValuesTextView")
+        #self.idValuesTextViewWidget.modify_font(Pango.font_description_from_string('Courier 8'))
+        self.idValuesTextViewWidget.get_buffer().set_text(valuesString)
+        print valuesString
         
     # when a new protocol is loaded, we use its information to populate GUI        
     def populateProtocolToGui(self, protocol):
