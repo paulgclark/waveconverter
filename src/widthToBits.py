@@ -339,7 +339,12 @@ def checkValidPacket(protocol, packetWidths):
     if protocol.headerWidth >= 0:
         framingList.append(protocol.headerWidth_samp)
 
-    print framingList        
+    # debug only
+    print "Framing List:"
+    print framingList
+    print "Input List:"
+    print packetWidths
+         
     # check this ideal framing list against the one passed into the fn
     if sequenceCompare(protocol, framingList, packetWidths):
         if wcv.verbose:

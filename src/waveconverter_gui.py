@@ -91,12 +91,16 @@ class TopWindow:
         # get decode properties
         wcv.protocol.encodingType = self.getIntFromEntryBox("encodingEntryBox")
         wcv.protocol.unitWidth = self.getIntFromEntry("payloadUnitEntry")
-        wcv.protocol.pwmSymbolSize = self.getIntFromEntry("pwmPeriodEntry")
+        wcv.protocol.pwmZeroSymbol[0] = self.getIntFromEntry("pwmZeroLowEntry")
+        wcv.protocol.pwmZeroSymbol[1] = self.getIntFromEntry("pwmZeroHighEntry")
+        wcv.protocol.pwmOneSymbol[0] = self.getIntFromEntry("pwmOneLowEntry")
+        wcv.protocol.pwmOneSymbol[1] = self.getIntFromEntry("pwmOneHighEntry")
+        #wcv.protocol.pwmSymbolSize = self.getIntFromEntry("pwmPeriodEntry")
         # compute PWM units from percentage in GUI
-        wcv.protocol.pwmZeroSymbol[0] = int(wcv.protocol.pwmSymbolSize*(100.0-self.getFloatFromEntry("pwmZeroEntry"))/100.0)
-        wcv.protocol.pwmZeroSymbol[1] = int(wcv.protocol.pwmSymbolSize*self.getFloatFromEntry("pwmZeroEntry")/100.0)
-        wcv.protocol.pwmOneSymbol[0] = int(wcv.protocol.pwmSymbolSize*(100.0-self.getFloatFromEntry("pwmOneEntry"))/100.0)
-        wcv.protocol.pwmOneSymbol[1] = int(wcv.protocol.pwmSymbolSize*self.getFloatFromEntry("pwmOneEntry")/100.0)
+        #wcv.protocol.pwmZeroSymbol[0] = int(wcv.protocol.pwmSymbolSize*(100.0-self.getFloatFromEntry("pwmZeroEntry"))/100.0)
+        #wcv.protocol.pwmZeroSymbol[1] = int(wcv.protocol.pwmSymbolSize*self.getFloatFromEntry("pwmZeroEntry")/100.0)
+        #wcv.protocol.pwmOneSymbol[0] = int(wcv.protocol.pwmSymbolSize*(100.0-self.getFloatFromEntry("pwmOneEntry"))/100.0)
+        #wcv.protocol.pwmOneSymbol[1] = int(wcv.protocol.pwmSymbolSize*self.getFloatFromEntry("pwmOneEntry")/100.0)
         
         # load CRC properties
         wcv.protocol.crcPoly = self.getListFromEntry("crcPolynomialEntry")
@@ -260,7 +264,7 @@ class TopWindow:
             self.fcd.destroy()
             
     def on_transmissionNumberSelect_value_changed(self, spinButton, data=None):
-        txNum = spinButton.get_value_as_int()
+        txNum = spinButton.get_value_as_int() - 1 # button counts from 1 to n; array from 0 to n-1
         # reset the Min and Max extents of plot for new waveform
         wcv.tMin = 0
         wcv.tMax = 100
@@ -268,9 +272,9 @@ class TopWindow:
         if wcv.verbose:
             print "Selecting TX #" + str(txNum)
             
-        if txNum <= len(wcv.basebandDataByTx):
+        if txNum < len(wcv.basebandDataByTx):
             wcv.txNum = txNum
-            self.drawBasebandPlot(wcv.basebandDataByTx[wcv.txNum-1], 
+            self.drawBasebandPlot(wcv.basebandDataByTx[wcv.txNum], 
                                   wcv.tMin, wcv.tMax, wcv.basebandSampleRate)
         else:
             print "Reached end of transmission list"
@@ -442,6 +446,13 @@ class TopWindow:
     #def setListToEntry(self, widgetName, value):
     #    tempWidget = self.builder.get_object(widgetName)
     #    print "fill"
+    def deactivateEntry(self, widgetName):
+        tempWidget = self.builder.get_object(widgetName)
+        tempWidget.set_sensitive(False)
+
+    def activateEntry(self, widgetName):
+        tempWidget = self.builder.get_object(widgetName)
+        tempWidget.set_sensitive(True)
         
     # plots the input list as a waveform, displaying the data between
     # tMin and tMax, which are percentages of the duration of the waveform. For example,
@@ -624,7 +635,24 @@ class TopWindow:
         
         # update the transmission status
         print "Baseband separated into individual transmissions."
-    
+
+    def on_encodingEntryBox_changed(self, data=None):
+        wcv.protocol.encodingType = self.getIntFromEntryBox("encodingEntryBox")
+        # if one of the Manchester types, deactivate the PWM entry boxes and activate the unit entry
+        if wcv.protocol.encodingType == 1 or wcv.protocol.encodingType == 2:
+            self.activateEntry("payloadUnitEntry")
+            self.deactivateEntry("pwmZeroLowEntry")
+            self.deactivateEntry("pwmZeroHighEntry")
+            self.deactivateEntry("pwmOneLowEntry")
+            self.deactivateEntry("pwmOneHighEntry")
+        # if PWM/PIE, deactivate unit entry boxes and activate the PWM entries
+        else:
+            self.deactivateEntry("payloadUnitEntry")
+            self.activateEntry("pwmZeroLowEntry")
+            self.activateEntry("pwmZeroHighEntry")
+            self.activateEntry("pwmOneLowEntry")
+            self.activateEntry("pwmOneHighEntry")
+             
     # when the Decode button is pushed, we need to take all the settings 
     # that the user has entered into the gui and place them in the current 
     # protocol object; we then call the decoder engine to extract the payload
@@ -832,11 +860,15 @@ class TopWindow:
         # add payload properties
         self.setEntryBox("encodingEntryBox", wcv.protocol.encodingType)
         self.setEntry("payloadUnitEntry", wcv.protocol.unitWidth)
-        self.setEntry("pwmPeriodEntry", wcv.protocol.pwmSymbolSize)
-        self.setEntry("pwmZeroEntry", 
-                      "{0:.1f}".format(100.0*wcv.protocol.pwmZeroSymbol[1]/wcv.protocol.pwmSymbolSize))
-        self.setEntry("pwmOneEntry", 
-                      "{0:.1f}".format(100.0*wcv.protocol.pwmOneSymbol[1]/wcv.protocol.pwmSymbolSize))
+        self.setEntry("pwmZeroLowEntry", wcv.protocol.pwmZeroSymbol[0])
+        self.setEntry("pwmZeroHighEntry", wcv.protocol.pwmZeroSymbol[1])
+        self.setEntry("pwmOneLowEntry", wcv.protocol.pwmOneSymbol[0])
+        self.setEntry("pwmOneHighEntry", wcv.protocol.pwmOneSymbol[1])
+        #self.setEntry("pwmPeriodEntry", wcv.protocol.pwmSymbolSize)
+        #self.setEntry("pwmZeroEntry", 
+        #             "{0:.1f}".format(100.0*wcv.protocol.pwmZeroSymbol[1]/wcv.protocol.pwmSymbolSize))
+        #self.setEntry("pwmOneEntry", 
+        #              "{0:.1f}".format(100.0*wcv.protocol.pwmOneSymbol[1]/wcv.protocol.pwmSymbolSize))
 
         # add CRC properties
         self.setEntry("crcLengthEntry", len(wcv.protocol.crcPoly))
