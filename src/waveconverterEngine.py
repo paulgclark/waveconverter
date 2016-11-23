@@ -17,7 +17,7 @@ from protocol_lib import ProtocolDefinition
 import io
 
 def decodeBaseband(waveformFileName, basebandSampleRate, outFileName,
-                   protocol, outputHex):
+                   protocol, outputHex, verbose):
 
     masterWidthList = [] # contains the widths for the entire file
     packetWidthsList = [] # list of packet width lists
@@ -43,7 +43,7 @@ def decodeBaseband(waveformFileName, basebandSampleRate, outFileName,
                 # print(packetWidths)
                 decodedPacket = [] # move out of loop to main vars?
                 rawPacket = [] # move out of loop to main vars?
-                decodePacket(protocol, packetWidths, decodedPacket, rawPacket)
+                decodePacket(protocol, packetWidths, decodedPacket, rawPacket, verbose)
                 # print "Raw and Decoded Packets:"
                 # print(rawPacket)
                 # print(decodedPacket)
@@ -52,27 +52,6 @@ def decodeBaseband(waveformFileName, basebandSampleRate, outFileName,
                 i+=1
                 #break # debug - only do first packet
 
-            # print packets to file
-            # print masterWidthList
-            # print packetWidthsList
-
-            # this function should only return the packets
-            # hex conversion and file output should be in another
-            # module and function; for now, we can output to a file and
-            # then stream back into a display window
-            # move this code to next FN
-            """
-            i=0
-            for packet in packetList:
-                outFile.write("Packet #" + str(i+1) + ": ")
-                printPacket(outFile, packet, outputHex)
-                i+=1
-                
-                # after we finish, close out files and exit
-                
-    # move this code to next FN
-    outFile.close()
-    """
     waveformFile.close()
 
     return packetList
@@ -162,8 +141,8 @@ class basebandTx:
         self.waveformData = waveformDataIn
         self.fullBasebandData = []
         
-    def decodeTx(self, protocol):
-        if wcv.verbose:
+    def decodeTx(self, protocol, timingError, verbose):
+        if verbose:
             print "decoding transmission #" + str(self.txNum)
                         
         # scan through waveform and get widths
@@ -177,7 +156,7 @@ class basebandTx:
         self.fullBasebandData = []     # dump any info from previous decoding attempt
         (self.interPacketTimingValid, self.preambleValid, 
          self.headerValid, self.encodingValid) = \
-            decodePacket(protocol, self.widthList, self.fullBasebandData, tempUnused)
+            decodePacket(protocol, self.widthList, self.fullBasebandData, tempUnused, timingError, verbose)
         
         self.framingValid = self.interPacketTimingValid & \
                             self.preambleValid & \
@@ -186,7 +165,7 @@ class basebandTx:
         # NEED: add protocol check to ensure bits are legal
         self.crcBits = self.fullBasebandData[protocol.crcLow:protocol.crcHigh+1]
         self.payloadData = self.fullBasebandData[protocol.crcDataLow:protocol.crcDataHigh+1]
-        if wcv.verbose:
+        if verbose:
             print "crcbits and payload"
             print self.crcBits
             print self.payloadData
@@ -196,7 +175,7 @@ class basebandTx:
         else:
             self.crcValid = checkCRC(protocol, self.crcBits, self.payloadData)
 
-        if self.preambleValid and self.headerValid and self.encodingValid and self.crcValid:
+        if self.framingValid and self.encodingValid and self.crcValid and (len(self.fullBasebandData) == protocol.packetSize):
             self.txValid = True
             
         # NEED break out ID
@@ -205,7 +184,8 @@ class basebandTx:
         
         self.binaryString = packetToString(self.fullBasebandData, 0)
         self.hexString = packetToString(self.fullBasebandData, 1)
-        print "data size: " + str(len(self.fullBasebandData))
+        if verbose:
+            print "data size: " + str(len(self.fullBasebandData))
         #print self.binaryString
         
     def display(self):
@@ -231,3 +211,101 @@ class basebandTx:
         print "Value 2: " + str(self.value2)
         print "Binary String: " + self.binaryString
         print "Hex String: " + self.hexString
+
+
+from demod_rf import ook_flowgraph
+from demod_rf import fsk_flowgraph
+def demodIQFile(verbose, modulationType, iqSampleRate, basebandSampleRate, centerFreq, frequency,
+                channelWidth, transitionWidth, threshold, iqFileName, waveformFileName, fskDeviation):
+    # create flowgraph object and execute flowgraph
+        try:
+            if verbose:
+                print "Running Demodulation Flowgraph"
+            if modulationType == wcv.MOD_OOK:
+                flowgraphObject = ook_flowgraph(iqSampleRate, # rate_in
+                                                basebandSampleRate, # rate_out
+                                                centerFreq,
+                                                frequency, 
+                                                channelWidth,
+                                                transitionWidth,
+                                                threshold,
+                                                iqFileName,
+                                                waveformFileName) # temp digfile
+                flowgraphObject.run()
+            elif modulationType == wcv.MOD_FSK:
+                flowgraphObject = fsk_flowgraph(iqSampleRate, # samp_rate_in 
+                                                basebandSampleRate, # rate_out 
+                                                centerFreq,
+                                                frequency, # tune_freq
+                                                channelWidth,
+                                                transitionWidth,
+                                                threshold,
+                                                fskDeviation,
+                                                iqFileName, 
+                                                waveformFileName) # temp file
+                flowgraphObject.run()
+            else:
+                print "Invalid modulation type selected" # NEED to put in status bar or pop-up
+            
+        except [[KeyboardInterrupt]]:
+            pass
+        
+        if verbose:
+            print "Flowgraph completed"
+
+        # get the message queue object used in the flowgraph          
+        queue = flowgraphObject.sink_queue
+        
+        # now run through each message in the queue, and pull out each 
+        # byte from each message
+        basebandList = []
+        for n in xrange(queue.count()):
+            messageSPtr = queue.delete_head() # get and remove the front-most message
+            messageString = messageSPtr.to_string() # convert message to a string
+            # for each character in the string, determine if binary 1 or 0 and append
+            for m in xrange(len(messageString)):
+                if messageString[m] == b'\x00':
+                    basebandList.append(0)
+                elif messageString[m] == b'\x01':
+                    basebandList.append(1)
+                else:
+                    basebandList.append(messageString)
+                    print "Fatal Error: flowgraph output baseband value not equal to 1 or 0"
+                    print "n = " + str(n)
+                    exit(1)
+        return basebandList
+
+# this function takes the binary baseband data and breaks it into individual
+# transmissions, assigning each to a Tx Object along with a timestamp
+from breakWave import breakBaseband
+def buildTxList(basebandData, basebandSampleRate, interTxTiming, verbose):
+    
+    basebandDataByTx = breakBaseband(basebandData, interTxTiming, verbose)
+    runningSampleCount = 0
+    txList = []
+
+    # build a list of transmission objects with timestamp
+    for iTx in basebandDataByTx:
+        timeStamp_us = 1000000.0 * runningSampleCount/basebandSampleRate
+        runningSampleCount += len(iTx)
+        txList.append(basebandTx(len(txList), timeStamp_us, iTx))
+
+    return txList
+
+def decodeAllTx(protocol, txList, outputHex, timingError, verbose):
+
+    # call decode engine for each transmission
+    decodeOutputString = "" # need to start over after each decode attempt
+    i = 0
+    for iTx in txList:
+        if i == len(txList):
+            iTx.display()
+        else:
+            iTx.decodeTx(protocol, timingError, verbose)
+        if outputHex:
+            decodeOutputString += '{}{:>4}: {}'.format("TX#", str(i+1), iTx.hexString)
+        else:
+            decodeOutputString += '{}{:>4}: {}'.format("TX#", str(i+1), iTx.binaryString)
+        i+=1
+
+    return (txList, decodeOutputString)

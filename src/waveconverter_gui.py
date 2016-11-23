@@ -2,17 +2,18 @@
 
 import os
 import waveConvertVars as wcv
-from demod_rf import ook_flowgraph
-from demod_rf import fsk_flowgraph
 from waveconverterEngine import decodeBaseband
 from waveconverterEngine import packetsToFormattedString
-from breakWave import basebandFileToList
-from breakWave import breakBaseband
 from protocol_lib import ProtocolDefinition, getNextProtocolId
 from protocol_lib import protocolSession
 from protocol_lib import fetchProtocol
 from waveConvertVars import protocol # NEED to eliminate
 from waveconverterEngine import basebandTx
+from waveconverterEngine import demodIQFile
+from waveconverterEngine import buildTxList
+from waveconverterEngine import decodeAllTx
+from statEngine import computeStats
+from statEngine import buildStatStrings
 from collections import Counter
 
 # for plotting baseband
@@ -95,6 +96,8 @@ class TopWindow:
         wcv.protocol.pwmZeroSymbol[1] = self.getIntFromEntry("pwmZeroHighEntry")
         wcv.protocol.pwmOneSymbol[0] = self.getIntFromEntry("pwmOneLowEntry")
         wcv.protocol.pwmOneSymbol[1] = self.getIntFromEntry("pwmOneHighEntry")
+        wcv.protocol.packetSize = self.getIntFromEntry("numPayloadBitsEntry")
+        
         #wcv.protocol.pwmSymbolSize = self.getIntFromEntry("pwmPeriodEntry")
         # compute PWM units from percentage in GUI
         #wcv.protocol.pwmZeroSymbol[0] = int(wcv.protocol.pwmSymbolSize*(100.0-self.getFloatFromEntry("pwmZeroEntry"))/100.0)
@@ -131,7 +134,6 @@ class TopWindow:
         # these parameters are currently unused but must be in protocol to keep sqllite happy
         wcv.protocol.interPacketSymbol = 0
         wcv.protocol.headerLevel = 0
-        wcv.protocol.packetSize = 0
         wcv.protocol.preambleSync = False
         wcv.protocol.crcHigh = 0
         wcv.protocol.crcPadVal = 0
@@ -203,6 +205,7 @@ class TopWindow:
 
         # store protocol in database under current ID
         wcv.protocol.saveProtocol()
+        wcv.protocol.printProtocolFull()
         
     # this function is called when the toolbar "save as" button is clicked,
     # it brings up a dialog asking the user for a protocol name for the new
@@ -272,9 +275,9 @@ class TopWindow:
         if wcv.verbose:
             print "Selecting TX #" + str(txNum)
             
-        if txNum < len(wcv.basebandDataByTx):
+        if txNum < len(wcv.txList):
             wcv.txNum = txNum
-            self.drawBasebandPlot(wcv.basebandDataByTx[wcv.txNum], 
+            self.drawBasebandPlot(wcv.txList[wcv.txNum].waveformData, 
                                   wcv.tMin, wcv.tMax, wcv.basebandSampleRate)
         else:
             print "Reached end of transmission list"
@@ -301,7 +304,7 @@ class TopWindow:
             wcv.tMax = 100
             wcv.tMin = 100 - zoomSize
             
-        self.drawBasebandPlot(wcv.basebandDataByTx[wcv.txNum], 
+        self.drawBasebandPlot(wcv.txList[wcv.txNum].waveformData, 
                               wcv.tMin, wcv.tMax, wcv.basebandSampleRate)
         
             
@@ -327,7 +330,7 @@ class TopWindow:
             wcv.tMin = 0
             wcv.tMax = zoomSize
             
-        self.drawBasebandPlot(wcv.basebandDataByTx[wcv.txNum], 
+        self.drawBasebandPlot(wcv.txList[wcv.txNum].waveformData, 
                               wcv.tMin, wcv.tMax, wcv.basebandSampleRate)
             
     def on_zoomFullButton_clicked(self, button, data=None):
@@ -336,7 +339,7 @@ class TopWindow:
         wcv.tMin = 0
         wcv.tMax = 100
         
-        self.drawBasebandPlot(wcv.basebandDataByTx[wcv.txNum], 
+        self.drawBasebandPlot(wcv.txList[wcv.txNum].waveformData, 
                               wcv.tMin, wcv.tMax, wcv.basebandSampleRate)
             
     def on_zoomInButton_clicked(self, button, data=None):
@@ -351,7 +354,7 @@ class TopWindow:
         wcv.tMin = int((center - zoomSize/2.0) + 0.5)
         wcv.tMax = int((center + zoomSize/2.0) + 0.5)
         
-        self.drawBasebandPlot(wcv.basebandDataByTx[wcv.txNum], 
+        self.drawBasebandPlot(wcv.txList[wcv.txNum].waveformData, 
                               wcv.tMin, wcv.tMax, wcv.basebandSampleRate)
         
     def on_zoomOutButton_clicked(self, button, data=None):
@@ -378,10 +381,32 @@ class TopWindow:
         if wcv.tMax > 100:
             wcv.tMax = 100
         
-        self.drawBasebandPlot(wcv.basebandDataByTx[wcv.txNum], 
+        self.drawBasebandPlot(wcv.txList[wcv.txNum].waveformData, 
                               wcv.tMin, wcv.tMax, wcv.basebandSampleRate)
         
         
+    # 
+    def on_viewGoodEntryBox_changed(self, button, data=None):
+        wcv.statValidTxOnly = self.getBoolFromEntryBox("viewGoodEntryBox")
+        if wcv.verbose:
+            print "View Stats for All TX changed to " + str(wcv.statValidTxOnly)
+        # if stats are up, redo them
+        if not wcv.bitProbString == "":
+            self.on_runStat_clicked(button)
+            
+    def on_binaryHexEntryBox_changed(self, button, data=None):
+        wcv.outputHex = self.getBoolFromEntryBox("binaryHexEntryBox")
+            
+        if wcv.verbose:
+            print "Hex Output Mode change to " + str(wcv.outputHex)
+        # if tx display is are up, redo them
+        if len(wcv.txList) != 0:
+            self.on_Decode_clicked(button)
+        
+        # if stats are up, redo them
+        if not wcv.bitProbString == "":
+            self.on_runStat_clicked(button)
+    
     # the following functions grab values from the GUI widgets, consolidating the two lines
     # of code into one. Each function takes the text name of the widget and returns its current
     # value. Conversely, it assigns the value to the widget.
@@ -400,6 +425,14 @@ class TopWindow:
     def getIntFromEntryBox(self, widgetName):
         tempWidget = self.builder.get_object(widgetName)
         return int(tempWidget.get_active())
+    
+    def getBoolFromEntryBox(self, widgetName):
+        tempWidget = self.builder.get_object(widgetName)
+        intVal = int(tempWidget.get_active())
+        if intVal == 0:
+            return(False)
+        else:
+            return(True)
 
     def getListFromEntry(self, widgetName):
         tempWidget = self.builder.get_object(widgetName)
@@ -541,8 +574,9 @@ class TopWindow:
         wcv.protocol.channelWidth = 1000 * self.getFloatFromEntry("channelWidthEntry")
         wcv.protocol.transitionWidth = 1000 * self.getFloatFromEntry("transitionWidthEntry")
         wcv.protocol.threshold = self.getFloatFromEntry("thresholdEntry")
+        wcv.protocol.fskDeviation = self.getFloatFromEntry("fskDeviationEntry")
         wcv.protocol.convertTimingToSamples(wcv.basebandSampleRate)
-
+        
         if wcv.verbose:
             print "modulation (ook=0)    = " + str(wcv.protocol.modulation)
             print "samp_rate (Hz)        = " + str(wcv.samp_rate)
@@ -552,70 +586,42 @@ class TopWindow:
             print "channel width (Hz)    = " + str(wcv.protocol.channelWidth)
             print "transition width (Hz) = " + str(wcv.protocol.transitionWidth)
             print "threshold             = " + str(wcv.protocol.threshold)
+            print "FSK Deviation (Hz)    = " + str(wcv.protocol.fskDeviation)
             print "iq File Name          = " + wcv.iqFileName
             print "Waveform File Name    = " + wcv.waveformFileName
 
-        # create flowgraph object and execute flowgraph
-        try:
-            if wcv.verbose:
-                print "Running Demodulation Flowgraph"
-            if wcv.protocol.modulation == wcv.MOD_OOK:
-                flowgraphObject = ook_flowgraph(wcv.samp_rate, # rate_in
-                                                wcv.basebandSampleRate, # rate_out
-                                                wcv.center_freq,
-                                                wcv.protocol.frequency, 
-                                                wcv.protocol.channelWidth,
-                                                wcv.protocol.transitionWidth,
-                                                wcv.protocol.threshold,
-                                                wcv.iqFileName,
-                                                wcv.waveformFileName) # temp digfile
-                flowgraphObject.run()
-            elif wcv.protocol.modulation == wcv.MOD_FSK:
-                flowgraphObject = fsk_flowgraph(wcv.samp_rate, # samp_rate_in 
-                                                wcv.basebandSampleRate, # rate_out 
-                                                wcv.center_freq,
-                                                wcv.protocol.frequency, # tune_freq
-                                                wcv.protocol.channelWidth,
-                                                wcv.protocol.transitionWidth,
-                                                wcv.protocol.threshold,
-                                                wcv.protocol.fskDeviation,
-                                                wcv.iqFileName, 
-                                                wcv.waveformFileName) # temp file
-                flowgraphObject.run()
-            else:
-                print "Invalid modulation type selected" # NEED to put in status bar or pop-up
-            
-        except [[KeyboardInterrupt]]:
-            pass
-        
-        print "Flowgraph completed"
-        
+        # demodulate the iq data
+        wcv.basebandData = demodIQFile(verbose = wcv.verbose,
+                                       modulationType = wcv.protocol.modulation,
+                                       iqSampleRate = wcv.samp_rate,
+                                       basebandSampleRate = wcv.basebandSampleRate,
+                                       centerFreq = wcv.center_freq,
+                                       frequency = wcv.protocol.frequency,
+                                       channelWidth = wcv.protocol.channelWidth,
+                                       transitionWidth = wcv.protocol.transitionWidth,
+                                       threshold = wcv.protocol.threshold,
+                                       fskDeviation = wcv.protocol.fskDeviation,
+                                       iqFileName = wcv.iqFileName,
+                                       waveformFileName = wcv.waveformFileName
+                                       )
         # read baseband waveform data from file
-        wcv.basebandData = basebandFileToList(wcv.waveformFileName) # NEED get list from flowgraph; unnecessary file reads kill perf
-        print "baseband data length (raw): " + str(len(wcv.basebandData))
-
-        # for debug purposes only - verifies we have some non-zero baseband
-        import sys
-        for point in wcv.basebandData:
-            if point != 0:
-                sys.stdout.write(str(point))
+        if wcv.verbose:
+            print "baseband data length (raw): " + str(len(wcv.basebandData))
 
         # split the baseband into individual transmissions and then store each
         # in its own transmission list, to be decoded later
-        wcv.basebandDataByTx = breakBaseband(wcv.basebandData, wcv.protocol.interPacketWidth_samp)
-        runningSampleCount = 0
-        wcv.txList = []
-
-        #for iTx in wcv.basebandDataByTx[1:] # ignore the first transmission, it's spurious
-        for iTx in wcv.basebandDataByTx:
-            timeStamp_us = 1000000.0 * runningSampleCount/wcv.basebandSampleRate
-            runningSampleCount += len(iTx)
-            wcv.txList.append(basebandTx(len(wcv.txList), timeStamp_us, iTx))
+        wcv.txList = buildTxList(basebandData = wcv.basebandData,
+                                 basebandSampleRate =  wcv.basebandSampleRate,
+                                 interTxTiming = wcv.protocol.interPacketWidth_samp,
+                                 verbose = wcv.verbose
+                                 )
         
         # debug only
-        print "Number of transmissions broken down: " + str(len(wcv.txList))
-        for tx in wcv.txList:
-            print "tx list length: " + str(len(tx.waveformData))
+        if wcv.verbose:
+            print "Number of transmissions broken down: " + str(len(wcv.txList))
+            for tx in wcv.txList:
+                print "tx waveform list length: " + str(len(tx.waveformData))
+                
         if len(wcv.txList) == 0:
             self.setLabel("signalCountLabel", "<b>NO SIGNALS FOUND</b>", 1) # NEED: use bold and/or red text?
             print "NO SIGNALS FOUND AFTER DEMODULATION"
@@ -626,15 +632,17 @@ class TopWindow:
         # now plot the first transmission, zoomed out
         wcv.tMin = 0
         wcv.tMax = 100
-        print "txListLength: " + str(len(wcv.txList[0].waveformData)) + " tMin/Max: " + str(wcv.tMin) + " " + str(wcv.tMax) + " bbsr: " + str(wcv.basebandSampleRate)
-        print wcv.txList[0].waveformData
+        if wcv.verbose:
+            print "txListLength: " + str(len(wcv.txList[0].waveformData)) + " tMin/Max: " + str(wcv.tMin) + " " + str(wcv.tMax) + " bbsr: " + str(wcv.basebandSampleRate)
+            print wcv.txList[0].waveformData
         self.drawBasebandPlot(wcv.txList[0].waveformData, wcv.tMin, wcv.tMax, wcv.basebandSampleRate)
         
         # set range for the tx-select spin button
         self.txSelectSpinButton.set_range(1, len(wcv.txList)+1)
         
         # update the transmission status
-        print "Baseband separated into individual transmissions."
+        if wcv.verbose:
+            print "Baseband separated into individual transmissions."
 
     def on_encodingEntryBox_changed(self, data=None):
         wcv.protocol.encodingType = self.getIntFromEntryBox("encodingEntryBox")
@@ -671,22 +679,13 @@ class TopWindow:
             print "baseband sample rate:" + str(wcv.basebandSampleRate)
             wcv.protocol.printProtocolFull()
             print "tx list length: " + str(len(wcv.txList))
-           
-        # call decode engine for each transmission
-        wcv.decodeOutputString = "" # need to start over after each decode attempt
-        i = 0
-        for iTx in wcv.txList:
-            if i == len(wcv.txList): # - 1: # NEED: fix this kludge, last tx in list is wonky
-                iTx.display()
-            else:
-                iTx.decodeTx(wcv.protocol)
-            if wcv.outputHex:
-                wcv.decodeOutputString += '{}{:>4}: {}'.format("TX#", str(i+1), iTx.hexString)
-            else:
-                wcv.decodeOutputString += '{}{:>4}: {}'.format("TX#", str(i+1), iTx.binaryString)
-            i+=1
-            
-
+          
+        (wcv.txList, wcv.decodeOutputString) = decodeAllTx(protocol = wcv.protocol, 
+                                             txList = wcv.txList, 
+                                             outputHex = wcv.outputHex,
+                                             timingError = wcv.timingError,
+                                             verbose = wcv.verbose)
+        
         # update the display of tx valid flags
         interPacketValidCount = 0
         preambleValidCount = 0
@@ -743,93 +742,26 @@ class TopWindow:
         wcv.protocol.val2AddrHigh = self.getIntFromEntry("val2AddrHighEntry")
         wcv.protocol.val3AddrLow = self.getIntFromEntry("val3AddrLowEntry")
         wcv.protocol.val3AddrHigh = self.getIntFromEntry("val3AddrHighEntry")
+
+        (wcv.bitProbList, idListCounter, value1List) = computeStats(txList = wcv.txList, protocol = wcv.protocol, statValidTxOnly = wcv.statValidTxOnly)
+        (wcv.bitProbString, idStatString, valuesString) = buildStatStrings(bitProbList = wcv.bitProbList, idListCounter = idListCounter, value1List = value1List, outputHex = wcv.outputHex)
         
-        wcv.bitProbList = []
-        # compute the probability of each bit being equal to 1
-        # first figure out the longest transmission length
-        maxTxLen = 0
-        for iTx in wcv.txList:
-            if len(iTx.fullBasebandData) > maxTxLen:
-                maxTxLen = len(iTx.fullBasebandData)
-
-        i=0
-        while i < maxTxLen:
-            sumOfBits = 0
-            totalBits = 0
-            for iTx in wcv.txList:
-                try:
-                    sumOfBits += iTx.fullBasebandData[i]
-                    totalBits += 1
-                except:
-                    totalBits = totalBits
-            try:
-                wcv.bitProbList.append(100.0*sumOfBits/totalBits)
-            except:
-                wcv.bitProbList.append(-1.0) # if no bits at this address, use -1
-            i+=1
-
-        # build string for display, one probability per line
-        wcv.bitProbString = "Bit: Probability %\n"
-        i=0
-        for bitProb in wcv.bitProbList:
-            wcv.bitProbString += '{:3d}'.format(i) + ": " + '{:6.2f}'.format(bitProb) + "\n"
-            i+=1
-            
         # display bit probabilities in correct GUI element
         self.bitProbTextViewWidget = self.builder.get_object("bitProbTextView")
         #self.bitProbTextViewWidget.modify_font(Pango.font_description_from_string('Courier 8'))
         self.bitProbTextViewWidget.get_buffer().set_text(wcv.bitProbString)
-        print wcv.bitProbString
-        
-        idList = []
-        # get ID value for each packet and save as string to a new list  
-        for iTx in wcv.txList:
-            binaryString = ''.join(str(s) for s in iTx.fullBasebandData[wcv.protocol.idAddrLow:wcv.protocol.idAddrHigh+1])
-            idList.append(binaryString)
-        idListCounter = Counter(idList)
-        print idListCounter
-
-        # print out values
-        idStatString = "Count ID\n" # NEED: make the whitespace match the length of the IDs
-        for (idVal, idCount) in idListCounter.most_common():
-            idStatString += '{:5d}'.format(idCount) + "  " + idVal + "\n"
         
         # display ID frequency data
         self.idValuesTextViewWidget = self.builder.get_object("idValuesTextView")
         #self.idValuesTextViewWidget.modify_font(Pango.font_description_from_string('Courier 8'))
         self.idValuesTextViewWidget.get_buffer().set_text(idStatString)
-        print idStatString
         
-        # need to trap for bad indices
-        value1List = []
-        value2List = []
-        for iTx in wcv.txList:
-            # if any of the transmissions are too short to include the value bit range, skip
-            if wcv.protocol.val1AddrLow < len(iTx.fullBasebandData) or wcv.protocol.val1AddrHigh < iTx.fullBasebandData:
-                # get bits that comprise the value
-                bitList = iTx.fullBasebandData[wcv.protocol.val1AddrLow:wcv.protocol.val1AddrHigh]
-                # convert bits to number
-                value = 0
-                for bit in bitList:
-                    value = (value << 1) | bit
-                # add to list
-                value1List.append(int(value))
-            
-        # build string of values
-        if value1List[0] == -1:
-            valuesString = "Value 1: Illegal Values"
-        else:
-            valuesString = "Value 1:\n"
-            valuesString += "  Average:  " + str(sum(value1List)/len(value1List)) + "\n" 
-            valuesString += "  Low Val:  " + str(min(value1List)) + "\n"
-            valuesString += "  High Val: " + str(max(value1List)) + "\n\n"
-
         # need to add values 2 and 3 (or make into a list)        
         ### print value ranges
         self.idValuesTextViewWidget = self.builder.get_object("fieldValuesTextView")
         #self.idValuesTextViewWidget.modify_font(Pango.font_description_from_string('Courier 8'))
         self.idValuesTextViewWidget.get_buffer().set_text(valuesString)
-        print valuesString
+
         
     # when a new protocol is loaded, we use its information to populate GUI        
     def populateProtocolToGui(self, protocol):
@@ -864,6 +796,7 @@ class TopWindow:
         self.setEntry("pwmZeroHighEntry", wcv.protocol.pwmZeroSymbol[1])
         self.setEntry("pwmOneLowEntry", wcv.protocol.pwmOneSymbol[0])
         self.setEntry("pwmOneHighEntry", wcv.protocol.pwmOneSymbol[1])
+        self.setEntry("numPayloadBitsEntry", wcv.protocol.packetSize)
         #self.setEntry("pwmPeriodEntry", wcv.protocol.pwmSymbolSize)
         #self.setEntry("pwmZeroEntry", 
         #             "{0:.1f}".format(100.0*wcv.protocol.pwmZeroSymbol[1]/wcv.protocol.pwmSymbolSize))

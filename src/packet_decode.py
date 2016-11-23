@@ -56,6 +56,8 @@ args = parser.parse_args()
 
 # assign args to variables
 wcv.iqFileName = args.iq
+wcv.protocol_number = args.protocol
+
 if not args.baseband == None: # if not argument passed, used default
     wcv.waveformFileName = args.baseband
 wcv.outFileName = args.output
@@ -67,11 +69,22 @@ try:
     wcv.center_freq = args.center_freq * 1.0 # ensure this is a float
 except:
     wcv.center_freq = 0.0
-wcv.verbose = args.verbose
-wcv.outputHex = args.hex_out
-wcv.protocol_number = args.protocol
-wcv.runWithGui = args.gui
-wcv.buildNewDatabase = args.db
+try:
+    wcv.verbose = args.verbose
+except:
+    wcv.verbose = False
+try:
+    wcv.outputHex = args.hex_out
+except:
+    wcv.outputHex = False
+try:
+    wcv.runWithGui = args.gui
+except:
+    wcv.runWithGui = False
+try:    
+    wcv.buildNewDatabase = args.db
+except:
+    wcv.buildNewDatabase = False
 #wcv.argcHelp = args.help
 
 if wcv.verbose:      
@@ -108,11 +121,10 @@ elif wcv.protocol_number == 0:
 else:
     print "attempting to retrieve protocol " + \
         str(wcv.protocol_number) + " from database"
+    wcv.protocol = protocol_lib.fetchProtocol(wcv.protocol_number)
     if wcv.verbose:
-        wcv.protocol = protocol_lib.fetchProtocol(wcv.protocol_number)
         wcv.protocol.printProtocolFull()
 
-#exit()
 
 # if we were not given the GUI flag, run through in command line mode
 if not wcv.runWithGui:
@@ -166,7 +178,8 @@ if not wcv.runWithGui:
                                      wcv.basebandSampleRate,
                                      wcv.outFileName,
                                      wcv.protocol,
-                                     wcv.outputHex)
+                                     wcv.outputHex, 
+                                     wcv.verbose)
     
     # add packet to string function calls with outFile write and pull outFileName from fn call above
     

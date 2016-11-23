@@ -86,13 +86,13 @@ def separatePackets(protocol, masterWidthList, packetWidthsList):
 #####################################
 # This function checks the next series of widths (starting from start)
 # to see if a preamble has been reached
-def preambleSyncFound(protocol, masterWidthList, preambleWidthList, start):
+def preambleSyncFound(protocol, masterWidthList, preambleWidthList, start, timingError, verbose):
 
     i = 0
     # for each width in the preamble
     while i < len(preambleWidthList):
         # if it matches the width in the packet
-        if not widthCheck(masterWidthList[start+i], preambleWidthList[i], wcv.timingError):
+        if not widthCheck(masterWidthList[start+i], preambleWidthList[i], timingError, verbose):
             return False
         i+=1
 
@@ -105,11 +105,11 @@ def preambleSyncFound(protocol, masterWidthList, preambleWidthList, start):
 # NEED: packet specs from input list
 # NEED: check for even length so our zeros and ones don't get out of sync
 # NEED: seeding the array with an initial zero should be parameterized
-def decodePacket(protocol, packetWidths, decodedPacket, rawPacket):
+def decodePacket(protocol, packetWidths, decodedPacket, rawPacket, timingError, verbose):
 
     # check the packet's preamble, header, etc.
     encodingValid = True
-    (dataStartIndex, interPacketValid, preambleValid, headerValid) = checkValidPacket(protocol, packetWidths)
+    (dataStartIndex, interPacketValid, preambleValid, headerValid) = checkValidPacket(protocol, packetWidths, timingError, verbose)
 
     # set loop index to the start of the data portion of the packet
     i = dataStartIndex
@@ -133,7 +133,7 @@ def decodePacket(protocol, packetWidths, decodedPacket, rawPacket):
                 rawPacket.append(currentLevel)
                 rawPacket.append(currentLevel)
             else:
-                print("Bad level width")
+                print("Error: Bad level width")
                 encodingValid = False
 
             # flip level and increment index
@@ -143,7 +143,7 @@ def decodePacket(protocol, packetWidths, decodedPacket, rawPacket):
             elif (currentLevel == wcv.DATA_ONE):
                 currentLevel = wcv.DATA_ZERO
             else:
-                print("Level isn't either one or zero")
+                print("Error: Level isn't either one or zero")
                 encodingValid = False
 
         # remember that the last Manchester symbol will be swallowed
@@ -157,9 +157,9 @@ def decodePacket(protocol, packetWidths, decodedPacket, rawPacket):
         # the last symbol will have its zero time swallowed by the dead air that comes 
         # after the transmission, so add it
         del packetWidths[-1] # this is the interpacket dead air
-        if widthCheck(packetWidths[-1], protocol.pwmZeroSymbol_samp[0], wcv.timingError):
+        if widthCheck(packetWidths[-1], protocol.pwmZeroSymbol_samp[0], wcv.timingError, verbose):
             packetWidths.append(protocol.pwmZeroSymbol_samp[1]) # add a zero trail width
-        elif widthCheck(packetWidths[-1], protocol.pwmOneSymbol_samp[0], wcv.timingError):
+        elif widthCheck(packetWidths[-1], protocol.pwmOneSymbol_samp[0], wcv.timingError, verbose):
             packetWidths.append(protocol.pwmOneSymbol_samp[1]) # add a one trail width
         else:
             print "bad symbol encountered at end of widths list"
@@ -168,24 +168,23 @@ def decodePacket(protocol, packetWidths, decodedPacket, rawPacket):
 
         # go through each width pair and determine long or short duty cycle
         while i < len(packetWidths)-1:
-            if (widthCheck(packetWidths[i], protocol.pwmZeroSymbol_samp[0], wcv.timingError) and \
-                widthCheck(packetWidths[i+1], protocol.pwmZeroSymbol_samp[1], wcv.timingError)):
+            if (widthCheck(packetWidths[i], protocol.pwmZeroSymbol_samp[0], wcv.timingError, verbose) and \
+                widthCheck(packetWidths[i+1], protocol.pwmZeroSymbol_samp[1], wcv.timingError, verbose)):
                 # we have a zero if both the high and low portions check out
                 rawPacket.append(wcv.DATA_ZERO)
-            elif widthCheck(packetWidths[i], protocol.pwmOneSymbol_samp[0], wcv.timingError) and \
-                widthCheck(packetWidths[i+1], protocol.pwmOneSymbol_samp[1], wcv.timingError):
+            elif widthCheck(packetWidths[i], protocol.pwmOneSymbol_samp[0], wcv.timingError, verbose) and \
+                widthCheck(packetWidths[i+1], protocol.pwmOneSymbol_samp[1], wcv.timingError, verbose):
                 # we have a zero if both the high and low portions check out
                 rawPacket.append(wcv.DATA_ONE)
             else:
-                print "bad symbol encountered at index: " + str(i)
-                print "expected: " + str(protocol.pwmZeroSymbol_samp[0]) + " or: " + str(protocol.pwmOneSymbol_samp[0]) + ", got: " + str(packetWidths[i])
-                print "expected: " + str(protocol.pwmZeroSymbol_samp[1]) + " or: " + str(protocol.pwmOneSymbol_samp[1]) + ", got: " + str(packetWidths[i+1])
                 # if this is the last half of the last bit in the transmission, then we're OK
                 if len(rawPacket) == protocol.packetSize:
-                    print "last bit in transmission, so it's OK"
                     encodingValid = True
                 else:
                     encodingValid = False
+                    print "bad symbol encountered at index: " + str(i)
+                    print "expected: " + str(protocol.pwmZeroSymbol_samp[0]) + " or: " + str(protocol.pwmOneSymbol_samp[0]) + ", got: " + str(packetWidths[i])
+                    print "expected: " + str(protocol.pwmZeroSymbol_samp[1]) + " or: " + str(protocol.pwmOneSymbol_samp[1]) + ", got: " + str(packetWidths[i+1])
 
             i+=2 # go to next pair of widths
 
@@ -200,7 +199,7 @@ def decodePacket(protocol, packetWidths, decodedPacket, rawPacket):
 
 
 #####################################
-def widthCheck(width, expectedWidth, unitError):
+def widthCheck(width, expectedWidth, unitError, verbose):
     try:
         if (width >= expectedWidth * (1 - unitError)) and \
            (width <= expectedWidth * (1 + unitError)):
@@ -208,7 +207,7 @@ def widthCheck(width, expectedWidth, unitError):
         else:
             return(False)
     except:
-        if wcv.verbose:
+        if verbose:
             print "Encountered NULL value in width check"
         return(False)
 
@@ -326,7 +325,7 @@ def printPacket(outFile, packet, outputHex):
 # This version generates a list of the ideal expected timing widths based on the 
 # protocol given. A second function then executes the comparison with the actual
 # waveform's list of widths. 
-def checkValidPacket(protocol, packetWidths):
+def checkValidPacket(protocol, packetWidths, timingError, verbose):
     
     # build ideal timing list
     framingList = []
@@ -340,14 +339,15 @@ def checkValidPacket(protocol, packetWidths):
         framingList.append(protocol.headerWidth_samp)
 
     # debug only
-    print "Framing List:"
-    print framingList
-    print "Input List:"
-    print packetWidths
+    if verbose:
+        print "Framing List:"
+        print framingList
+        print "Input List:"
+        print packetWidths
          
     # check this ideal framing list against the one passed into the fn
-    if sequenceCompare(protocol, framingList, packetWidths):
-        if wcv.verbose:
+    if sequenceCompare(protocol, framingList, packetWidths, timingError, verbose):
+        if verbose:
             print "Primary preamble and header match transmission"
         return (len(framingList), True, True, True)
     
@@ -361,27 +361,28 @@ def checkValidPacket(protocol, packetWidths):
         framingList.append(protocol.headerWidth_samp)
         
     # check this ideal framing list against the one passed into the fn
-    if sequenceCompare(protocol, framingList, packetWidths):
-        if wcv.verbose:
+    if sequenceCompare(protocol, framingList, packetWidths, timingError, verbose):
+        if verbose:
             print "Secondary preamble and header match transmission"
         return (len(framingList), True, True, True)
     
     # if we got this far, then nothing matched
-    if wcv.verbose:
+    if verbose:
         print "Preamble and header match FAIL"
     return (len(framingList), False, False, False)
 
     
 # this function checks all of the widths in two lists, returning True if they all 
 # match withing the tolerance specified    
-def sequenceCompare(protocol, idealTxList, realTxList):
+def sequenceCompare(protocol, idealTxList, realTxList, timingError, verbose):
     for i in range(1, len(idealTxList)): # skip the first timing, as the zero gets swallowed up by the inter-packet timing
-        print "i = " + str(i)
+        if verbose:
+            print "i = " + str(i)
         try:
-            if not widthCheck(realTxList[i], idealTxList[i], wcv.timingError):
+            if not widthCheck(realTxList[i], idealTxList[i], wcv.timingError, verbose):
                 return(False)
         except:
-            if wcv.verbose:
+            if verbose:
                 print "NULL value encountered during sequence compare"
                 print "len(realTxList): " + str(len(realTxList))
                 print "len(idealTxList): " + str(len(idealTxList))

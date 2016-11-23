@@ -16,6 +16,106 @@ import waveConvertVars as wcv
 from waveConvertVars import *
 from config import *
 
+
+def computeStats(txList, protocol, statValidTxOnly):
+    bitProbList = []
+    
+    # if directed, create txList copy that removes all bad transmissions
+    if statValidTxOnly:
+        txList2 = []
+        for tx in txList:
+            if tx.txValid:
+                txList2.append(tx)
+    else:
+        txList2 = txList
+
+    # compute the probability of each bit being equal to 1
+    # first figure out the longest transmission length
+    maxTxLen = 0
+    for iTx in txList2:
+        if len(iTx.fullBasebandData) > maxTxLen:
+            maxTxLen = len(iTx.fullBasebandData)
+
+    i=0
+    while i < maxTxLen:
+        sumOfBits = 0
+        totalBits = 0
+        for iTx in txList2:
+            try:
+                sumOfBits += iTx.fullBasebandData[i]
+                totalBits += 1
+            except:
+                totalBits = totalBits
+        try:
+            bitProbList.append(100.0*sumOfBits/totalBits)
+        except:
+            bitProbList.append(-1.0) # if no bits at this address, use -1
+        i+=1
+        
+    # get ID value for each packet and save as string to a new list  
+    idList = []
+    for iTx in txList2:
+        binaryString = ''.join(str(s) for s in iTx.fullBasebandData[protocol.idAddrLow:protocol.idAddrHigh+1])
+        idList.append(binaryString)
+    idListCounter = Counter(idList)
+    
+
+    # build ranges of values    
+    # need to trap for bad indices
+    value1List = []
+    value2List = []
+    for iTx in txList2:
+        # if any of the transmissions are too short to include the value bit range, skip
+        if protocol.val1AddrLow < len(iTx.fullBasebandData) or protocol.val1AddrHigh < iTx.fullBasebandData:
+            # get bits that comprise the value
+            bitList = iTx.fullBasebandData[protocol.val1AddrLow:protocol.val1AddrHigh]
+            # convert bits to number
+            value = 0
+            for bit in bitList:
+                value = (value << 1) | bit
+            # add to list
+            value1List.append(int(value))
+    # need to add values 2 and 3 (or make into a list)
+            
+    return (bitProbList, idListCounter, value1List)
+
+
+def buildStatStrings(bitProbList, idListCounter, value1List, outputHex):
+
+    # build string for display of bit probabilities, one per line
+    bitProbString = "Bit: Probability %\n"
+    i=0
+    for bitProb in bitProbList:
+        bitProbString += '{:3d}'.format(i) + ": " + '{:6.2f}'.format(bitProb) + "\n"
+        i+=1
+
+    # build string showing frequency of each ID value
+    idStatString = "Count ID\n" # NEED: make the whitespace match the length of the IDs
+    for (idVal, idCount) in idListCounter.most_common():
+        if outputHex:
+            try:
+                hexString = '%0*X' % ((len(idVal) + 3) // 4, int(idVal, 2))
+                idStatString += '{:5d}'.format(idCount) + "  " + hexString + "\n"
+                #idStatString += '{:5d}'.format(idCount) + "  " + hex(int(idVal, 2)) + "\n"
+            except:
+                idStatString += '{:5d}'.format(idCount) + "  " + "N/A" + "\n"
+        else:
+            idStatString += '{:5d}'.format(idCount) + "  " + idVal + "\n"
+
+    # build string of values
+    if value1List == []:
+        valuesString = "Value 1: Undefined"
+    elif value1List[0] == -1:
+        valuesString = "Value 1: Illegal Values"
+    else:
+        valuesString = "Value 1:\n"
+        valuesString += "  Average:  " + str(sum(value1List)/len(value1List)) + "\n" 
+        valuesString += "  Low Val:  " + str(min(value1List)) + "\n"
+        valuesString += "  High Val: " + str(max(value1List)) + "\n\n"
+
+    return (bitProbString, idStatString, valuesString)
+    
+
 #####################################
 def bitProb(packetList, bitProbList):
     sumList = []

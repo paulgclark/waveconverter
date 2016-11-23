@@ -40,7 +40,7 @@ def basebandFileToList(basebandFileName):
 #####################################
 # reads through the list representing the baseband data and divides it
 # into smaller lists (one for each transmission), also cutting out dead time
-def breakBaseband(basebandData, minTimeBetweenTx):
+def breakBaseband(basebandData, minTimeBetweenTx, verbose):
     basebandTransmissionList = []
     newTx = []
     i = 0
@@ -48,9 +48,9 @@ def breakBaseband(basebandData, minTimeBetweenTx):
     currentStartIndex = 0
     consecutiveOnes = 0
     
-    if wcv.verbose:
+    if verbose:
         print "Breaking baseband into individual transmissions..."
-        print "maxTxSize (samples): " + str(wcv.protocol.maxTransmissionSize())
+        #print "maxTxSize (samples): " + str(wcv.protocol.maxTransmissionSize())
     # run through file and find large swaths of dead air
     # two states:
     #   0) in the middle of dead air
@@ -65,7 +65,8 @@ def breakBaseband(basebandData, minTimeBetweenTx):
                 break
             # have we encountered a transmission?
             if (basebandData[i] == 1) and (consecutiveOnes > wcv.glitchFilterCount):
-                print "Encountered TX at: " + str(i)
+                if verbose:
+                    print "Encountered TX at: " + str(i)
                 state = IN_TX # move to signal found state
                 deadAirCount = 0 # restart dead air counter
                 currentStartIndex = i # current transmission starts now
@@ -83,7 +84,7 @@ def breakBaseband(basebandData, minTimeBetweenTx):
                 newTx = [0] * 100 + basebandData[currentStartIndex:i] # prepend zeros for nicer display
                 basebandTransmissionList.append(newTx)
                 state = IN_DEAD_AIR
-                if wcv.verbose:
+                if verbose:
                     print "Got Tx starting at:" + str(currentStartIndex) + " ending at index: " + str(i) + "length = " + str(len(newTx))
                     print "timestamp: " + str(len(basebandTransmissionList)/wcv.samp_rate)
             elif (basebandData[i] == 1) and (consecutiveOnes > wcv.glitchFilterCount):
@@ -101,7 +102,9 @@ def breakBaseband(basebandData, minTimeBetweenTx):
             consecutiveOnes = 0            
         i += 1
 
-    print "number of transmissions: " + str(len(basebandTransmissionList))
+    if verbose:
+        print "number of transmissions: " + str(len(basebandTransmissionList))
+        
     return basebandTransmissionList
 
 ###########################################

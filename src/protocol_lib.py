@@ -37,8 +37,7 @@ from sqlalchemy import Column, ForeignKey, Integer, String, PickleType
 from sqlalchemy.sql import func
 
 # set up the connection to the protocol library sqllite database
-#if not wcv.argcHelp:
-engine = create_engine('sqlite:///protocol_library.db', echo=True)
+engine = create_engine('sqlite:///protocol_library.db', echo=False)
 Base = declarative_base(bind=engine)
 # create session to connect to database containing stored protocol definitions 
 Session = sessionmaker(bind=engine)
@@ -163,6 +162,7 @@ class ProtocolDefinition(Base):
         print " PWM Symbol Size: " + str(self.pwmSymbolSize)
         print " PWM 1: " + str(self.pwmOneSymbol)
         print " PWM 0: " + str(self.pwmZeroSymbol)
+        print " TX Size: " + str(self.packetSize)
         print "CRC Properties:"
         print " CRC Low Addr: " + str(self.crcLow)
         print " CRC High Addr: " + str(self.crcHigh)
@@ -233,9 +233,9 @@ class ProtocolDefinition(Base):
         protocolSession.commit()
         
     # convert timing parameters from us to samples based on current sample rate
-    def convertTimingToSamples(self, samp_rate):
+    def convertTimingToSamples(self, basebandSampleRate):
         #microsecondsPerSample = 1000000.0/samp_rate
-        samplesPerMicrosecond = samp_rate/1000000.0
+        samplesPerMicrosecond = basebandSampleRate/1000000.0
         self.unitWidth_samp = int(self.unitWidth * samplesPerMicrosecond)
         self.interPacketWidth_samp = int(self.interPacketWidth * samplesPerMicrosecond)
         self.preambleSymbolLow_samp = int(self.preambleSymbolLow * samplesPerMicrosecond)
@@ -316,6 +316,7 @@ def listProtocols():
 def fetchProtocol(protocolId):
     global protocolSession
     proto = protocolSession.query(ProtocolDefinition).get(protocolId)
+    proto.convertTimingToSamples(wcv.basebandSampleRate)
     return proto
 
 """
