@@ -386,16 +386,16 @@ class TopWindow:
         
         
     # 
-    def on_viewGoodEntryBox_changed(self, button, data=None):
-        wcv.statValidTxOnly = self.getBoolFromEntryBox("viewGoodEntryBox")
+    def on_showAllButton_toggled(self, button, data=None):
+        wcv.showAllTx = self.getBoolFromToolToggle("showAllButton")
         if wcv.verbose:
-            print "View Stats for All TX changed to " + str(wcv.statValidTxOnly)
+            print "View Stats for All TX changed to " + str(wcv.showAllTx)
         # if stats are up, redo them
         if not wcv.bitProbString == "":
             self.on_runStat_clicked(button)
             
-    def on_binaryHexEntryBox_changed(self, button, data=None):
-        wcv.outputHex = self.getBoolFromEntryBox("binaryHexEntryBox")
+    def on_hexButton_toggled(self, button, data=None):
+        wcv.outputHex = self.getBoolFromToolToggle("hexButton")
             
         if wcv.verbose:
             print "Hex Output Mode change to " + str(wcv.outputHex)
@@ -426,6 +426,10 @@ class TopWindow:
         tempWidget = self.builder.get_object(widgetName)
         return int(tempWidget.get_active())
     
+    def getBoolFromToolToggle(self, widgetName):
+        tempWidget = self.builder.get_object(widgetName)
+        return tempWidget.get_active()
+        
     def getBoolFromEntryBox(self, widgetName):
         tempWidget = self.builder.get_object(widgetName)
         intVal = int(tempWidget.get_active())
@@ -743,7 +747,7 @@ class TopWindow:
         wcv.protocol.val3AddrLow = self.getIntFromEntry("val3AddrLowEntry")
         wcv.protocol.val3AddrHigh = self.getIntFromEntry("val3AddrHighEntry")
 
-        (wcv.bitProbList, idListCounter, value1List) = computeStats(txList = wcv.txList, protocol = wcv.protocol, statValidTxOnly = wcv.statValidTxOnly)
+        (wcv.bitProbList, idListCounter, value1List) = computeStats(txList = wcv.txList, protocol = wcv.protocol, showAllTx = wcv.showAllTx)
         (wcv.bitProbString, idStatString, valuesString) = buildStatStrings(bitProbList = wcv.bitProbList, idListCounter = idListCounter, value1List = value1List, outputHex = wcv.outputHex)
         
         # display bit probabilities in correct GUI element

@@ -17,11 +17,11 @@ from waveConvertVars import *
 from config import *
 
 
-def computeStats(txList, protocol, statValidTxOnly):
+def computeStats(txList, protocol, showAllTx):
     bitProbList = []
     
     # if directed, create txList copy that removes all bad transmissions
-    if statValidTxOnly:
+    if not showAllTx:
         txList2 = []
         for tx in txList:
             if tx.txValid:

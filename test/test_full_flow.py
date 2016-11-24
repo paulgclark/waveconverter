@@ -27,7 +27,7 @@ class TestFullFlow(unittest.TestCase):
         self.waveformFileName = ""
         self.outputHex = False
         self.timingError = 0.2
-        self.statValidTxOnly = True
+        self.showAllTx = False
         
         # set up globals
         wcv.samp_rate = self.samp_rate
@@ -95,7 +95,7 @@ class TestFullFlow(unittest.TestCase):
                                          verbose = self.verbose)
         
         # compute stats
-        (self.bitProbList, self.idListCounter, self.value1List) = computeStats(txList = self.txList, protocol = self.protocol, statValidTxOnly = self.statValidTxOnly)
+        (self.bitProbList, self.idListCounter, self.value1List) = computeStats(txList = self.txList, protocol = self.protocol, showAllTx = self.showAllTx)
         # compute stat string
         (self.bitProbString, self.idStatString, self.valuesString) = buildStatStrings(self.bitProbList, self.idListCounter, self.value1List, self.outputHex)
         

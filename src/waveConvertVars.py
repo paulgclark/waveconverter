@@ -35,7 +35,7 @@ center_freq = 0.0
 samp_rate = 0.0
 glitchFilterCount = 2
 timingError = 0.2
-statValidTxOnly = False
+showAllTx = True
 
 # this value is used for the sample rate of the digital baseband file
 basebandSampleRate = 100000.0 # good default rate

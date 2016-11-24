@@ -232,6 +232,38 @@
               </packing>
             </child>
             <child>
+              <object class="GtkToolButton" id="saveProtocol">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="tooltip_text" translatable="yes">Load a protocol from the database</property>
+                <property name="is_important">True</property>
+                <property name="label" translatable="yes">Save Protocol</property>
+                <property name="use_underline">True</property>
+                <property name="stock_id">gtk-save</property>
+                <signal name="clicked" handler="on_saveProtocol_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="homogeneous">True</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkToolButton" id="saveAsProtocol">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="tooltip_text" translatable="yes">Load a protocol from the database</property>
+                <property name="is_important">True</property>
+                <property name="label" translatable="yes">Save Protocol As...</property>
+                <property name="use_underline">True</property>
+                <property name="stock_id">gtk-save-as</property>
+                <signal name="clicked" handler="on_saveAsProtocol_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="homogeneous">True</property>
+              </packing>
+            </child>
+            <child>
               <object class="GtkToolButton" id="Demodulate">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
@@ -277,15 +309,14 @@
               </packing>
             </child>
             <child>
-              <object class="GtkToolButton" id="saveProtocol">
+              <object class="GtkToggleToolButton" id="hexButton">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="tooltip_text" translatable="yes">Load a protocol from the database</property>
+                <property name="tooltip_text" translatable="yes">Toggles between binary and hex display</property>
                 <property name="is_important">True</property>
-                <property name="label" translatable="yes">Save Protocol</property>
+                <property name="label" translatable="yes">Hex</property>
                 <property name="use_underline">True</property>
-                <property name="stock_id">gtk-save</property>
-                <signal name="clicked" handler="on_saveProtocol_clicked" swapped="no"/>
+                <signal name="toggled" handler="on_hexButton_toggled" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -293,15 +324,15 @@
               </packing>
             </child>
             <child>
-              <object class="GtkToolButton" id="saveAsProtocol">
+              <object class="GtkToggleToolButton" id="showAllButton">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="tooltip_text" translatable="yes">Load a protocol from the database</property>
+                <property name="tooltip_text" translatable="yes">Toggles between showing all transmissions or just valid ones</property>
                 <property name="is_important">True</property>
-                <property name="label" translatable="yes">Save Protocol As...</property>
+                <property name="label" translatable="yes">Show All</property>
                 <property name="use_underline">True</property>
-                <property name="stock_id">gtk-save-as</property>
-                <signal name="clicked" handler="on_saveAsProtocol_clicked" swapped="no"/>
+                <property name="active">True</property>
+                <signal name="toggled" handler="on_showAllButton_toggled" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -2602,68 +2633,16 @@ Number to Display</property>
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkLabel" id="label66">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">View Mode</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">0</property>
-                        <property name="top_attach">5</property>
-                        <property name="width">1</property>
-                        <property name="height">1</property>
-                      </packing>
+                      <placeholder/>
                     </child>
                     <child>
-                      <object class="GtkLabel" id="label67">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Output Format</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">0</property>
-                        <property name="top_attach">6</property>
-                        <property name="width">1</property>
-                        <property name="height">1</property>
-                      </packing>
+                      <placeholder/>
                     </child>
                     <child>
-                      <object class="GtkComboBoxText" id="binaryHexEntryBox">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="halign">start</property>
-                        <property name="active">0</property>
-                        <items>
-                          <item id="0" translatable="yes">Binary</item>
-                          <item id="1" translatable="yes">Hex</item>
-                        </items>
-                        <signal name="changed" handler="on_binaryHexEntryBox_changed" swapped="no"/>
-                      </object>
-                      <packing>
-                        <property name="left_attach">1</property>
-                        <property name="top_attach">6</property>
-                        <property name="width">1</property>
-                        <property name="height">1</property>
-                      </packing>
+                      <placeholder/>
                     </child>
                     <child>
-                      <object class="GtkComboBoxText" id="viewGoodEntryBox">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="halign">start</property>
-                        <property name="active">0</property>
-                        <items>
-                          <item id="0" translatable="yes">All Tx</item>
-                          <item id="1" translatable="yes">Good Only</item>
-                        </items>
-                        <signal name="changed" handler="on_viewGoodEntryBox_changed" swapped="no"/>
-                      </object>
-                      <packing>
-                        <property name="left_attach">1</property>
-                        <property name="top_attach">5</property>
-                        <property name="width">1</property>
-                        <property name="height">1</property>
-                      </packing>
+                      <placeholder/>
                     </child>
                     <child>
                       <placeholder/>
