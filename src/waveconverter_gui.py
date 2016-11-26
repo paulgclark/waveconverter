@@ -15,6 +15,8 @@ from waveconverterEngine import decodeAllTx
 from statEngine import computeStats
 from statEngine import buildStatStrings
 from collections import Counter
+import numpy as np
+import webbrowser
 
 # for plotting baseband
 try:
@@ -25,19 +27,33 @@ try:
     from matplotlib.backends.backend_gtk3cairo import FigureCanvasGTK3Cairo as FigureCanvas
     #from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg as FigureCanvas
 except:
-    print "The WaveConverter GUI requires matplotlib"
+    print "The WaveConverter GUI requires matplotlib. Exiting..."
     exit(1)
-
-import numpy as np
 
 # require Gtk 3.0+ to work
 try:
     import gi
     gi.require_version('Gtk', '3.0')
-    from gi.repository import Gtk, Pango, cairo # note gtk+3 uses Gtk, not gtk
+    from gi.repository import Gtk, Pango, cairo, GObject # note gtk+3 uses Gtk, not gtk
 except:
     print "The WaveConverter GUI requires GTK 3.0. Exiting..."
     exit(1)
+"""
+import gobject
+#import webkit
+from gi.repository import WebKit
+# for PDF viewing    
+try:
+    #from gi.repository import poppler
+    import poppler
+except:
+    print "The WaveConverter GUI requires poppler to display the user guide. You"
+    print "will be able to run most program elements, but you will not be able to"
+    print "view the the User Guide. You can run the following to fix this:"
+    print "    sudo apt-get install python-poppler"
+"""
+from IPython.core.payload import PayloadManager
+
 
 class TopWindow:
     
@@ -250,7 +266,8 @@ class TopWindow:
         self.protocolSaveAsDialog.hide()
         
     def on_gtk_rfFileOpen_activate(self, menuitem, data=None):
-        print "menu RF File Open"
+        if wcv.verbose:
+            print "menu RF File Open"
         self.fcd = Gtk.FileChooserDialog("Open IQ File...",
                                          None,
                                          Gtk.FileChooserAction.OPEN,
@@ -265,6 +282,78 @@ class TopWindow:
             iqFileNameEntryWidget = self.builder.get_object("iqFileNameEntry")
             Gtk.Entry.set_text(iqFileNameEntryWidget, str(wcv.iqFileName))
             self.fcd.destroy()
+            
+    def on_userGuideMenu_activate(self, menuitem, data=None):
+        if wcv.verbose:
+            print "opening user guide..."
+
+        # get path of doc directory (assuming this is running in src subdir of install directory
+        os.chdir('../doc')
+        docPath = os.getcwd()
+        webbrowser.open('file://' + docPath + '/user_guide.pdf')
+        
+        # tried many things that didn't work
+        # Poppler
+        #document = Poppler.Document.new_from_file("file://../doc/user_guide.pdf", None)
+        #print(document.get_pdf_version_string())
+        
+        # sensible-browser
+        #win = Gtk.Window()
+        #os.system("sensible-browser " + 'file://' + docPath + '/user_guide.pdf')
+        #self.userGuideWindow.show()
+        
+        # both failing - cannot be found
+        #from gi.repository import poppler
+        #from gi.repository import poppler
+        # this one is found but throws error
+        #import poppler
+        #def draw(widget, surface):
+        #    page.render(surface)
+        #print "still OK"
+        #document = poppler.Document.new_from_file("file://../doc/user_guide.pdf", None)
+        #page = document.get_page(0)
+
+        #window = Gtk.Window(title="Hello World")
+        #window.connect("delete-event", Gtk.main_quit)
+        #window.connect("draw", draw)
+        #window.set_app_paintable(True)
+        
+        #window.show_all()
+
+        # libevview3-3 is the gtk3 rendering lib for evince
+        #from gi.repository import Gtk, Gdk
+        #from gi.repository import EvinceDocument
+        #from gi.repository import EvinceView
+        #pdfView = EvinceView.View()
+        #document = EvinceView.document_factory_get_document('file://' + docPath + '/user_guide.html')
+        #model = EvinceView.DocumentModel()
+        #model.set_document(document)
+        #pdfView.set_model(model)
+
+        #self.userGuideWindow.add(pdfView)
+        #pdfView.show()
+        #webView = WebKit.WebView()
+        #print 'file://' + docPath + '/user_guide.html'
+        #view.open('file://' + docPath + '/user_guide.html')
+        #webView.load_html_string('<h1>Hello Mars</h1>', 'file:///')
+        #webView.load_uri('file://' + docPath + '/test.html')
+        #webView.load_uri('file://' + docPath + '/user_guide.html')
+        #webView.open('../doc/user_guide.html')
+        #self.userGuideWindow.add(webView)
+        #self.userGuideWindow.show_all()
+        
+        #self.response = self.userGuideWindow.show_all()
+        #import time
+        #time.sleep(10)
+        #self.userGuideWindow.destroy()
+        #self.response = self.userGuideWindow.run()
+        #self.userGuideWindow.hide()
+        #win.add(view)
+        #win.show_all()
+        #self.response = self.aboutdialog.run()
+        #self.response = self.fcd.run()
+        
+            #self.fcd.destroy()
             
     def on_transmissionNumberSelect_value_changed(self, spinButton, data=None):
         txNum = spinButton.get_value_as_int() - 1 # button counts from 1 to n; array from 0 to n-1
@@ -895,9 +984,9 @@ class TopWindow:
         column_freq = Gtk.TreeViewColumn("Frequency", renderer_freq, text=5)
         self.protocolTreeView.append_column(column_freq)
         
-        
         self.window = self.builder.get_object("window1")
         self.aboutdialog = self.builder.get_object("aboutdialog1")
+        self.userGuideWindow = self.builder.get_object("userGuideWindow")
         self.protocolSaveAsDialog = self.builder.get_object("protocolSaveAsDialog")
         #self.statusbar = self.builder.get_object("statusbar1")
         self.window.unmaximize() # doesn't seem to work

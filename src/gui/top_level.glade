@@ -200,6 +200,15 @@
                         <signal name="activate" handler="on_gtk_about_activate" swapped="no"/>
                       </object>
                     </child>
+                    <child>
+                      <object class="GtkMenuItem" id="userGuideMenu">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">User Guide</property>
+                        <property name="use_underline">True</property>
+                        <signal name="activate" handler="on_userGuideMenu_activate" swapped="no"/>
+                      </object>
+                    </child>
                   </object>
                 </child>
               </object>
@@ -1313,17 +1322,10 @@ Number to Display</property>
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkLabel" id="label61">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="width_chars">15</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">1</property>
-                        <property name="top_attach">0</property>
-                        <property name="width">1</property>
-                        <property name="height">1</property>
-                      </packing>
+                      <placeholder/>
+                    </child>
+                    <child>
+                      <placeholder/>
                     </child>
                     <child>
                       <placeholder/>
@@ -1728,7 +1730,7 @@ Number to Display</property>
                       <object class="GtkLabel" id="label48">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Timing Unit (samp)</property>
+                        <property name="label" translatable="yes">Timing Unit (us)</property>
                       </object>
                       <packing>
                         <property name="left_attach">0</property>
@@ -3026,6 +3028,13 @@ to save</property>
           </packing>
         </child>
       </object>
+    </child>
+  </object>
+  <object class="GtkWindow" id="userGuideWindow">
+    <property name="can_focus">False</property>
+    <property name="title" translatable="yes">User Guide</property>
+    <child>
+      <placeholder/>
     </child>
   </object>
 </interface>
