@@ -28,6 +28,11 @@ class TestFullFlow(unittest.TestCase):
         self.outputHex = False
         self.timingError = 0.2
         self.showAllTx = False
+        self.timeBetweenTx = 3000
+        self.timeBetweenTx_samp = self.timeBetweenTx * self.basebandSampleRate / 1e6
+        self.frequency = 304.48e6
+        self.glitchFilterCount = 2
+        self.threshold = 0.05
         
         # set up globals
         wcv.samp_rate = self.samp_rate
@@ -67,32 +72,32 @@ class TestFullFlow(unittest.TestCase):
         
         # demodulate
         self.basebandData = demodIQFile(verbose = self.verbose,
-                                   modulationType = self.protocol.modulation,
-                                   iqSampleRate = self.samp_rate,
-                                   basebandSampleRate = self.basebandSampleRate,
-                                   centerFreq = self.center_freq,
-                                   frequency = self.protocol.frequency,
-                                   channelWidth = self.protocol.channelWidth,
-                                   transitionWidth = self.protocol.transitionWidth,
-                                   threshold = self.protocol.threshold,
-                                   fskDeviation = self.protocol.fskDeviation,
-                                   iqFileName = self.iqFileName,
-                                   waveformFileName = self.waveformFileName
-                                   )
-        
-        # split stats
+                                        modulationType = self.protocol.modulation,
+                                        iqSampleRate = self.samp_rate,
+                                        basebandSampleRate = self.basebandSampleRate,
+                                        centerFreq = self.center_freq,
+                                        frequency = self.frequency,
+                                        channelWidth = self.protocol.channelWidth,
+                                        transitionWidth = self.protocol.transitionWidth,
+                                        threshold = self.threshold,
+                                        fskDeviation = self.protocol.fskDeviation,
+                                        iqFileName = self.iqFileName,
+                                        waveformFileName = self.waveformFileName)
+
+        # split transmissions
         self.txList = buildTxList(basebandData = self.basebandData,
-                             basebandSampleRate =  self.basebandSampleRate,
-                             interTxTiming = self.protocol.interPacketWidth_samp,
-                             verbose = self.verbose
-                             )
+                                  basebandSampleRate =  self.basebandSampleRate,
+                                  interTxTiming = self.timeBetweenTx_samp,
+                                  glitchFilterCount = self.glitchFilterCount,
+                                  verbose = self.verbose)    
 
         # decode
-        self.decodeOutputString = decodeAllTx(protocol = self.protocol, 
-                                         txList = self.txList, 
-                                         outputHex = self.outputHex,
-                                         timingError = self.timingError,
-                                         verbose = self.verbose)
+        (self.txList, self.decodeOutputString) = decodeAllTx(protocol = self.protocol, 
+                                                             txList = self.txList, 
+                                                             outputHex = self.outputHex,
+                                                             timingError = self.timingError,
+                                                             glitchFilterCount = self.glitchFilterCount,
+                                                             verbose = self.verbose)
         
         # compute stats
         (self.bitProbList, self.idListCounter, self.value1List) = computeStats(txList = self.txList, protocol = self.protocol, showAllTx = self.showAllTx)
@@ -121,21 +126,21 @@ class TestFullFlow(unittest.TestCase):
         expected.append([True, True, True, True, True, False])       # 30
         for n in xrange(8):
             expected.append([True, True, True, True, True, True])    # 31-38
-        expected.append([False, False, False, False, False, False])  # 39
+        expected.append([False, False, False, True, True, False])    # 39
         for n in xrange(4):
             expected.append([True, True, True, True, True, True])    # 40-43
-        expected.append([False, False, False, False, True, False])   # 44
+        expected.append([False, False, False, True, True, False])    # 44
         for n in xrange(23):
             expected.append([True, True, True, True, True, True])    # 45-64
         
         i = 0
         for tx in self.txList:
-            #print str(i) + str(tx.preambleValid) + str(tx.headerValid) + str(tx.framingValid) + str(tx.framingValid) + str(tx.encodingValid) + str(tx.txValid)
+            #print str(i) + str(tx.preambleValid) + str(tx.headerValid) + str(tx.framingValid) + str(tx.encodingValid) + str(tx.crcValid) + str(tx.txValid)
             self.assertEqual(tx.preambleValid, expected[i][0], "Preamble Valid mismatch on TX#" + str(i))
             self.assertEqual(tx.headerValid, expected[i][1], "Header Valid mismatch on TX#" + str(i))
             self.assertEqual(tx.framingValid, expected[i][2], "Framing Valid mismatch on TX#" + str(i))
-            self.assertEqual(tx.headerValid, expected[i][3], "Header Valid mismatch on TX#" + str(i))
-            self.assertEqual(tx.encodingValid, expected[i][4], "Encoding Valid mismatch on TX#" + str(i))
+            self.assertEqual(tx.encodingValid, expected[i][3], "Encoding Valid mismatch on TX#" + str(i))
+            self.assertEqual(tx.crcValid, expected[i][4], "CRC Valid mismatch on TX#" + str(i))
             self.assertEqual(tx.txValid, expected[i][5], "Transmission Valid mismatch on TX#" + str(i))
             i += 1
             

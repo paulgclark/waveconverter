@@ -38,21 +38,7 @@ try:
 except:
     print "The WaveConverter GUI requires GTK 3.0. Exiting..."
     exit(1)
-"""
-import gobject
-#import webkit
-from gi.repository import WebKit
-# for PDF viewing    
-try:
-    #from gi.repository import poppler
-    import poppler
-except:
-    print "The WaveConverter GUI requires poppler to display the user guide. You"
-    print "will be able to run most program elements, but you will not be able to"
-    print "view the the User Guide. You can run the following to fix this:"
-    print "    sudo apt-get install python-poppler"
-"""
-from IPython.core.payload import PayloadManager
+#from IPython.core.payload import PayloadManager
 
 
 class TopWindow:
@@ -292,69 +278,7 @@ class TopWindow:
         docPath = os.getcwd()
         webbrowser.open('file://' + docPath + '/user_guide.pdf')
         
-        # tried many things that didn't work
-        # Poppler
-        #document = Poppler.Document.new_from_file("file://../doc/user_guide.pdf", None)
-        #print(document.get_pdf_version_string())
-        
-        # sensible-browser
-        #win = Gtk.Window()
-        #os.system("sensible-browser " + 'file://' + docPath + '/user_guide.pdf')
-        #self.userGuideWindow.show()
-        
-        # both failing - cannot be found
-        #from gi.repository import poppler
-        #from gi.repository import poppler
-        # this one is found but throws error
-        #import poppler
-        #def draw(widget, surface):
-        #    page.render(surface)
-        #print "still OK"
-        #document = poppler.Document.new_from_file("file://../doc/user_guide.pdf", None)
-        #page = document.get_page(0)
-
-        #window = Gtk.Window(title="Hello World")
-        #window.connect("delete-event", Gtk.main_quit)
-        #window.connect("draw", draw)
-        #window.set_app_paintable(True)
-        
-        #window.show_all()
-
-        # libevview3-3 is the gtk3 rendering lib for evince
-        #from gi.repository import Gtk, Gdk
-        #from gi.repository import EvinceDocument
-        #from gi.repository import EvinceView
-        #pdfView = EvinceView.View()
-        #document = EvinceView.document_factory_get_document('file://' + docPath + '/user_guide.html')
-        #model = EvinceView.DocumentModel()
-        #model.set_document(document)
-        #pdfView.set_model(model)
-
-        #self.userGuideWindow.add(pdfView)
-        #pdfView.show()
-        #webView = WebKit.WebView()
-        #print 'file://' + docPath + '/user_guide.html'
-        #view.open('file://' + docPath + '/user_guide.html')
-        #webView.load_html_string('<h1>Hello Mars</h1>', 'file:///')
-        #webView.load_uri('file://' + docPath + '/test.html')
-        #webView.load_uri('file://' + docPath + '/user_guide.html')
-        #webView.open('../doc/user_guide.html')
-        #self.userGuideWindow.add(webView)
-        #self.userGuideWindow.show_all()
-        
-        #self.response = self.userGuideWindow.show_all()
-        #import time
-        #time.sleep(10)
-        #self.userGuideWindow.destroy()
-        #self.response = self.userGuideWindow.run()
-        #self.userGuideWindow.hide()
-        #win.add(view)
-        #win.show_all()
-        #self.response = self.aboutdialog.run()
-        #self.response = self.fcd.run()
-        
-            #self.fcd.destroy()
-            
+             
     def on_transmissionNumberSelect_value_changed(self, spinButton, data=None):
         txNum = spinButton.get_value_as_int() - 1 # button counts from 1 to n; array from 0 to n-1
         # reset the Min and Max extents of plot for new waveform
@@ -706,6 +630,7 @@ class TopWindow:
         wcv.txList = buildTxList(basebandData = wcv.basebandData,
                                  basebandSampleRate =  wcv.basebandSampleRate,
                                  interTxTiming = wcv.protocol.interPacketWidth_samp,
+                                 glitchFilterCount = wcv.glitchFilterCount,
                                  verbose = wcv.verbose
                                  )
         
@@ -774,10 +699,11 @@ class TopWindow:
             print "tx list length: " + str(len(wcv.txList))
           
         (wcv.txList, wcv.decodeOutputString) = decodeAllTx(protocol = wcv.protocol, 
-                                             txList = wcv.txList, 
-                                             outputHex = wcv.outputHex,
-                                             timingError = wcv.timingError,
-                                             verbose = wcv.verbose)
+                                                           txList = wcv.txList, 
+                                                           outputHex = wcv.outputHex,
+                                                           timingError = wcv.timingError,
+                                                           glitchFilterCount = wcv.glitchFilterCount,
+                                                           verbose = wcv.verbose)
         
         # update the display of tx valid flags
         interPacketValidCount = 0
@@ -986,7 +912,7 @@ class TopWindow:
         
         self.window = self.builder.get_object("window1")
         self.aboutdialog = self.builder.get_object("aboutdialog1")
-        self.userGuideWindow = self.builder.get_object("userGuideWindow")
+        #self.userGuideWindow = self.builder.get_object("userGuideWindow")
         self.protocolSaveAsDialog = self.builder.get_object("protocolSaveAsDialog")
         #self.statusbar = self.builder.get_object("statusbar1")
         self.window.unmaximize() # doesn't seem to work

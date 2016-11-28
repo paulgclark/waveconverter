@@ -5,7 +5,7 @@
 
 # waveconverter decoding modules
 import waveConvertVars as wcv
-from breakWave import breakdownWaveform
+#from breakWave import breakdownWaveform
 from breakWave import breakdownWaveform2
 from widthToBits import separatePackets
 from widthToBits import decodePacket
@@ -83,7 +83,7 @@ def packetToString(packet, outputHex):
             hexVal = packet[i]*8 + packet[i+1]*4 + packet[i+2]*2 + packet[i+3]
             packetString += str(hex(hexVal)[-1:]) 
             i+=4
-            if (i % 8) == 0: # add a space between each byte
+            if (i % 8) == 0 and i != 0: # add a space between each byte
                 packetString += ' '
             
         if (len(packet) % 4 != 0): # have to display the leftover
@@ -99,7 +99,7 @@ def packetToString(packet, outputHex):
     else: # output in binary
         for i in range(len(packet)):
             # add a break at certain points
-            if (i % 8) == 0:
+            if (i % 8) == 0 and i != 0:
                 packetString += ' '
 
             # write each bit in ASCII
@@ -111,7 +111,6 @@ def packetToString(packet, outputHex):
                 packetString += 'FATAL ERROR\n'
                 break
 
-    packetString += '\n'
     return(packetString)
 
 class basebandTx:
@@ -141,13 +140,13 @@ class basebandTx:
         self.waveformData = waveformDataIn
         self.fullBasebandData = []
         
-    def decodeTx(self, protocol, timingError, verbose):
+    def decodeTx(self, protocol, glitchFilterCount, timingError, verbose):
         if verbose:
             print "decoding transmission #" + str(self.txNum)
                         
         # scan through waveform and get widths
         self.widthList = []
-        breakdownWaveform2(protocol, self.waveformData, self.widthList)
+        breakdownWaveform2(protocol, self.waveformData, self.widthList, glitchFilterCount)
         #print len(self.waveformData)
         #print self.waveformData
         #print self.widthList
@@ -278,9 +277,9 @@ def demodIQFile(verbose, modulationType, iqSampleRate, basebandSampleRate, cente
 # this function takes the binary baseband data and breaks it into individual
 # transmissions, assigning each to a Tx Object along with a timestamp
 from breakWave import breakBaseband
-def buildTxList(basebandData, basebandSampleRate, interTxTiming, verbose):
+def buildTxList(basebandData, basebandSampleRate, interTxTiming, glitchFilterCount, verbose):
     
-    basebandDataByTx = breakBaseband(basebandData, interTxTiming, verbose)
+    basebandDataByTx = breakBaseband(basebandData, interTxTiming, glitchFilterCount, verbose)
     runningSampleCount = 0
     txList = []
 
@@ -292,20 +291,21 @@ def buildTxList(basebandData, basebandSampleRate, interTxTiming, verbose):
 
     return txList
 
-def decodeAllTx(protocol, txList, outputHex, timingError, verbose):
+def decodeAllTx(protocol, txList, outputHex, timingError, glitchFilterCount, verbose):
 
     # call decode engine for each transmission
-    decodeOutputString = "" # need to start over after each decode attempt
+    formatString = '{:6}   {}\n'
+    decodeOutputString = formatString.format("TX Num", "Payload") # need to start over after each decode attempt
     i = 0
     for iTx in txList:
         if i == len(txList):
             iTx.display()
         else:
-            iTx.decodeTx(protocol, timingError, verbose)
+            iTx.decodeTx(protocol, timingError, glitchFilterCount, verbose)
         if outputHex:
-            decodeOutputString += '{}{:>4}: {}'.format("TX#", str(i+1), iTx.hexString)
+            decodeOutputString += formatString.format(str(i+1), iTx.hexString)
         else:
-            decodeOutputString += '{}{:>4}: {}'.format("TX#", str(i+1), iTx.binaryString)
+            decodeOutputString += formatString.format(str(i+1), iTx.binaryString)
         i+=1
 
     return (txList, decodeOutputString)

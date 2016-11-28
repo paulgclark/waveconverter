@@ -40,18 +40,18 @@ parser.add_argument("-q", "--iq", help="input i-q data file name")
 parser.add_argument("-b", "--baseband", help="input digital baseband file name")
 parser.add_argument("-o", "--output", help="output file name")
 parser.add_argument("-s", "--samp_rate", help="sample rate", type=int)
-parser.add_argument("-c", "--center_freq", help="center frequency (Hz)",
-                    type=int)
-parser.add_argument("-p", "--protocol", help="protocol for decode (listed by number, enter 0 for list)", 
-                    type=int)
-parser.add_argument("-v", "--verbose", help="increase output verbosity",
-                    action="store_true")
-parser.add_argument("-x", "--hex_out", help="output data in hex format",
-                    action="store_true")
-parser.add_argument("-g", "--gui", help="brings up graphical interface",
-                    action="store_true")
-parser.add_argument("-d", "--db", help="build new database",
-                    action="store_true")
+parser.add_argument("-c", "--center_freq", help="center frequency in Hz",type=int)
+parser.add_argument("-p", "--protocol", help="protocol for decode - listed by number, enter 0 for list", type=int)
+parser.add_argument("-v", "--verbose", help="increase output verbosity", action="store_true")
+parser.add_argument("-x", "--hex_out", help="output data in hex format", action="store_true")
+parser.add_argument("-z", "--hide_bad", help="hide bad transmissions from output", action="store_true")
+parser.add_argument("-i", "--glitch_count", help="glitch filter in 10us samples", type=int)
+parser.add_argument("-f", "--freq", help="frequency of target in Hz", type=int)
+parser.add_argument("-l", "--threshold", help="threshold value", type=float)
+parser.add_argument("-t", "--time_between_tx", help="min time between tx in us", type=int)
+parser.add_argument("-e", "--timing_error", help="max allowable timing error percentage", type=int)
+parser.add_argument("-g", "--gui", help="brings up graphical interface", action="store_true")
+parser.add_argument("-d", "--db", help="build new database", action="store_true")
 args = parser.parse_args()
 
 # assign args to variables
@@ -85,7 +85,30 @@ try:
     wcv.buildNewDatabase = args.db
 except:
     wcv.buildNewDatabase = False
-#wcv.argcHelp = args.help
+try:
+    wcv.glitchFilterCount = int(args.glitch_count)
+except:
+    wcv.glitchFilterCount = 2
+try:
+    wcv.showAllTx = not bool(args.hide_bad)
+except:
+    wcv.showAllTx = True
+try:
+    wcv.timeBetweenTx = args.time_between_tx
+except:
+    wcv.timeBetweenTx = -1 # allow protocol to supply value
+try:
+    wcv.frequency = args.freq * 1.0
+except:
+    wcv.frequency = -1.0 # allow protocol to supply value
+try:
+    wcv.timingError = args.timing_error / 100.0
+except:
+    wcv.timingError = 0.2
+try:
+    wcv.threshold = args.threshold * 1.0
+except:
+    wcv.threshold = -1.0 # allow protocol to supply value
 
 if wcv.verbose:      
     print 'ARGV           :', sys.argv[1:]  
@@ -98,6 +121,12 @@ if wcv.verbose:
     print 'CENTER_FREQ    :', wcv.center_freq
     print 'OUTPUT_HEX     :', wcv.outputHex
     print 'RUN WITH GUI   :', wcv.runWithGui
+    print 'TIMING ERROR   :', wcv.timingError
+    print 'TIME BTW TX    :', wcv.timeBetweenTx
+    print 'TUNE FREQ      :', wcv.frequency
+    print 'GLITCH FILT    :', wcv.glitchFilterCount
+    print 'SHOW ALL       :', wcv.showAllTx
+    print 'THRESHOLD      :', wcv.threshold
 
 # if we were passed the "build database" flag, then just do that and exit
 if wcv.buildNewDatabase:
@@ -116,11 +145,11 @@ if wcv.protocol_number == -1:
 elif wcv.protocol_number == 0:
     print "Printing stored protocol list"
     protocol_lib.listProtocols()
+    exit(0)
 # do nothing
 # fetch from database
 else:
-    print "attempting to retrieve protocol " + \
-        str(wcv.protocol_number) + " from database"
+    print "attempting to retrieve protocol " + str(wcv.protocol_number) + " from database"
     wcv.protocol = protocol_lib.fetchProtocol(wcv.protocol_number)
     if wcv.verbose:
         wcv.protocol.printProtocolFull()
@@ -129,60 +158,66 @@ else:
 # if we were not given the GUI flag, run through in command line mode
 if not wcv.runWithGui:
     
-    # NEED: pull checking code into flowgraph method and simplify this block
-
     # if we were given an I-Q file, then we need to demodulate it first to 
     # obtain the digital baseband waveform (need future modifications if 
     # multiple waveforms are contained in the same I-Q file)
     if wcv.iqFileName:
-        #if __name__ == '__main__':
-        # since we have an I-Q input file, we will generate the baseband 
-        # waveform and temporarily place it in the following file
-        try:
-            if wcv.verbose:
-                print "Running Demodulation Flowgraph"
-                print wcv.iqFileName
-                print wcv.waveformFileName
-            if wcv.protocol.modulation == wcv.MOD_OOK:
-                flowgraphObject = ook_flowgraph(wcv.samp_rate, # samp_rate_in 
-                                                wcv.basebandSampleRate, # rate_out 
-                                                wcv.center_freq,
-                                                wcv.protocol.frequency, # tune_freq
-                                                wcv.protocol.channelWidth,
-                                                wcv.protocol.transitionWidth,
-                                                wcv.protocol.threshold,
-                                                wcv.iqFileName, 
-                                                wcv.waveformFileName) # temp file
-            elif wcv.protocol.modulation == wcv.MOD_FSK:
-                flowgraphObject = fsk_flowgraph(wcv.samp_rate, # samp_rate_in 
-                                                wcv.basebandSampleRate, # rate_out 
-                                                wcv.center_freq,
-                                                wcv.protocol.frequency, # tune_freq
-                                                wcv.protocol.channelWidth,
-                                                wcv.protocol.transitionWidth,
-                                                wcv.protocol.threshold,
-                                                wcv.protocol.fskDeviation,
-                                                wcv.iqFileName, 
-                                                wcv.waveformFileName) # temp file
-            else:
-                print "Invalid modulation type selected" # NEED to put in status bar or pop-up
-                exit(1)
-            flowgraphObject.run()
-            if wcv.verbose:
-                print "flowgraph completed"
-        except [[KeyboardInterrupt]]:
-            pass
+        # get needed functions from engine modules
+        from waveconverterEngine import demodIQFile
+        from waveconverterEngine import buildTxList
+        from waveconverterEngine import decodeAllTx
+        from statEngine import computeStats
+        from statEngine import buildStatStrings
+        
+        # decide whether to use protocol values or command line overrides
+        if wcv.frequency < 0:
+            wcv.frequency = wcv.protocol.frequency
+        if wcv.threshold < 0:
+            wcv.threshold = wcv.protocol.threshold
+        # since we have an I-Q input file, we will generate the baseband waveform
+        basebandData = demodIQFile(verbose = wcv.verbose,
+                                   modulationType = wcv.protocol.modulation,
+                                   iqSampleRate = wcv.samp_rate,
+                                   basebandSampleRate = wcv.basebandSampleRate,
+                                   centerFreq = wcv.center_freq,
+                                   frequency = wcv.frequency,
+                                   channelWidth = wcv.protocol.channelWidth,
+                                   transitionWidth = wcv.protocol.transitionWidth,
+                                   threshold = wcv.threshold,
+                                   fskDeviation = wcv.protocol.fskDeviation,
+                                   iqFileName = wcv.iqFileName,
+                                   waveformFileName = wcv.waveformFileName)
 
-    # insert call to waveConverterEngine here and remove existing code
-    wcv.payloadList = decodeBaseband(wcv.waveformFileName,
-                                     wcv.basebandSampleRate,
-                                     wcv.outFileName,
-                                     wcv.protocol,
-                                     wcv.outputHex, 
-                                     wcv.verbose)
-    
-    # add packet to string function calls with outFile write and pull outFileName from fn call above
-    
+        # decide whether to use protocol values or command line overrides
+        if wcv.timeBetweenTx < 0:
+            wcv.timeBetweenTx = wcv.protocol.interPacketWidth
+        timeBetweenTx_samp = wcv.timeBetweenTx * wcv.basebandSampleRate / 1000000
+
+        # split transmissions
+        txList = buildTxList(basebandData = basebandData,
+                             basebandSampleRate =  wcv.basebandSampleRate,
+                             interTxTiming = timeBetweenTx_samp,
+                             glitchFilterCount = wcv.glitchFilterCount,
+                             verbose = wcv.verbose)    
+
+        # decode
+        (txList, decodeOutputString) = decodeAllTx(protocol = wcv.protocol, 
+                                                   txList = txList,
+                                                   outputHex = wcv.outputHex,
+                                                   timingError = wcv.timingError,
+                                                   glitchFilterCount = wcv.glitchFilterCount,
+                                                   verbose = wcv.verbose)
+        
+        # compute stats
+        (bitProbList, idListCounter, value1List) = computeStats(txList = txList, protocol = wcv.protocol, showAllTx = wcv.showAllTx)
+        # compute stat string
+        (bitProbString, idStatString, valuesString) = buildStatStrings(bitProbList, idListCounter, value1List, wcv.outputHex)
+
+        # output strings to stdio
+        print decodeOutputString
+        print bitProbString
+        print idStatString
+        print valuesString
 
 else: # start up the GUI
     if __name__ == "__main__":
@@ -190,6 +225,7 @@ else: # start up the GUI
         Gtk.main()
   
 
-print("Exiting")
+if wcv.verbose:
+    print("Exiting")
 exit(0)
 

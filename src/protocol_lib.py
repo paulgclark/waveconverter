@@ -308,10 +308,10 @@ def getProtocolCount():
 # - return list of library elements, including the key parameters
 def listProtocols():
     global protocolSession
-    print "ID    Name          Mode      Encoding"
+    print '{:5s} {:5s} {:20s} {:20s}'.format("   ID", "Year", "Name", "Type")
     # get a list of items in database
     for proto in protocolSession.query(ProtocolDefinition):
-        print proto.protocolId, proto.name
+        print '{:5d} {:5s} {:20s} {:20s}'.format(proto.protocolId, proto.deviceYear, proto.deviceName, wcv.devTypeStrings[proto.deviceType]) 
 
 def fetchProtocol(protocolId):
     global protocolSession

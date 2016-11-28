@@ -36,6 +36,9 @@ samp_rate = 0.0
 glitchFilterCount = 2
 timingError = 0.2
 showAllTx = True
+timeBetweenTx = -1 # this value overrides that of the protocol; -1 means no value has been passed
+frequency = -1.0 # another override value
+threshold = 0.1 # another override value
 
 # this value is used for the sample rate of the digital baseband file
 basebandSampleRate = 100000.0 # good default rate
@@ -49,7 +52,6 @@ protocol = ProtocolDefinition(-1)
 # is clicked 
 txList = []
 
-#devTypeStrings = ["KeyFob", "Tire Pressure Monitor Sensor", "Fan Controller", "RC Vechicle", "Weather Station"]
 devTypeStrings = {0 : "Unknown",
                   1 : "KeyFob", 
                   2 : "Tire Pressure Monitor Sensor", 

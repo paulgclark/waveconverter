@@ -40,7 +40,7 @@ def basebandFileToList(basebandFileName):
 #####################################
 # reads through the list representing the baseband data and divides it
 # into smaller lists (one for each transmission), also cutting out dead time
-def breakBaseband(basebandData, minTimeBetweenTx, verbose):
+def breakBaseband(basebandData, minTimeBetweenTx, glitchFilterCount, verbose):
     basebandTransmissionList = []
     newTx = []
     i = 0
@@ -64,7 +64,7 @@ def breakBaseband(basebandData, minTimeBetweenTx, verbose):
             if i >= len(basebandData):
                 break
             # have we encountered a transmission?
-            if (basebandData[i] == 1) and (consecutiveOnes > wcv.glitchFilterCount):
+            if (basebandData[i] == 1) and (consecutiveOnes > glitchFilterCount):
                 if verbose:
                     print "Encountered TX at: " + str(i)
                 state = IN_TX # move to signal found state
@@ -87,7 +87,7 @@ def breakBaseband(basebandData, minTimeBetweenTx, verbose):
                 if verbose:
                     print "Got Tx starting at:" + str(currentStartIndex) + " ending at index: " + str(i) + "length = " + str(len(newTx))
                     print "timestamp: " + str(len(basebandTransmissionList)/wcv.samp_rate)
-            elif (basebandData[i] == 1) and (consecutiveOnes > wcv.glitchFilterCount):
+            elif (basebandData[i] == 1) and (consecutiveOnes > glitchFilterCount):
                 deadAirCount = 0
             else:
                 deadAirCount += 1
@@ -232,7 +232,7 @@ def breakdownWaveform(protocol, waveformFile, masterWidthList):
 # the waveform's logic level before it transitions to the next
 # NEED: Error checking? Maybe not
 # NEED: If a period longer than the interpacket comes up, resync to IPSYMBOL
-def breakdownWaveform2(protocol, waveformList, masterWidthList):
+def breakdownWaveform2(protocol, waveformList, masterWidthList, glitchFilterCount):
 
     if protocol.interPacketSymbol == wcv.DATA_ZERO:
         nextEdge = RISING_EDGE 
@@ -267,8 +267,8 @@ def breakdownWaveform2(protocol, waveformList, masterWidthList):
         else:
             nextEdge = RISING_EDGE
 
-    if wcv.glitchFilterCount > 0:
-        glitchFilter(masterWidthList, wcv.glitchFilterCount) 
+    if glitchFilterCount > 0:
+        glitchFilter(masterWidthList, glitchFilterCount) 
         # glitch filter behavior not part of protocol, but top level WC control
 
     return(wcv.END_OF_FILE)
