@@ -17,13 +17,19 @@ from waveconverterEngine import decodeAllTx
 from statEngine import computeStats
 from statEngine import buildStatStrings
 
+# used to suppress stdout for waveconverter execution
+import cStringIO
+
+# globals
+debug = False
+
 class TestFullFlow(unittest.TestCase):
     def loadBasicTestParameters(self):
         self.verbose = False
-        self.samp_rate = 8e6
+        self.samp_rate = 830e3
+        self.center_freq = 304.55e6
         self.basebandSampleRate = 100e3
-        self.center_freq = 303e6
-        self.iqFileName = "/media/paul/bulkdata/factorialabs/rfsiglib/fan_control/pc_iq/fan_all_dip1101_c303M_s8M.iq"
+        self.iqFileName = "../input_files/fan_all_dip1101_pruned_dec_c304p55M_s830k.iq"
         self.waveformFileName = ""
         self.outputHex = False
         self.timingError = 0.2
@@ -47,20 +53,20 @@ class TestFullFlow(unittest.TestCase):
         # build list of expected values
         self.expectedPayloadData = []
         for n in xrange(15):
-            self.expectedPayloadData.append([1, 1, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0])
+            self.expectedPayloadData.append([1, 1, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0]) # 0-14
         for n in xrange(15):
-            self.expectedPayloadData.append([1, 1, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0])
-        self.expectedPayloadData.append([0, 0])
+            self.expectedPayloadData.append([1, 1, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0]) # 15-29
+        self.expectedPayloadData.append([])                                       # 30
         for n in xrange(8):
-            self.expectedPayloadData.append([1, 1, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0])
-        self.expectedPayloadData.append([])
+            self.expectedPayloadData.append([1, 1, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0]) # 31-38
+        self.expectedPayloadData.append([])                                       # 39
         for n in xrange(4):
-            self.expectedPayloadData.append([1, 1, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0])
-        self.expectedPayloadData.append([])
+            self.expectedPayloadData.append([1, 1, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0]) # 40-43
+        self.expectedPayloadData.append([])                                       # 44
         for n in xrange(8):
-            self.expectedPayloadData.append([1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0])
+            self.expectedPayloadData.append([1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0]) # 45-52
         for n in xrange(15):
-            self.expectedPayloadData.append([1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1]) # 53
+            self.expectedPayloadData.append([1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1]) # 53-67
             
         return(0)
         
@@ -69,6 +75,11 @@ class TestFullFlow(unittest.TestCase):
         self.loadBasicTestParameters()
         # load expected values for comparison
         self.loadExpectedData()
+
+        # suppress stdio during waveconverter execution by shunting it to a string object
+        # we will then turn it back on for unittest output
+        saved_stdout = sys.stdout
+        sys.stdout = cStringIO.StringIO()
         
         # demodulate
         self.basebandData = demodIQFile(verbose = self.verbose,
@@ -103,16 +114,21 @@ class TestFullFlow(unittest.TestCase):
         (self.bitProbList, self.idListCounter, self.value1List) = computeStats(txList = self.txList, protocol = self.protocol, showAllTx = self.showAllTx)
         # compute stat string
         (self.bitProbString, self.idStatString, self.valuesString) = buildStatStrings(self.bitProbList, self.idListCounter, self.value1List, self.outputHex)
+
+        # turn stdout back on
+        sys.stdout = saved_stdout
         
         pass
         
 
     # compare transmissions to expected
     def test_compareTx(self):
-        i = 0
-        for tx in self.txList:
-            #print tx.framingValid
-            expectedbit = 1
+        for (i, tx) in enumerate(self.txList):
+            if debug:
+                print tx.framingValid
+                print "TX-" + str(i) + ": (expected followed by actual)"
+                print self.expectedPayloadData[i]
+                print tx.fullBasebandData
             self.assertListEqual(tx.fullBasebandData, self.expectedPayloadData[i], "Bit comparison Error on TX#" + str(i))
             i += 1
         pass
@@ -123,10 +139,10 @@ class TestFullFlow(unittest.TestCase):
         for n in xrange(30):
             # preamble, header, framing, encoding, crc, txValid
             expected.append([True, True, True, True, True, True])    # 0-29
-        expected.append([True, True, True, True, True, False])       # 30
+        expected.append([False, False, False, False, True, False])   # 30
         for n in xrange(8):
             expected.append([True, True, True, True, True, True])    # 31-38
-        expected.append([False, False, False, True, True, False])    # 39
+        expected.append([False, False, False, False, True, False])   # 39
         for n in xrange(4):
             expected.append([True, True, True, True, True, True])    # 40-43
         expected.append([False, False, False, True, True, False])    # 44
@@ -135,7 +151,9 @@ class TestFullFlow(unittest.TestCase):
         
         i = 0
         for tx in self.txList:
-            #print str(i) + str(tx.preambleValid) + str(tx.headerValid) + str(tx.framingValid) + str(tx.encodingValid) + str(tx.crcValid) + str(tx.txValid)
+            if debug:
+                print str(i) + str(tx.preambleValid) + str(tx.headerValid) + str(tx.framingValid) + \
+                      str(tx.encodingValid) + str(tx.crcValid) + str(tx.txValid)
             self.assertEqual(tx.preambleValid, expected[i][0], "Preamble Valid mismatch on TX#" + str(i))
             self.assertEqual(tx.headerValid, expected[i][1], "Header Valid mismatch on TX#" + str(i))
             self.assertEqual(tx.framingValid, expected[i][2], "Framing Valid mismatch on TX#" + str(i))
@@ -162,8 +180,9 @@ class TestFullFlow(unittest.TestCase):
         expectedBitProb = np.divide(sumArray, goodTxCount/100.0)
 
         # compare to values computed by code
-        #print expectedBitProb
-        #print self.bitProbList
+        if debug:
+            print expectedBitProb
+            print self.bitProbList
         # number of probabilites should be identical
         self.assertEqual(len(self.bitProbList), len(expectedBitProb), "ERROR: expected length of bit probabilities list mismatch")
         for actual, expected in zip(self.bitProbList, expectedBitProb):
@@ -185,8 +204,9 @@ class TestFullFlow(unittest.TestCase):
                     expectedIdCountDict[id] += 1
 
         # now compare ID counts to expected values
-        #print self.idListCounter
-        #print expectedIdCountDict
+        if debug:
+            print self.idListCounter
+            print expectedIdCountDict
         self.assertEqual(len(self.idListCounter), len(expectedIdCountDict), "ERROR: expected length of ID count list mismatch")
         for (idVal, idCount) in self.idListCounter.most_common():
             self.assertEqual(self.idListCounter[idVal], expectedIdCountDict[idVal], "ERROR: ID count mismatch")
@@ -205,8 +225,9 @@ class TestFullFlow(unittest.TestCase):
                 expectedValue1List.append(int(value))
         
         # compare values
-        #print self.value1List
-        #print expectedValue1List
+        if debug:
+            print self.value1List
+            print expectedValue1List
         self.assertEqual(len(self.value1List), len(expectedValue1List), "ERROR: expected length of Values 1 list mismatch")
         for actual, expected in zip(self.value1List, expectedValue1List):
             self.assertEqual(actual, expected, msg = "ERROR: Value mismatch")

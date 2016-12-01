@@ -586,6 +586,9 @@ class TopWindow:
         ## get all of the values entered on this screen
         wcv.center_freq = 1000000 * self.getFloatFromEntry("centerFreqEntry")
         wcv.samp_rate = 1000000 * self.getFloatFromEntry("sampRateEntry")
+        wcv.timingError = self.getFloatFromEntry("unitTimingErrorEntry")/100.0
+        wcv.timeBetweenTx = self.getIntFromEntry("interPacketWidthEntry")
+        wcv.glitchFilterCount = self.getIntFromEntry("glitchFilterEntry")
         wcv.protocol.modulation = self.getIntFromEntryBox("modulationEntryBox")
         wcv.protocol.frequency = 1000000 * self.getFloatFromEntry("frequencyEntry")
         wcv.protocol.channelWidth = 1000 * self.getFloatFromEntry("channelWidthEntry")
@@ -691,6 +694,7 @@ class TopWindow:
         wcv.samp_rate = self.getFloatFromEntry("sampRateEntry")*1000000.0
         wcv.glitchFilterCount = self.getIntFromEntry("glitchFilterEntry")
         wcv.timingError = self.getFloatFromEntry("unitTimingErrorEntry")/100.0
+        wcv.timeBetweenTx = self.getIntFromEntry("interPacketWidthEntry")
             
         self.transferGUIDataToProtocol()
         if wcv.verbose:

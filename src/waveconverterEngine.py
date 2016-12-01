@@ -294,7 +294,7 @@ def buildTxList(basebandData, basebandSampleRate, interTxTiming, glitchFilterCou
 def decodeAllTx(protocol, txList, outputHex, timingError, glitchFilterCount, verbose):
 
     # call decode engine for each transmission
-    formatString = '{:6}   {}\n'
+    formatString = '{:>6}   {}\n'
     decodeOutputString = formatString.format("TX Num", "Payload") # need to start over after each decode attempt
     i = 0
     for iTx in txList:

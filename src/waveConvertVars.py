@@ -1,6 +1,7 @@
 from breakWave import breakdownWaveform
 from widthToBits import decodePacket
 from waveconverterEngine import packetsToFormattedString
+from iqFileArgParse import iqFileObject
 
 # these are global defines and vars used throughout the waveConverter app
 verbose = False
@@ -31,6 +32,7 @@ txNum = 0
 # specific protocol
 # NEED: extract these from the filename if formatted with "c100M" or "s8M"
 iqFileName = ""
+inputFileObject = None
 center_freq = 0.0
 samp_rate = 0.0
 glitchFilterCount = 2

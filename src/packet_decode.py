@@ -11,6 +11,8 @@
 # standard Python libraries
 import sys
 import argparse
+from iqFileArgParse import iqFileObject
+from iqFileArgParse import fileNameTextToFloat
 
 # global constants
 import waveConvertVars as wcv
@@ -55,20 +57,48 @@ parser.add_argument("-d", "--db", help="build new database", action="store_true"
 args = parser.parse_args()
 
 # assign args to variables
-wcv.iqFileName = args.iq
+#wcv.iqFileName = args.iq
+try:
+    wcv.runWithGui = args.gui
+except:
+    wcv.runWithGui = False
+if args.iq:
+    wcv.iqFileName = args.iq
+    # try to parse the file name to see if if contains the iq parameters
+    wcv.inputFileObject = iqFileObject(fileName =  wcv.iqFileName)
+    try:
+        wcv.center_freq = wcv.inputFileObject.centerFreq
+        wcv.samp_rate = wcv.inputFileObject.sampRate
+    # since the parameters weren't there, they must be supplied from other args
+    except:
+        wcv.center_freq = -1
+        wcv.samp_rate = -1
+    print wcv.center_freq
+# can't run from command line without input file
+elif not wcv.runWithGui:
+    print "Fatal Error: No IQ file provided"
+    exit(0)
+
+if args.samp_rate > 0:
+    wcv.samp_rate = args.samp_rate * 1.0 # ensure this is a float
+# can't run from command line without sample rate
+elif (wcv.samp_rate < 0) and not wcv.runWithGui:
+    print "Fatal Error: No sample rate given (or less than zero)"
+    exit(0)
+
+if args.center_freq > 0:
+    wcv.center_freq = args.center_freq * 1.0 # ensure this is a float
+# can't run from command line without sample rate
+elif (wcv.center_freq < 0) and not wcv.runWithGui:
+    print "Fatal Error: No center frequency given (or less than zero)"
+    exit(0)
+
+
 wcv.protocol_number = args.protocol
 
 if not args.baseband == None: # if not argument passed, used default
     wcv.waveformFileName = args.baseband
 wcv.outFileName = args.output
-try:
-    wcv.samp_rate = args.samp_rate * 1.0 # ensure this is a float
-except:
-    wcv.samp_rate = 0.0
-try:
-    wcv.center_freq = args.center_freq * 1.0 # ensure this is a float
-except:
-    wcv.center_freq = 0.0
 try:
     wcv.verbose = args.verbose
 except:
@@ -77,10 +107,6 @@ try:
     wcv.outputHex = args.hex_out
 except:
     wcv.outputHex = False
-try:
-    wcv.runWithGui = args.gui
-except:
-    wcv.runWithGui = False
 try:    
     wcv.buildNewDatabase = args.db
 except:
