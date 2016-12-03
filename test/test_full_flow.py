@@ -45,7 +45,7 @@ class TestFullFlow(unittest.TestCase):
         wcv.basebandSampleRate = self.basebandSampleRate
         
         # load protocol
-        self.protocol = fetchProtocol(7)
+        self.protocol = fetchProtocol(3)
         
         return(0)
         
@@ -79,7 +79,8 @@ class TestFullFlow(unittest.TestCase):
         # suppress stdio during waveconverter execution by shunting it to a string object
         # we will then turn it back on for unittest output
         saved_stdout = sys.stdout
-        sys.stdout = cStringIO.StringIO()
+        if not self.verbose:
+            sys.stdout = cStringIO.StringIO()
         
         # demodulate
         self.basebandData = demodIQFile(verbose = self.verbose,
@@ -116,7 +117,8 @@ class TestFullFlow(unittest.TestCase):
         (self.bitProbString, self.idStatString, self.valuesString) = buildStatStrings(self.bitProbList, self.idListCounter, self.value1List, self.outputHex)
 
         # turn stdout back on
-        sys.stdout = saved_stdout
+        if not self.verbose:
+            sys.stdout = saved_stdout
         
         pass
         
@@ -139,13 +141,13 @@ class TestFullFlow(unittest.TestCase):
         for n in xrange(30):
             # preamble, header, framing, encoding, crc, txValid
             expected.append([True, True, True, True, True, True])    # 0-29
-        expected.append([False, False, False, False, True, False])   # 30
+        expected.append([False, False, False, False, False, False])   # 30
         for n in xrange(8):
             expected.append([True, True, True, True, True, True])    # 31-38
-        expected.append([False, False, False, False, True, False])   # 39
+        expected.append([False, False, False, False, False, False])   # 39
         for n in xrange(4):
             expected.append([True, True, True, True, True, True])    # 40-43
-        expected.append([False, False, False, True, True, False])    # 44
+        expected.append([False, False, False, False, False, False])    # 44
         for n in xrange(23):
             expected.append([True, True, True, True, True, True])    # 45-64
         

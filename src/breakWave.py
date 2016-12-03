@@ -268,8 +268,8 @@ def breakdownWaveform2(protocol, waveformList, masterWidthList, glitchFilterCoun
             nextEdge = RISING_EDGE
 
     if glitchFilterCount > 0:
+        # glitch filter behavior not part of protocol, but top level WC control from GUI or cmd line
         glitchFilter(masterWidthList, glitchFilterCount) 
-        # glitch filter behavior not part of protocol, but top level WC control
 
     return(wcv.END_OF_FILE)
 
@@ -279,13 +279,9 @@ def glitchFilter(masterWidthList, glitchMax):
     #print("start glitch filter")
     i = 0
     while True:
-        #print("i=" + str(i) + ":")
-        #print(masterWidthList)
         # break out of loop if at end of list
         if (i >= (len(masterWidthList) - 3)):
             break
-        #print(i) 
-        #print(len(masterWidthList)) 
 
         # if there is a glitch, combine the next three widths
         if masterWidthList[i+1] <= glitchMax:
@@ -297,5 +293,19 @@ def glitchFilter(masterWidthList, glitchMax):
         # if there's a glitch, don't increment, there may be another
         else:
             i += 1
-    #print("end glitch filter") 
+            
+    # this loop above will sometimes leave short widths at the end of the list
+    if masterWidthList[-2] <= glitchMax:
+        newWidth = masterWidthList[-3] + \
+                   masterWidthList[-2] + \
+                   masterWidthList[-1]
+        del masterWidthList[-1]
+        del masterWidthList[-1]
+        del masterWidthList[-1]
+        masterWidthList.append(newWidth)
+        
+    # if the final item is a glitch, delete it
+    if masterWidthList[1] <= glitchMax:
+        del masterWidthList[-1]
+ 
     return(0)

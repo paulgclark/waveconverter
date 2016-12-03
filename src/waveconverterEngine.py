@@ -162,14 +162,23 @@ class basebandTx:
                             self.headerValid
 
         # NEED: add protocol check to ensure bits are legal
-        self.crcBits = self.fullBasebandData[protocol.crcLow:protocol.crcHigh+1]
-        self.payloadData = self.fullBasebandData[protocol.crcDataLow:protocol.crcDataHigh+1]
+        try:
+            self.crcBits = self.fullBasebandData[protocol.crcLow:protocol.crcHigh+1]
+        except:
+            self.crcBits = []
+        try:
+            self.payloadData = self.fullBasebandData[protocol.crcDataLow:protocol.crcDataHigh+1]
+        except:
+            self.payloadData = []
+            
         if verbose:
             print "crcbits and payload"
             print self.crcBits
             print self.payloadData
         
-        if len(protocol.crcPoly) == 0: # if no CRC given, then assume valid
+        if not self.framingValid:
+            self.crcValid = False
+        elif len(protocol.crcPoly) == 0: # if no CRC given, then assume valid
             self.crcValid = True
         else:
             self.crcValid = checkCRC(protocol, self.crcBits, self.payloadData)

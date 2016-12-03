@@ -12,17 +12,6 @@
 import waveConvertVars as wcv
 from config import *
 
-# NEED: parameterize these values
-#MIN_SHORT = protocol.unitWidth * (1 - UNIT_ERROR)
-#MAX_SHORT = protocol.unitWidth * (1 + UNIT_ERROR)
-#MIN_LONG = 2 * protocol.unitWidth * (1 - UNIT_ERROR)
-#MAX_LONG = 2 * protocol.unitWidth * (1 + UNIT_ERROR)
-
-# MIN_PRE_HIGH = protocol.preambleSymbolHigh * (1 - protocol.unitError)
-# MAX_PRE_HIGH = protocol.preambleSymbolHigh * (1 + protocol.unitError)
-# MIN_PRE_LOW = protocol.preambleSymbolLow * (1 - protocol.unitError)
-# MAX_PRE_LOW = protocol.preambleSymbolLow * (1 + protocol.unitError)
-
 
 #####################################
 # looks for low levels of sufficient width to be packet dividers
@@ -110,7 +99,21 @@ def decodePacket(protocol, packetWidths, decodedPacket, rawPacket, timingError, 
     # check the packet's preamble, header, etc.
     encodingValid = True
     (dataStartIndex, interPacketValid, preambleValid, headerValid) = checkValidPacket(protocol, packetWidths, timingError, verbose)
+    
+    print "checkValidPacket Results:"
+    print "    interPacketValid = " + str(interPacketValid)
+    print "    preambleValid    = " + str(preambleValid)
+    print "    headerValid      = " + str(headerValid)
+    print "    dataStartIndex   = " + str(dataStartIndex)
+    try:
+        print "    starting width   = " + str(packetWidths[dataStartIndex])
+    except:
+        print "    starting width   = N/A"
 
+    # if the preamble or header is broken, get out now
+    if not preambleValid or not headerValid:
+        encodingValid = False
+        return(interPacketValid, preambleValid, headerValid, encodingValid)
     # set loop index to the start of the data portion of the packet
     i = dataStartIndex
 
@@ -122,6 +125,12 @@ def decodePacket(protocol, packetWidths, decodedPacket, rawPacket, timingError, 
  
     measurement = wcv.BAD_WIDTH
 
+    # if we have a header, then it has swallowed up the low part of the first symbol, which we can now flag
+    #if protocol.headerWidth_samp > 0:
+    #    i = i - 1 # walk the index back
+    #    headerSymbol = True
+    #else:
+    #    headerSymbol = False
     # note: the decodedPacket list has been passed to this fn as an empty list
     if (protocol.encodingType == wcv.STD_MANCHESTER) or (protocol.encodingType == wcv.INV_MANCHESTER):
         # extract data
@@ -153,27 +162,70 @@ def decodePacket(protocol, packetWidths, decodedPacket, rawPacket, timingError, 
         decodedPacket += manchesterDecode(rawPacket, protocol.encodingType) 
         # NEED code here for rev
 
-    elif protocol.encodingType == wcv.PWM: # may want to kill this and decode from widths
+    elif protocol.encodingType == wcv.PWM:
+        # there are two major factors affecting PWM decoding:
+        # - whether or not the payload was preceeded by a header
+        # - whether the PWM symbol consists of a low level followed by high level or vice versa
+        
+        # in the first case, the starting symbol has a low period swallowed up by the header
+        if protocol.headerWidth_samp > 0 and protocol.pwmSymbolOrder01:
+            i = i - 1 # walk the index back
+            headerSymbolSwallow = True
+            trailingSymbolSwallow = False
+        # in this case, the starting symbol is fin, but the last one is swallowed in the interpacket dead air
+        elif protocol.headerWidth_samp > 0 and not protocol.pwmSymbolOrder01:
+            headerSymbolSwallow = False
+            trailingSymbolSwallow = True
+        # in this case, both the leading and trailing symbols are intact
+        elif protocol.headerWidth_samp <= 0 and protocol.pwmSymbolOrder01:
+            headerSymbolSwallow = False
+            trailingSymbolSwallow = False
+        # this is an unlikely scenario, where the leading high part of the first payload symbol
+        # is swallowed up by the last part of the preamble, the final symbol is also swallowed
+        # NOT YET IMPLEMENTED
+        else:
+            pass
+        
+        # if we have the high period followed by the low, we need to swap the expected PWM widths
+        if protocol.pwmSymbolOrder01:
+            firstSymbolWidthZero = protocol.pwmZeroSymbol_samp[0]
+            secondSymbolWidthZero = protocol.pwmZeroSymbol_samp[1]
+            firstSymbolWidthOne = protocol.pwmOneSymbol_samp[0]
+            secondSymbolWidthOne = protocol.pwmOneSymbol_samp[1]
+        else:
+            firstSymbolWidthZero = protocol.pwmZeroSymbol_samp[1]
+            secondSymbolWidthZero = protocol.pwmZeroSymbol_samp[0]
+            firstSymbolWidthOne = protocol.pwmOneSymbol_samp[1]
+            secondSymbolWidthOne = protocol.pwmOneSymbol_samp[0]
+            
         # the last symbol will have its zero time swallowed by the dead air that comes 
         # after the transmission, so add it
-        del packetWidths[-1] # this is the interpacket dead air
-        if widthCheck(packetWidths[-1], protocol.pwmZeroSymbol_samp[0], wcv.timingError, verbose):
-            packetWidths.append(protocol.pwmZeroSymbol_samp[1]) # add a zero trail width
-        elif widthCheck(packetWidths[-1], protocol.pwmOneSymbol_samp[0], wcv.timingError, verbose):
-            packetWidths.append(protocol.pwmOneSymbol_samp[1]) # add a one trail width
-        else:
-            print "bad symbol encountered at end of widths list"
-            print "expected: " + str(protocol.pwmZeroSymbol_samp[0]) + ", got: " + str(packetWidths[-1])
-            encodingValid = False
+        if wcv.verbose:
+            print "packetWidths: "
+            print packetWidths
+        #del packetWidths[-1] # this is the interpacket dead air NO LONGER TRUE: DELETE LINE
+        # restore the final symbol width if necessary
+        if trailingSymbolSwallow:
+            if widthCheck(packetWidths[-1], firstSymbolWidthZero, wcv.timingError, verbose):
+                packetWidths.append(secondSymbolWidthZero) # add a zero trail width
+            elif widthCheck(packetWidths[-1], firstSymbolWidthOne, wcv.timingError, verbose):
+                packetWidths.append(secondSymbolWidthOne) # add a one trail width
+            else:
+                print "bad symbol encountered at end of widths list"
+                print "expected: " + str(firstSymbolWidthZero) + " or " + str(firstSymbolWidthOne) \
+                      + ", got: " + str(packetWidths[-1])
 
         # go through each width pair and determine long or short duty cycle
         while i < len(packetWidths)-1:
-            if (widthCheck(packetWidths[i], protocol.pwmZeroSymbol_samp[0], wcv.timingError, verbose) and \
-                widthCheck(packetWidths[i+1], protocol.pwmZeroSymbol_samp[1], wcv.timingError, verbose)):
+            print "i = " + str(i)
+            print "First half of symbol: " + str(packetWidths[i])
+            print "Second half of symbol: " + str(packetWidths[i+1])
+            if (headerSymbolSwallow or (widthCheck(packetWidths[i], firstSymbolWidthZero, wcv.timingError, verbose)) and \
+                widthCheck(packetWidths[i+1], secondSymbolWidthZero, wcv.timingError, verbose)):
                 # we have a zero if both the high and low portions check out
                 rawPacket.append(wcv.DATA_ZERO)
-            elif widthCheck(packetWidths[i], protocol.pwmOneSymbol_samp[0], wcv.timingError, verbose) and \
-                widthCheck(packetWidths[i+1], protocol.pwmOneSymbol_samp[1], wcv.timingError, verbose):
+            elif (headerSymbolSwallow or widthCheck(packetWidths[i], firstSymbolWidthOne, wcv.timingError, verbose)) and \
+                widthCheck(packetWidths[i+1], secondSymbolWidthOne, wcv.timingError, verbose):
                 # we have a zero if both the high and low portions check out
                 rawPacket.append(wcv.DATA_ONE)
             else:
@@ -182,18 +234,22 @@ def decodePacket(protocol, packetWidths, decodedPacket, rawPacket, timingError, 
                     encodingValid = True
                 else:
                     encodingValid = False
-                    print "bad symbol encountered at index: " + str(i)
-                    print "expected: " + str(protocol.pwmZeroSymbol_samp[0]) + " or: " + str(protocol.pwmOneSymbol_samp[0]) + ", got: " + str(packetWidths[i])
-                    print "expected: " + str(protocol.pwmZeroSymbol_samp[1]) + " or: " + str(protocol.pwmOneSymbol_samp[1]) + ", got: " + str(packetWidths[i+1])
+                    print "bad symbol encountered at index: " + str(i) + " out of max index: " + str(len(packetWidths))
+                    print "expected: " + str(firstSymbolWidthZero) + " or: " + str(firstSymbolWidthOne) + ", got: " + str(packetWidths[i])
+                    print "expected: " + str(secondSymbolWidthZero) + " or: " + str(secondSymbolWidthOne) + ", got: " + str(packetWidths[i+1])
 
-            i+=2 # go to next pair of widths
+            i += 2 # go to next pair of widths
+            headerSymbolSwallow = False # only consider this the first time through
 
-        decodedPacket += rawPacket
+        decodedPacket += rawPacket # NEED to remove this
         #print "raw length: " + str(len(rawPacket))
         #print rawPacket
 
     elif protocol.encodingType == wcv.NO_ENCODING:
         decodedPacket += rawPacket
+
+    if protocol.packetSize > 0 and len(decodedPacket) != protocol.packetSize:
+        encodingValid = False
 
     return(interPacketValid, preambleValid, headerValid, encodingValid)
 

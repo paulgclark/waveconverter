@@ -239,9 +239,9 @@ def checkCRC(protocol, crcBits, payload):
     print crcValue
     
     if crcValue == crcBits:
-        return(wcv.CRC_PASS)
+        return True
     else:
-        return(wcv.CRC_FAIL)
+        return False
 
 #####################################
 def crcComputed(payload, crcPoly, inputBitOrder, initVal, reverseFinal,\

@@ -76,8 +76,9 @@ if args.iq:
     print wcv.center_freq
 # can't run from command line without input file
 elif not wcv.runWithGui:
-    print "Fatal Error: No IQ file provided"
-    exit(0)
+    if (args.protocol != 0) and not args.db: # these commands do not require an IQ file
+        print "Fatal Error: No IQ file provided"
+        exit(0)
 
 if args.samp_rate > 0:
     wcv.samp_rate = args.samp_rate * 1.0 # ensure this is a float

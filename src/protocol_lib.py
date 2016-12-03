@@ -61,6 +61,7 @@ class ProtocolDefinition(Base):
     transitionWidth = Column(Integer)
     modulation = Column(Integer)
     threshold = Column(Integer)
+    glitchFilterCount = Column(Integer) #
         
     # framing vars
     interPacketWidth = Column(Integer)
@@ -76,6 +77,7 @@ class ProtocolDefinition(Base):
     # timing vars
     unitWidth = Column(Integer)
     encodingType = Column(Integer)
+    pwmSymbolOrder01 = Column(Integer) #
     pwmOneSymbol = Column(PickleType) # list with two elements
     pwmZeroSymbol = Column(PickleType) # list with two elements
     pwmSymbolSize = Column(Integer)
@@ -159,6 +161,7 @@ class ProtocolDefinition(Base):
         print " Header Length: " + str(self.headerWidth)
         print "Demod Properties:"
         print " Encoding: " + str(self.encodingType)
+        print " PWM Symbol Order: " + str(self.pwmSymbolOrder01)
         print " PWM Symbol Size: " + str(self.pwmSymbolSize)
         print " PWM 1: " + str(self.pwmOneSymbol)
         print " PWM 0: " + str(self.pwmZeroSymbol)

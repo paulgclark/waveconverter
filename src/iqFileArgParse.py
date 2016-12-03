@@ -3,7 +3,6 @@ import re
 def fileNameTextToFloat(valStr, unitStr):
     # if there's a 'p' character, then we have to deal with decimal vals
     if 'p' in valStr:
-        print "decimal value found"
         regex = re.compile(r"([0-9]+)p([0-9]+)")
         wholeVal = regex.findall(valStr)[0][0]
         decimalVal = regex.findall(valStr)[0][1]
@@ -45,13 +44,16 @@ class iqFileObject():
             # get the substrings representing the values
             regex = re.compile(r"_c([0-9p]+)([GMK])_s([0-9p]+)([GMk])\.iq$")
             paramList = regex.findall(justName)
-            centerValStr = paramList[0][0]
-            centerUnitStr = paramList[0][1]
-            sampValStr = paramList[0][2]
-            sampUnitStr = paramList[0][3]
+            try:
+                centerValStr = paramList[0][0]
+                centerUnitStr = paramList[0][1]
+                sampValStr = paramList[0][2]
+                sampUnitStr = paramList[0][3]
 
-            self.centerFreq = fileNameTextToFloat(centerValStr, centerUnitStr)
-            self.sampRate = fileNameTextToFloat(sampValStr, sampUnitStr)
+                self.centerFreq = fileNameTextToFloat(centerValStr, centerUnitStr)
+                self.sampRate = fileNameTextToFloat(sampValStr, sampUnitStr)
+            except:
+                return
 
 
     def fileName(self):

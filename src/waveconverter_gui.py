@@ -60,6 +60,17 @@ class TopWindow:
         self.aboutdialog.hide()
     
     # This function grabs all of the entries that the user has made into the GUI
+    # and stores them in the appropriate global variable. This function is called before
+    # demodulating, decoding or computing stats
+    def transferGUIDataToGlobals(self):
+        wcv.center_freq = 1000000.0 * self.getFloatFromEntry("centerFreqEntry")
+        wcv.samp_rate = 1000000.0 * self.getFloatFromEntry("sampRateEntry")
+        wcv.timingError = self.getFloatFromEntry("unitTimingErrorEntry")/100.0
+        wcv.timeBetweenTx = self.getIntFromEntry("interPacketWidthEntry")
+        wcv.glitchFilterCount = self.getIntFromEntry("glitchFilterEntry")
+        wcv.protocol.convertTimingToSamples(wcv.basebandSampleRate)
+    
+    # This function grabs all of the entries that the user has made into the GUI
     # and stores them in the active protocol object. This function is called before
     # saving or using any protocol
     def transferGUIDataToProtocol(self):
@@ -94,18 +105,15 @@ class TopWindow:
         # get decode properties
         wcv.protocol.encodingType = self.getIntFromEntryBox("encodingEntryBox")
         wcv.protocol.unitWidth = self.getIntFromEntry("payloadUnitEntry")
+        if self.getIntFromEntryBox("pwmOrderEntryBox") == 1:
+            wcv.protocol.pwmSymbolOrder01 = False
+        else:
+            wcv.protocol.pwmSymbolOrder01 = True
         wcv.protocol.pwmZeroSymbol[0] = self.getIntFromEntry("pwmZeroLowEntry")
         wcv.protocol.pwmZeroSymbol[1] = self.getIntFromEntry("pwmZeroHighEntry")
         wcv.protocol.pwmOneSymbol[0] = self.getIntFromEntry("pwmOneLowEntry")
         wcv.protocol.pwmOneSymbol[1] = self.getIntFromEntry("pwmOneHighEntry")
         wcv.protocol.packetSize = self.getIntFromEntry("numPayloadBitsEntry")
-        
-        #wcv.protocol.pwmSymbolSize = self.getIntFromEntry("pwmPeriodEntry")
-        # compute PWM units from percentage in GUI
-        #wcv.protocol.pwmZeroSymbol[0] = int(wcv.protocol.pwmSymbolSize*(100.0-self.getFloatFromEntry("pwmZeroEntry"))/100.0)
-        #wcv.protocol.pwmZeroSymbol[1] = int(wcv.protocol.pwmSymbolSize*self.getFloatFromEntry("pwmZeroEntry")/100.0)
-        #wcv.protocol.pwmOneSymbol[0] = int(wcv.protocol.pwmSymbolSize*(100.0-self.getFloatFromEntry("pwmOneEntry"))/100.0)
-        #wcv.protocol.pwmOneSymbol[1] = int(wcv.protocol.pwmSymbolSize*self.getFloatFromEntry("pwmOneEntry")/100.0)
         
         # load CRC properties
         wcv.protocol.crcPoly = self.getListFromEntry("crcPolynomialEntry")
@@ -207,7 +215,8 @@ class TopWindow:
 
         # store protocol in database under current ID
         wcv.protocol.saveProtocol()
-        wcv.protocol.printProtocolFull()
+        if wcv.verbose:
+            wcv.protocol.printProtocolFull()
         
     # this function is called when the toolbar "save as" button is clicked,
     # it brings up a dialog asking the user for a protocol name for the new
@@ -379,13 +388,15 @@ class TopWindow:
         # get current zoom size and double
         zoomSize = (wcv.tMax - wcv.tMin)*2.0
         
-        print "center: " + str(center)
-        print "zoomSize: " + str(zoomSize)
+        if wcv.verbose:
+            print "center: " + str(center)
+            print "zoomSize: " + str(zoomSize)
         
         wcv.tMin = int((center - zoomSize/2.0) + 0.5)
         wcv.tMax = int((center + zoomSize/2.0) + 0.5)
-        print "tMin: " + str(wcv.tMin)
-        print "tMax: " + str(wcv.tMax)
+        if wcv.verbose:
+            print "tMin: " + str(wcv.tMin)
+            print "tMax: " + str(wcv.tMax)
         
         # trap for zoom out past max extent
         if wcv.tMin < 0:
@@ -578,24 +589,10 @@ class TopWindow:
     # configuration specified
     def on_Demodulate_clicked(self, button, data=None):
         print "pushed RF Demod Button"
-        
-        # NEED to get all other globals relevant to demodulation
-        # iq file name? in case it was manually typed?
-        # 
-        
-        ## get all of the values entered on this screen
-        wcv.center_freq = 1000000 * self.getFloatFromEntry("centerFreqEntry")
-        wcv.samp_rate = 1000000 * self.getFloatFromEntry("sampRateEntry")
-        wcv.timingError = self.getFloatFromEntry("unitTimingErrorEntry")/100.0
-        wcv.timeBetweenTx = self.getIntFromEntry("interPacketWidthEntry")
-        wcv.glitchFilterCount = self.getIntFromEntry("glitchFilterEntry")
-        wcv.protocol.modulation = self.getIntFromEntryBox("modulationEntryBox")
-        wcv.protocol.frequency = 1000000 * self.getFloatFromEntry("frequencyEntry")
-        wcv.protocol.channelWidth = 1000 * self.getFloatFromEntry("channelWidthEntry")
-        wcv.protocol.transitionWidth = 1000 * self.getFloatFromEntry("transitionWidthEntry")
-        wcv.protocol.threshold = self.getFloatFromEntry("thresholdEntry")
-        wcv.protocol.fskDeviation = self.getFloatFromEntry("fskDeviationEntry")
-        wcv.protocol.convertTimingToSamples(wcv.basebandSampleRate)
+
+        # get values from GUI        
+        self.transferGUIDataToGlobals()
+        self.transferGUIDataToProtocol()
         
         if wcv.verbose:
             print "modulation (ook=0)    = " + str(wcv.protocol.modulation)
@@ -653,9 +650,9 @@ class TopWindow:
         # now plot the first transmission, zoomed out
         wcv.tMin = 0
         wcv.tMax = 100
-        if wcv.verbose:
-            print "txListLength: " + str(len(wcv.txList[0].waveformData)) + " tMin/Max: " + str(wcv.tMin) + " " + str(wcv.tMax) + " bbsr: " + str(wcv.basebandSampleRate)
-            print wcv.txList[0].waveformData
+        #if wcv.verbose:
+        #    print "txListLength: " + str(len(wcv.txList[0].waveformData)) + " tMin/Max: " + str(wcv.tMin) + " " + str(wcv.tMax) + " bbsr: " + str(wcv.basebandSampleRate)
+        #    print wcv.txList[0].waveformData
         self.drawBasebandPlot(wcv.txList[0].waveformData, wcv.tMin, wcv.tMax, wcv.basebandSampleRate)
         
         # set range for the tx-select spin button
@@ -688,15 +685,11 @@ class TopWindow:
     def on_Decode_clicked(self, button, data=None):
         if wcv.verbose:
             print "Now Decoding Baseband"
-        
-        # get global vars
-        wcv.center_freq = self.getFloatFromEntry("centerFreqEntry")*1000000.0
-        wcv.samp_rate = self.getFloatFromEntry("sampRateEntry")*1000000.0
-        wcv.glitchFilterCount = self.getIntFromEntry("glitchFilterEntry")
-        wcv.timingError = self.getFloatFromEntry("unitTimingErrorEntry")/100.0
-        wcv.timeBetweenTx = self.getIntFromEntry("interPacketWidthEntry")
-            
+
+        # get values from GUI        
+        self.transferGUIDataToGlobals()
         self.transferGUIDataToProtocol()
+        
         if wcv.verbose:
             print "baseband sample rate:" + str(wcv.basebandSampleRate)
             wcv.protocol.printProtocolFull()
@@ -756,15 +749,9 @@ class TopWindow:
         if wcv.verbose:
             print "Now Computing Payload Statistics..."
             
-        # get stats properties
-        wcv.protocol.idAddrLow = self.getIntFromEntry("idAddrLowEntry")
-        wcv.protocol.idAddrHigh = self.getIntFromEntry("idAddrHighEntry")
-        wcv.protocol.val1AddrLow = self.getIntFromEntry("val1AddrLowEntry")
-        wcv.protocol.val1AddrHigh = self.getIntFromEntry("val1AddrHighEntry")
-        wcv.protocol.val2AddrLow = self.getIntFromEntry("val2AddrLowEntry")
-        wcv.protocol.val2AddrHigh = self.getIntFromEntry("val2AddrHighEntry")
-        wcv.protocol.val3AddrLow = self.getIntFromEntry("val3AddrLowEntry")
-        wcv.protocol.val3AddrHigh = self.getIntFromEntry("val3AddrHighEntry")
+        # get values from GUI
+        self.transferGUIDataToGlobals()
+        self.transferGUIDataToProtocol()
 
         (wcv.bitProbList, idListCounter, value1List) = computeStats(txList = wcv.txList, protocol = wcv.protocol, showAllTx = wcv.showAllTx)
         (wcv.bitProbString, idStatString, valuesString) = buildStatStrings(bitProbList = wcv.bitProbList, idListCounter = idListCounter, value1List = value1List, outputHex = wcv.outputHex)
@@ -815,16 +802,16 @@ class TopWindow:
         # add payload properties
         self.setEntryBox("encodingEntryBox", wcv.protocol.encodingType)
         self.setEntry("payloadUnitEntry", wcv.protocol.unitWidth)
+        if wcv.protocol.pwmSymbolOrder01:
+            self.setEntryBox("pwmOrderEntryBox", 0)
+        else:
+            self.setEntryBox("pwmOrderEntryBox", 1)
+
         self.setEntry("pwmZeroLowEntry", wcv.protocol.pwmZeroSymbol[0])
         self.setEntry("pwmZeroHighEntry", wcv.protocol.pwmZeroSymbol[1])
         self.setEntry("pwmOneLowEntry", wcv.protocol.pwmOneSymbol[0])
         self.setEntry("pwmOneHighEntry", wcv.protocol.pwmOneSymbol[1])
         self.setEntry("numPayloadBitsEntry", wcv.protocol.packetSize)
-        #self.setEntry("pwmPeriodEntry", wcv.protocol.pwmSymbolSize)
-        #self.setEntry("pwmZeroEntry", 
-        #             "{0:.1f}".format(100.0*wcv.protocol.pwmZeroSymbol[1]/wcv.protocol.pwmSymbolSize))
-        #self.setEntry("pwmOneEntry", 
-        #              "{0:.1f}".format(100.0*wcv.protocol.pwmOneSymbol[1]/wcv.protocol.pwmSymbolSize))
 
         # add CRC properties
         self.setEntry("crcLengthEntry", len(wcv.protocol.crcPoly))

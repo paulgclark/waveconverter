@@ -55,7 +55,7 @@ protocol = ProtocolDefinition(-1)
 txList = []
 
 devTypeStrings = {0 : "Unknown",
-                  1 : "KeyFob", 
+                  1 : "Key Fob", 
                   2 : "Tire Pressure Monitor Sensor", 
                   3 : "Fan Controller", 
                   4 : "RC Vehicle", 
