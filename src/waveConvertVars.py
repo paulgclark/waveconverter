@@ -6,13 +6,14 @@ from iqFileArgParse import iqFileObject
 # these are global defines and vars used throughout the waveConverter app
 verbose = False
 verboseZoom = False
-outFileName = "../output_files/temp_out_file.dat"
+bbOutFileName = "../output_files/waveform_out_file.bb"
 outputHex = False
 protocol_number = 0
 runWithGui = True
-waveformFileName = "../output_files/temp_dig_file.bin"
+waveformFileName = ""
 outFileName = ""
 buildNewDatabase = False
+saveBasebandToFile = False
 argcHelp = False
 
 # we'll only be working on one transmission at a time, so these are global

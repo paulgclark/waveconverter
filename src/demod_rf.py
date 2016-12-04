@@ -53,13 +53,15 @@ class ook_flowgraph(gr.top_block):
         self.blocks_file_source_0 = blocks.file_source(gr.sizeof_gr_complex*1, iq_filename, False)
         self.blocks_complex_to_mag_0 = blocks.complex_to_mag(1)
         self.blocks_add_const_vxx_0 = blocks.add_const_vff((-1*threshold, ))
-        
-        # replace original file sink with message sink
-        #self.blocks_file_sink_0 = blocks.file_sink(gr.sizeof_char*1, dig_out_filename, False)
-        #self.blocks_file_sink_0.set_unbuffered(False)
+
+        # message sink is primary method of getting baseband data into waveconverter        
         self.sink_queue = gr.msg_queue()
         self.blocks_message_sink_0 = blocks.message_sink(gr.sizeof_char*1, self.sink_queue, False)
         
+        # if directed, we also dump the baseband data into a file
+        if len(dig_out_filename) > 0:
+            self.blocks_file_sink_0 = blocks.file_sink(gr.sizeof_char*1, dig_out_filename, False)
+            self.blocks_file_sink_0.set_unbuffered(False)
 
         ##################################################
         # Connections
@@ -68,9 +70,10 @@ class ook_flowgraph(gr.top_block):
         self.connect((self.blocks_complex_to_mag_0, 0), (self.blocks_add_const_vxx_0, 0))
         self.connect((self.blocks_file_source_0, 0), (self.tuning_filter_0, 0))
         self.connect((self.tuning_filter_0, 0), (self.blocks_complex_to_mag_0, 0))
-        
-        #self.connect((self.digital_binary_slicer_fb_0, 0), (self.blocks_file_sink_0, 0))
+
         self.connect((self.digital_binary_slicer_fb_0, 0), (self.blocks_message_sink_0, 0))
+        if len(dig_out_filename) > 0:
+            self.connect((self.digital_binary_slicer_fb_0, 0), (self.blocks_file_sink_0, 0))
 
 
 ##############################################################

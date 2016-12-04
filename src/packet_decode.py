@@ -28,9 +28,17 @@ from manual_protocol_def import manualProtocolAssign
 # waveconverter-specific GUI
 from waveconverter_gui import * # NEED: no *
 from waveconverterEngine import decodeBaseband
+# get needed functions from engine modules
+from waveconverterEngine import demodIQFile
+from waveconverterEngine import buildTxList
+from waveconverterEngine import decodeAllTx
+from statEngine import computeStats
+from statEngine import buildStatStrings
+        
 
 # for constructing the protocol database from scratch
 from buildProtocolDatabase import buildProtocolDatabase
+from waveConvertVars import waveformFileName
 
 #####################################
 # preset some command line args
@@ -39,7 +47,8 @@ protocol_number = -1 # denotes no protocol given via command line
 # handling command line arguments using argparse
 parser = argparse.ArgumentParser("Process input baseband waveforms OR I-Q data files and convert to output binary data")
 parser.add_argument("-q", "--iq", help="input i-q data file name")
-parser.add_argument("-b", "--baseband", help="input digital baseband file name")
+parser.add_argument("-b", "--baseband", help="digital baseband input file name")
+parser.add_argument("-n", "--bb_save", help="save baseband to file", action="store_true")
 parser.add_argument("-o", "--output", help="output file name")
 parser.add_argument("-s", "--samp_rate", help="sample rate", type=int)
 parser.add_argument("-c", "--center_freq", help="center frequency in Hz",type=int)
@@ -62,6 +71,9 @@ try:
     wcv.runWithGui = args.gui
 except:
     wcv.runWithGui = False
+if args.baseband: # if not argument passed, use default
+    wcv.waveformFileName = args.baseband
+    print wcv.waveformFileName
 if args.iq:
     wcv.iqFileName = args.iq
     # try to parse the file name to see if if contains the iq parameters
@@ -76,7 +88,7 @@ if args.iq:
     print wcv.center_freq
 # can't run from command line without input file
 elif not wcv.runWithGui:
-    if (args.protocol != 0) and not args.db: # these commands do not require an IQ file
+    if (args.protocol != 0) and not args.db and len(wcv.waveformFileName) <= 0: # these commands do not require an IQ file
         print "Fatal Error: No IQ file provided"
         exit(0)
 
@@ -97,8 +109,6 @@ elif (wcv.center_freq < 0) and not wcv.runWithGui:
 
 wcv.protocol_number = args.protocol
 
-if not args.baseband == None: # if not argument passed, used default
-    wcv.waveformFileName = args.baseband
 wcv.outFileName = args.output
 try:
     wcv.verbose = args.verbose
@@ -116,6 +126,13 @@ try:
     wcv.glitchFilterCount = int(args.glitch_count)
 except:
     wcv.glitchFilterCount = 2
+try:
+    wcv.saveBasebandToFile = bool(args.bb_save)
+    if not wcv.saveBasebandToFile:
+        wcv.bbOutFileName = "" # signal to flowgraph not to output a bb file by not giving it a name
+except:
+    wcv.saveBasebandToFile = False
+    wcv.bbOutFileName = "" # signal to flowgraph not to output a bb file by not giving it a name
 try:
     wcv.showAllTx = not bool(args.hide_bad)
 except:
@@ -188,14 +205,8 @@ if not wcv.runWithGui:
     # if we were given an I-Q file, then we need to demodulate it first to 
     # obtain the digital baseband waveform (need future modifications if 
     # multiple waveforms are contained in the same I-Q file)
+    basebandData = []
     if wcv.iqFileName:
-        # get needed functions from engine modules
-        from waveconverterEngine import demodIQFile
-        from waveconverterEngine import buildTxList
-        from waveconverterEngine import decodeAllTx
-        from statEngine import computeStats
-        from statEngine import buildStatStrings
-        
         # decide whether to use protocol values or command line overrides
         if wcv.frequency < 0:
             wcv.frequency = wcv.protocol.frequency
@@ -213,45 +224,54 @@ if not wcv.runWithGui:
                                    threshold = wcv.threshold,
                                    fskDeviation = wcv.protocol.fskDeviation,
                                    iqFileName = wcv.iqFileName,
-                                   waveformFileName = wcv.waveformFileName)
+                                   waveformFileName = wcv.bbOutFileName)
 
-        # decide whether to use protocol values or command line overrides
-        if wcv.timeBetweenTx < 0:
-            wcv.timeBetweenTx = wcv.protocol.interPacketWidth
-        timeBetweenTx_samp = wcv.timeBetweenTx * wcv.basebandSampleRate / 1000000
-
-        # split transmissions
-        txList = buildTxList(basebandData = basebandData,
-                             basebandSampleRate =  wcv.basebandSampleRate,
-                             interTxTiming = timeBetweenTx_samp,
-                             glitchFilterCount = wcv.glitchFilterCount,
-                             verbose = wcv.verbose)    
-
-        # decode
-        (txList, decodeOutputString) = decodeAllTx(protocol = wcv.protocol, 
-                                                   txList = txList,
-                                                   outputHex = wcv.outputHex,
-                                                   timingError = wcv.timingError,
-                                                   glitchFilterCount = wcv.glitchFilterCount,
-                                                   verbose = wcv.verbose)
+    # if we didn't have an iq file, then we'll use the supplied baseband file to get the BB data
+    elif len(wcv.waveformFileName) > 0:
+        try:
+            print "Opening baseband file"
+            from breakWave import basebandFileToList
+            basebandData = basebandFileToList(wcv.waveformFileName)
+        except:
+            print "Error opening baseband file. Exiting..."
+            exit(1)
         
-        # compute stats
-        (bitProbList, idListCounter, value1List) = computeStats(txList = txList, protocol = wcv.protocol, showAllTx = wcv.showAllTx)
-        # compute stat string
-        (bitProbString, idStatString, valuesString) = buildStatStrings(bitProbList, idListCounter, value1List, wcv.outputHex)
+    # decide whether to use protocol values or command line overrides
+    if wcv.timeBetweenTx < 0:
+        wcv.timeBetweenTx = wcv.protocol.interPacketWidth
+    timeBetweenTx_samp = wcv.timeBetweenTx * wcv.basebandSampleRate / 1000000
+    
+    # split transmissions
+    txList = buildTxList(basebandData = basebandData,
+                         basebandSampleRate =  wcv.basebandSampleRate,
+                         interTxTiming = timeBetweenTx_samp,
+                         glitchFilterCount = wcv.glitchFilterCount,
+                         verbose = wcv.verbose)    
 
-        # output strings to stdio
-        print decodeOutputString
-        print bitProbString
-        print idStatString
-        print valuesString
+    # decode
+    (txList, decodeOutputString) = decodeAllTx(protocol = wcv.protocol, 
+                                               txList = txList,
+                                               outputHex = wcv.outputHex,
+                                               timingError = wcv.timingError,
+                                               glitchFilterCount = wcv.glitchFilterCount,
+                                               verbose = wcv.verbose)
+        
+    # compute stats
+    (bitProbList, idListCounter, value1List) = computeStats(txList = txList, protocol = wcv.protocol, showAllTx = wcv.showAllTx)
+    # compute stat string
+    (bitProbString, idStatString, valuesString) = buildStatStrings(bitProbList, idListCounter, value1List, wcv.outputHex)
+
+    # output strings to stdio
+    print decodeOutputString
+    print bitProbString
+    print idStatString
+    print valuesString
 
 else: # start up the GUI
     if __name__ == "__main__":
         main = TopWindow(wcv.protocol)
         Gtk.main()
   
-
 if wcv.verbose:
     print("Exiting")
 exit(0)
