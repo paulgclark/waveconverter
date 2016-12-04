@@ -444,4 +444,3 @@ def sequenceCompare(protocol, idealTxList, realTxList, timingError, verbose):
                 print "len(idealTxList): " + str(len(idealTxList))
             return(False)    
     return True
-

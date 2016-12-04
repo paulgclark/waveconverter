@@ -42,6 +42,8 @@ except:
 
 
 class TopWindow:
+ 
+    spinButtonPressed = -1
     
     def on_window1_destroy(self, object, data=None):
         if wcv.verbose:
@@ -288,9 +290,7 @@ class TopWindow:
         webbrowser.open('file://' + docPath + '/user_guide.pdf')
         
              
-    def on_transmissionNumberSelect_value_changed(self, spinButton, data=None):
-        txNum = spinButton.get_value_as_int() - 1 # button counts from 1 to n; array from 0 to n-1
-        # reset the Min and Max extents of plot for new waveform
+    def changeTxNumberToView(self, txNum):
         wcv.tMin = 0
         wcv.tMax = 100
         
@@ -304,6 +304,56 @@ class TopWindow:
         else:
             print "Reached end of transmission list"
         
+    def on_transmissionNumberSelect2_value_changed(self, spinButton, data=None):
+        # find out if this was the button pressed
+        if self.spinButtonPressed == -1:
+            self.spinButtonPressed = 2
+        
+            txNum = spinButton.get_value_as_int() - 1 # button counts from 1 to n; array from 0 to n-1
+        
+            # first update the other two widgets in other tabs
+            self.setSpinButtonValue("transmissionNumberSelect", txNum + 1)
+            self.setSpinButtonValue("transmissionNumberSelect1", txNum + 1)        
+        
+            # then change the view
+            self.changeTxNumberToView(txNum)
+            
+            # now return control
+            self.spinButtonPressed = -1
+
+    def on_transmissionNumberSelect1_value_changed(self, spinButton, data=None):
+        # find out if this was the button pressed
+        if self.spinButtonPressed == -1:
+            self.spinButtonPressed = 1
+            
+            txNum = spinButton.get_value_as_int() - 1 # button counts from 1 to n; array from 0 to n-1
+        
+            # first update the other two widgets in other tabs
+            self.setSpinButtonValue("transmissionNumberSelect", txNum + 1)
+            self.setSpinButtonValue("transmissionNumberSelect2", txNum + 1)        
+        
+            # then change the view
+            self.changeTxNumberToView(txNum)
+
+            # now return control
+            self.spinButtonPressed = -1
+        
+    def on_transmissionNumberSelect_value_changed(self, spinButton, data=None):
+        # find out if this was the button pressed
+        if self.spinButtonPressed == -1:
+            self.spinButtonPressed = 0
+            
+            txNum = spinButton.get_value_as_int() - 1 # button counts from 1 to n; array from 0 to n-1
+        
+            # first update the other two widgets in other tabs
+            self.setSpinButtonValue("transmissionNumberSelect1", txNum + 1)
+            self.setSpinButtonValue("transmissionNumberSelect2", txNum + 1)      
+        
+            self.changeTxNumberToView(txNum)
+            
+            # now return control
+            self.spinButtonPressed = -1
+
     def on_panRightButton_clicked(self, button, data=None):
         if wcv.verbose:
             print "Panning Right"
@@ -499,7 +549,11 @@ class TopWindow:
             Gtk.Label.set_markup(tempWidget, value)
         else:
             Gtk.Label.set_text(tempWidget, value)
-        
+            
+    def setSpinButtonValue(self, widgetName, value):
+        tempWidget = self.builder.get_object(widgetName)
+        Gtk.SpinButton.set_value(tempWidget, value)
+
     #def setIntToEntryBox(self, widgetName, value):
     #    tempWidget = self.builder.get_object(widgetName)
     #    Gtk.ComboBox.set_active(tempWidget, value)
@@ -521,17 +575,15 @@ class TopWindow:
     # waveformSampleRate provides the timing info to compute the horizontal axis
     def drawBasebandPlot(self, waveformDataList, tMin, tMax, waveformSampleRate):
         
-        localWaveform = list(waveformDataList) # make local copy
-        
-        # NEED to decimate larger lists to fit under 18k
         # truncate large input lists; cairo can only handle 18980 point plots
-        #if len(waveformDataList) > 18901:
-        #    waveformDataList = waveformDataList[0:18900]
-        # NEED to replace this with a smart removal of trailing zeroes from each tx 
-        if len(localWaveform) > 14001:
+        if len(waveformDataList) > 18000:
             # NEED to replace this with decimated waveform, not truncated
-            print "Warning: baseband waveform longer than 14k samples, truncating..."
-            localWaveform = localWaveform[0:14000]
+            if wcv.verbose:
+                print "Baseband waveform longer than 18k samples, truncating..."
+            decimationFactor = 1 + int(len(waveformDataList)/18000)
+            localWaveform = waveformDataList[::decimationFactor]
+        else:
+            localWaveform = list(waveformDataList) # make local copy    
         
         # compute 
         waveformLength = len(localWaveform)
@@ -553,11 +605,6 @@ class TopWindow:
             print "start time = " + str(startTime)
             print "stop time = " + str(stopTime)
             
-        # get gui widget
-        #context = plotWidget.get_style_context;
-        #width = plotWidget.get_allocated_width;
-        #height = plotWidget.get_allocated_height;
-        
         t = arange(startTime, stopTime, stepSize)
         s = localWaveform[startIndex:stopIndex]
         # sometimes t and s arrays are sized differently, probably due to rounding
@@ -642,10 +689,14 @@ class TopWindow:
                 
         if len(wcv.txList) == 0:
             self.setLabel("signalCountLabel", "<b>NO SIGNALS FOUND</b>", 1) # NEED: use bold and/or red text?
+            self.setLabel("signalCountLabel1", "<b>NO SIGNALS FOUND</b>", 1)
+            self.setLabel("signalCountLabel2", "<b>NO SIGNALS FOUND</b>", 1)
             print "NO SIGNALS FOUND AFTER DEMODULATION"
             return(1)
         else:
             self.setLabel("signalCountLabel", "Signals Found: " + str(len(wcv.txList)))
+            self.setLabel("signalCountLabel1", "Signals Found: " + str(len(wcv.txList)))
+            self.setLabel("signalCountLabel2", "Signals Found: " + str(len(wcv.txList)))
         
         # now plot the first transmission, zoomed out
         wcv.tMin = 0
@@ -657,6 +708,8 @@ class TopWindow:
         
         # set range for the tx-select spin button
         self.txSelectSpinButton.set_range(1, len(wcv.txList)+1)
+        self.txSelectSpinButton1.set_range(1, len(wcv.txList)+1)
+        self.txSelectSpinButton2.set_range(1, len(wcv.txList)+1)
         
         # update the transmission status
         if wcv.verbose:
@@ -848,6 +901,14 @@ class TopWindow:
         self.txSelectSpinButton = self.builder.get_object("transmissionNumberSelect")
         self.spinButtonAdjustment = Gtk.Adjustment(0, 0, 0, 1, 1, 1)
         self.txSelectSpinButton.set_adjustment(self.spinButtonAdjustment)
+        #
+        self.txSelectSpinButton1 = self.builder.get_object("transmissionNumberSelect1")
+        self.spinButtonAdjustment1 = Gtk.Adjustment(0, 0, 0, 1, 1, 1)
+        self.txSelectSpinButton1.set_adjustment(self.spinButtonAdjustment1)
+        #
+        self.txSelectSpinButton2 = self.builder.get_object("transmissionNumberSelect2")
+        self.spinButtonAdjustment2 = Gtk.Adjustment(0, 0, 0, 1, 1, 1)
+        self.txSelectSpinButton2.set_adjustment(self.spinButtonAdjustment2)
         
         # setup axis, canvas and figure
         self.figure = Figure(figsize=(8,6), dpi=71) # replace with ???

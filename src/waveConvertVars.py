@@ -45,7 +45,6 @@ threshold = 0.1 # another override value
 
 # this value is used for the sample rate of the digital baseband file
 basebandSampleRate = 100000.0 # good default rate
-#basebandSampleRate = 400000.0
 
 # define a global protocol variable
 from protocol_lib import ProtocolDefinition
