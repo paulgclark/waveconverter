@@ -61,6 +61,7 @@ class ProtocolDefinition(Base):
     transitionWidth = Column(Integer)
     modulation = Column(Integer)
     threshold = Column(Integer)
+    fskSquelchLeveldB = Column(Integer)
     glitchFilterCount = Column(Integer) #
         
     # framing vars
@@ -152,6 +153,7 @@ class ProtocolDefinition(Base):
         print " Channel Width(kHz): " + str(self.channelWidth)
         print " Transition Width(kHz): " + str(self.transitionWidth)
         print " FSK Deviation(kHz): " + str(self.fskDeviation)
+        print " FSK Squelch Level (dB): " + str(self.fskSquelchLeveldB)
         print "Framing Properties:"
         print " Time between transmissions(us): " + str(self.interPacketWidth)
         print " Preamble Low Time (us): " + str(self.preambleSymbolLow)

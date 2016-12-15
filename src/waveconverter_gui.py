@@ -84,9 +84,10 @@ class TopWindow:
         wcv.protocol.channelWidth = 1000.0 * self.getFloatFromEntry("channelWidthEntry")
         wcv.protocol.transitionWidth = 1000.0 * self.getFloatFromEntry("transitionWidthEntry")
         wcv.protocol.threshold = self.getFloatFromEntry("thresholdEntry")
+        wcv.protocol.fskSquelchLeveldB = self.getFloatFromEntry("fskSquelchEntry")
         # may not have an FSK deviation value entered if user is working with OOK
         try:
-            wcv.protocol.fskDeviation = self.getFloatFromEntry("fskDeviationEntry")
+            wcv.protocol.fskDeviation = 1000.0 * self.getFloatFromEntry("fskDeviationEntry")
         except:
             wcv.protocol.fskDeviation = 0.0
         
@@ -575,38 +576,43 @@ class TopWindow:
     # waveformSampleRate provides the timing info to compute the horizontal axis
     def drawBasebandPlot(self, waveformDataList, tMin, tMax, waveformSampleRate):
         
-        # truncate large input lists; cairo can only handle 18980 point plots
+        # decimate large input lists; cairo can only handle 18980 point plots
         if len(waveformDataList) > 18000:
             # NEED to replace this with decimated waveform, not truncated
             if wcv.verbose:
-                print "Baseband waveform longer than 18k samples, truncating..."
+                print "Baseband waveform longer than 18k samples, decimating..."
             decimationFactor = 1 + int(len(waveformDataList)/18000)
             localWaveform = waveformDataList[::decimationFactor]
         else:
-            localWaveform = list(waveformDataList) # make local copy    
+            localWaveform = list(waveformDataList) # make local copy
+            decimationFactor = 1  
         
-        # compute 
-        waveformLength = len(localWaveform)
+        # for use in building the horizontal axis labels
+        waveformLength = len(waveformDataList)
         startIndex = int((tMin/100.0) * waveformLength)
         stopIndex =  int((tMax/100.0) * waveformLength)
+        # for operating on the actual plot data that's been decimated above
+        waveformLengthDecimated = len(localWaveform) 
+        startIndexDecimated = int((tMin/100.0) * waveformLengthDecimated)
+        stopIndexDecimated =  int((tMax/100.0) * waveformLengthDecimated)
         
         # compute plot area in milliseconds    
         stepSize = (1/waveformSampleRate) * 1000.0
         startTime = startIndex * stepSize
         stopTime = stopIndex * stepSize
         
-        if wcv.verboseZoom:
+        if True: #wcv.verboseZoom:
             print "displaying new plot"
             print "list size = " + str(waveformLength)
             print "tMin(%) = " + str(tMin)
             print "tMax(%) = " + str(tMax)
-            print "start Index = " + str(startIndex)
-            print "stop Index = " + str(stopIndex)
+            print "start Index = " + str(startIndexDecimated)
+            print "stop Index = " + str(stopIndexDecimated)
             print "start time = " + str(startTime)
             print "stop time = " + str(stopTime)
             
-        t = arange(startTime, stopTime, stepSize)
-        s = localWaveform[startIndex:stopIndex]
+        t = arange(startTime, stopTime, stepSize*decimationFactor)
+        s = localWaveform[startIndexDecimated:stopIndexDecimated]
         # sometimes t and s arrays are sized differently, probably due to rounding
         minSize = min(len(t), len(s))
         if len(t) != minSize:
@@ -650,6 +656,7 @@ class TopWindow:
             print "channel width (Hz)    = " + str(wcv.protocol.channelWidth)
             print "transition width (Hz) = " + str(wcv.protocol.transitionWidth)
             print "threshold             = " + str(wcv.protocol.threshold)
+            print "FSK Squelch Level(dB) = " + str(wcv.protocol.fskSquelchLeveldB)
             print "FSK Deviation (Hz)    = " + str(wcv.protocol.fskDeviation)
             print "iq File Name          = " + wcv.iqFileName
             print "Waveform File Name    = " + wcv.waveformFileName
@@ -664,6 +671,7 @@ class TopWindow:
                                        channelWidth = wcv.protocol.channelWidth,
                                        transitionWidth = wcv.protocol.transitionWidth,
                                        threshold = wcv.protocol.threshold,
+                                       fskSquelch = wcv.protocol.fskSquelchLeveldB,
                                        fskDeviation = wcv.protocol.fskDeviation,
                                        iqFileName = wcv.iqFileName,
                                        waveformFileName = wcv.waveformFileName
@@ -843,6 +851,7 @@ class TopWindow:
         self.setEntryBox("modulationEntryBox", wcv.protocol.modulation)
         self.setEntry("fskDeviationEntry", wcv.protocol.fskDeviation/1000.0)
         self.setEntry("thresholdEntry", wcv.protocol.threshold)
+        self.setEntry("fskSquelchEntry", wcv.protocol.fskSquelchLeveldB)
         
         # add preamble properties
         self.setEntry("preambleLowEntry", wcv.protocol.preambleSymbolLow)

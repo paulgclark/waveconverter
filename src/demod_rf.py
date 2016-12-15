@@ -88,7 +88,7 @@ class ook_flowgraph(gr.top_block):
 
 class fsk_flowgraph(gr.top_block):
     def __init__(self, samp_rate_in, samp_rate_out, center_freq, 
-                 tune_freq, channel_width, transition_width, threshold, fsk_deviation,
+                 tune_freq, channel_width, transition_width, threshold, fsk_deviation, fskSquelch,
                  iq_filename, dig_out_filename):
         gr.top_block.__init__(self)
         
@@ -103,14 +103,15 @@ class fsk_flowgraph(gr.top_block):
         ##################################################
         # Blocks
         ##################################################
-        self.tuning_filter_0 = filter.freq_xlating_fir_filter_ccc(int(samp_rate_in/samp_rate_out), 
-                                                                  (self.firdes_taps), 
-                                                                  tune_freq-center_freq, 
-                                                                  samp_rate_in)
-        self.digital_binary_slicer_fb_0 = digital.binary_slicer_fb()
         self.blocks_file_source_0 = blocks.file_source(gr.sizeof_gr_complex*1, iq_filename, False)
-        self.quadrature_demod_0 = analog.quadrature_demod_cf(samp_rate_out/(2*pi*fsk_deviation/2))
+        self.blocks_tuning_filter_0 = filter.freq_xlating_fir_filter_ccc(int(samp_rate_in/samp_rate_out), 
+                                                                         (self.firdes_taps), 
+                                                                         tune_freq-center_freq, 
+                                                                         samp_rate_in)
+        self.analog_pwr_squelch_xx_0 = analog.pwr_squelch_cc(fskSquelch, 1, 1, False)
+        self.blocks_quadrature_demod_0 = analog.quadrature_demod_cf(samp_rate_out/(2*pi*fsk_deviation/2))
         self.blocks_add_const_vxx_0 = blocks.add_const_vff((-1*threshold, ))
+        self.blocks_digital_binary_slicer_fb_0 = digital.binary_slicer_fb()
         
         # swapped message sink for file sink
         #self.blocks_file_sink_0 = blocks.file_sink(gr.sizeof_char*1, dig_out_filename, False)
@@ -121,11 +122,12 @@ class fsk_flowgraph(gr.top_block):
         ##################################################
         # Connections
         ##################################################
-        self.connect((self.blocks_add_const_vxx_0, 0), (self.digital_binary_slicer_fb_0, 0))
-        self.connect((self.blocks_complex_to_mag_0, 0), (self.blocks_add_const_vxx_0, 0))
-        self.connect((self.blocks_file_source_0, 0), (self.tuning_filter_0, 0))
-        self.connect((self.tuning_filter_0, 0), (self.blocks_complex_to_mag_0, 0))
+        self.connect((self.blocks_file_source_0, 0), (self.blocks_tuning_filter_0, 0))
+        self.connect((self.blocks_tuning_filter_0, 0), (self.analog_pwr_squelch_xx_0, 0))
+        self.connect((self.analog_pwr_squelch_xx_0, 0), (self.blocks_quadrature_demod_0, 0))
+        self.connect((self.blocks_quadrature_demod_0, 0), (self.blocks_add_const_vxx_0, 0))
+        self.connect((self.blocks_add_const_vxx_0, 0), (self.blocks_digital_binary_slicer_fb_0, 0))
         
         #self.connect((self.digital_binary_slicer_fb_0, 0), (self.blocks_file_sink_0, 0))
-        self.connect((self.digital_binary_slicer_fb_0, 0), (self.blocks_message_sink_0, 0))
+        self.connect((self.blocks_digital_binary_slicer_fb_0, 0), (self.blocks_message_sink_0, 0))
         

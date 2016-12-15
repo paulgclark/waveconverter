@@ -223,8 +223,8 @@ class basebandTx:
 
 from demod_rf import ook_flowgraph
 from demod_rf import fsk_flowgraph
-def demodIQFile(verbose, modulationType, iqSampleRate, basebandSampleRate, centerFreq, frequency,
-                channelWidth, transitionWidth, threshold, iqFileName, waveformFileName, fskDeviation):
+def demodIQFile(verbose, modulationType, iqSampleRate, basebandSampleRate, centerFreq, frequency, channelWidth, 
+                transitionWidth, threshold, iqFileName, waveformFileName, fskDeviation = 0, fskSquelch = 0):
     # create flowgraph object and execute flowgraph
         try:
             if verbose:
@@ -249,6 +249,7 @@ def demodIQFile(verbose, modulationType, iqSampleRate, basebandSampleRate, cente
                                                 transitionWidth,
                                                 threshold,
                                                 fskDeviation,
+                                                fskSquelch,
                                                 iqFileName, 
                                                 waveformFileName) # temp file
                 flowgraphObject.run()
