@@ -1,5 +1,4 @@
 import os
-from IPython.core.payload import PayloadManager
 os.chdir('../src')
 import sys
 sys.path.append(os.getcwd())
