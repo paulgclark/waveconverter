@@ -56,7 +56,7 @@ txList = []
 
 devTypeStrings = {0 : "Unknown",
                   1 : "Key Fob", 
-                  2 : "Tire Pressure Monitor Sensor", 
+                  2 : "TPM Sensor", 
                   3 : "Fan Controller", 
                   4 : "RC Vehicle", 
                   5 : "Weather Station"}
@@ -90,6 +90,11 @@ PREAMBLE_STATE = 1
 HEADER_STATE = 2
 DATA_STATE = 3
 BETWEEN_PACKETS_STATE = 4
+
+# preamble types
+PREAMBLE_REG = 0
+PREAMBLE_ARB = 1
+PREAMBLE_CNT = 2
 
 # Manchester encoding
 NO_ENCODING = 0

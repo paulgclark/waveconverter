@@ -100,15 +100,16 @@ def decodePacket(protocol, packetWidths, decodedPacket, rawPacket, timingError, 
     encodingValid = True
     (dataStartIndex, interPacketValid, preambleValid, headerValid) = checkValidPacket(protocol, packetWidths, timingError, verbose)
     
-    print "checkValidPacket Results:"
-    print "    interPacketValid = " + str(interPacketValid)
-    print "    preambleValid    = " + str(preambleValid)
-    print "    headerValid      = " + str(headerValid)
-    print "    dataStartIndex   = " + str(dataStartIndex)
-    try:
-        print "    starting width   = " + str(packetWidths[dataStartIndex])
-    except:
-        print "    starting width   = N/A"
+    if verbose:
+        print "checkValidPacket Results:"
+        print "    interPacketValid = " + str(interPacketValid)
+        print "    preambleValid    = " + str(preambleValid)
+        print "    headerValid      = " + str(headerValid)
+        print "    dataStartIndex   = " + str(dataStartIndex)
+        try:
+            print "    starting width   = " + str(packetWidths[dataStartIndex])
+        except:
+            print "    starting width   = N/A"
 
     # if the preamble or header is broken, get out now
     if not preambleValid or not headerValid:
@@ -167,6 +168,7 @@ def decodePacket(protocol, packetWidths, decodedPacket, rawPacket, timingError, 
         # - whether or not the payload was preceeded by a header
         # - whether the PWM symbol consists of a low level followed by high level or vice versa
         
+        ### NEED TO CLEAN UP THIS SECTION WITH COMMON DECISION-MAKING CODE (PREAMBLE+HEADER is either odd or not)
         # in the first case, the starting symbol has a low period swallowed up by the header
         if protocol.headerWidth_samp > 0 and protocol.pwmSymbolOrder01:
             i = i - 1 # walk the index back
@@ -185,6 +187,23 @@ def decodePacket(protocol, packetWidths, decodedPacket, rawPacket, timingError, 
         # NOT YET IMPLEMENTED
         else:
             pass
+        
+        # if we have an arbitrary preamble, we simply go by the symbol order
+        if protocol.preambleType == wcv.PREAMBLE_ARB or protocol.preambleType == wcv.PREAMBLE_CNT:
+            if protocol.pwmSymbolOrder01:
+                if (len(protocol.arbPreambleList) % 2 == 1):
+                    headerSymbolSwallow = False
+                    trailingSymbolSwallow = False
+                else:
+                    headerSymbolSwallow = True
+                    trailingSymbolSwallow = False
+            else:
+                if (len(protocol.arbPreambleList) % 2 == 1):
+                    headerSymbolSwallow = True
+                    trailingSymbolSwallow = True
+                else:
+                    headerSymbolSwallow = False
+                    trailingSymbolSwallow = True
         
         # if we have the high period followed by the low, we need to swap the expected PWM widths
         if protocol.pwmSymbolOrder01:
@@ -383,19 +402,29 @@ def printPacket(outFile, packet, outputHex):
 # waveform's list of widths. 
 def checkValidPacket(protocol, packetWidths, timingError, verbose):
     
-    # build ideal timing list
-    framingList = []
-    # add the preamble
-    for n in range(0, protocol.preambleSize[0]):
-        framingList.append(protocol.preambleSymbolLow_samp)
-        framingList.append(protocol.preambleSymbolHigh_samp)
+    # add a width for the interTX timing to the front of the arbitrary preamble definition
+    if protocol.preambleType == wcv.PREAMBLE_ARB:
+        framingList = [1] + protocol.arbPreambleList_samp
+    # build the framing list from the preamble pairs and header
+    elif protocol.preambleType == wcv.PREAMBLE_REG:
+        # build ideal timing list
+        framingList = []
+        # add the preamble
+        for n in range(0, protocol.preambleSize[0]):
+            framingList.append(protocol.preambleSymbolLow_samp)
+            framingList.append(protocol.preambleSymbolHigh_samp)
         
-    # add the header
-    if protocol.headerWidth >= 0:
-        framingList.append(protocol.headerWidth_samp)
+        # add the header
+        if protocol.headerWidth >= 0:
+            framingList.append(protocol.headerWidth_samp)
+    # skip the checks and just skip past the number of transitions in the framing list
+    elif protocol.preambleType == wcv.PREAMBLE_CNT:
+        print "Reached preamble bypass"
+        startPayload = 1 + protocol.preamblePulseCount
+        return (startPayload, True, True, True)
 
     # debug only
-    if verbose:
+    if True: #verbose:
         print "Framing List:"
         print framingList
         print "Input List:"
@@ -407,6 +436,7 @@ def checkValidPacket(protocol, packetWidths, timingError, verbose):
             print "Primary preamble and header match transmission"
         return (len(framingList), True, True, True)
     
+    # check the second preamble
     # add the preamble
     for i in range(0, protocol.preambleSize[1]):
         framingList.append(protocol.preambleSymbolLow_samp)
@@ -422,7 +452,7 @@ def checkValidPacket(protocol, packetWidths, timingError, verbose):
             print "Secondary preamble and header match transmission"
         return (len(framingList), True, True, True)
     
-    # if we got this far, then nothing matched
+    # if we got this far, then neither of the two preambles matched
     if verbose:
         print "Preamble and header match FAIL"
     return (len(framingList), False, False, False)

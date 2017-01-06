@@ -50,7 +50,8 @@ class ProtocolDefinition(Base):
     
     # waveconverter protocol library vars
     protocolId = Column(Integer, primary_key=True)
-    deviceName = Column(String(250), nullable=False)
+    deviceMake = Column(String(250), nullable=False)
+    deviceModel = Column(String(250), nullable=False)
     deviceYear = Column(String(250), nullable=False)
     deviceType = Column(Integer)
       
@@ -67,14 +68,17 @@ class ProtocolDefinition(Base):
     # framing vars
     interPacketWidth = Column(Integer)
     interPacketSymbol = Column(Integer)
+    preambleType = Column(Integer)
     preambleSymbolHigh = Column(Integer)
     preambleSymbolLow = Column(Integer)
     preambleSize = Column(PickleType) # list some preambles have different lengths
     headerLevel = Column(Integer)
     headerWidth = Column(Integer)
+    arbPreambleList = Column(PickleType) # list of widths
     packetSize = Column(Integer) # rename to payloadSize
     preambleSync = Column(Integer)
-        
+    preamblePulseCount = Column(Integer)
+             
     # timing vars
     unitWidth = Column(Integer)
     encodingType = Column(Integer)
@@ -117,6 +121,7 @@ class ProtocolDefinition(Base):
     interPacketWidth_samp = Column(Integer) # 
     preambleSymbolLow_samp = Column(Integer)
     preambleSymbolHigh_samp = Column(Integer)
+    arbPreambleList_samp = Column(PickleType)
     headerWidth_samp = Column(Integer) #
     pwmOneSymbol_samp = Column(PickleType) # list
     pwmZeroSymbol_samp = Column(PickleType) # list
@@ -127,6 +132,7 @@ class ProtocolDefinition(Base):
         self.protocolId = protocolId # maybe search through database to find max value and +1
         # initializing all the lists with default sizes make things easier later
         self.preambleSize = [0, 0]
+        self.arbPreambleList = []
         self.pwmOneSymbol = [0, 0]
         self.pwmZeroSymbol = [0, 0]
         self.pwmOneSymbol_samp = [0, 0]
@@ -138,68 +144,75 @@ class ProtocolDefinition(Base):
     
     def printProtocolMinimal(self):
         print "protocolId:" + str(self.protocolId)
-        print "Device Name:" + str(self.deviceName)
+        print "Device Make:" + str(self.deviceMake)
+        print "Device Model:" + str(self.deviceModel)
         print "Device Year:" + str(self.deviceYear)
         print "Device Type:" + str(self.deviceType)
 
-    def printProtocolFull(self):
-        print "Protocol ID:" + str(self.protocolId)
-        print "Device Name:" + str(self.deviceName)
-        print "Device Year:" + str(self.deviceYear)
-        print "Device Type:" + str(self.deviceType)
-        print "RF Properties:"
-        print " Frequency(MHz): " + str(self.frequency)
-        print " Modulation: " + str(self.modulation)
-        print " Channel Width(kHz): " + str(self.channelWidth)
-        print " Transition Width(kHz): " + str(self.transitionWidth)
-        print " FSK Deviation(kHz): " + str(self.fskDeviation)
-        print " FSK Squelch Level (dB): " + str(self.fskSquelchLeveldB)
-        print "Framing Properties:"
-        print " Time between transmissions(us): " + str(self.interPacketWidth)
-        print " Preamble Low Time (us): " + str(self.preambleSymbolLow)
-        print " Preamble High Time (us): " + str(self.preambleSymbolHigh)
-        print " Preamble Length 1: " + str(self.preambleSize[0])
-        print " Preamble Length 2: " + str(self.preambleSize[1])
-        print " Header Length: " + str(self.headerWidth)
-        print "Demod Properties:"
-        print " Encoding: " + str(self.encodingType)
-        print " PWM Symbol Order: " + str(self.pwmSymbolOrder01)
-        print " PWM Symbol Size: " + str(self.pwmSymbolSize)
-        print " PWM 1: " + str(self.pwmOneSymbol)
-        print " PWM 0: " + str(self.pwmZeroSymbol)
-        print " TX Size: " + str(self.packetSize)
-        print "CRC Properties:"
-        print " CRC Low Addr: " + str(self.crcLow)
-        print " CRC High Addr: " + str(self.crcHigh)
-        print " CRC Low Data Addr: " + str(self.crcDataLow)
-        print " CRC High Data Addr: " + str(self.crcDataHigh)
-        print " CRC Poly: " + str(self.crcPoly)
-        print " CRC Init: " + str(self.crcInit)
-        print " CRC Bit Order: " + str(self.crcBitOrder) 
-        print " CRC Reverse: " + str(self.crcReverseOut)
-        print " CRC Final XOR: " + str(self.crcFinalXor)
-        print " CRC Pad: " + str(self.crcPad)
-        print " CRC Pad Count: " + str(self.crcPadCount)
-        print " CRC Pad Val: " + str(self.crcPadVal)
-        print " CRC Pad Count Options: " + str(self.crcPadCountOptions)
-        print "Stat Properties:"
-        print " ID Addr Low: " + str(self.idAddrLow)
-        print " ID Addr High: " + str(self.idAddrHigh)
-        print " Value 1 Addr Low: " + str(self.val1AddrLow)
-        print " value 1 Addr High: " + str(self.val1AddrHigh)
-        print " Value 2 Addr Low: " + str(self.val2AddrLow)
-        print " value 2 Addr High: " + str(self.val2AddrHigh)
-        print " Value 3 Addr Low: " + str(self.val3AddrLow)
-        print " value 3 Addr High: " + str(self.val3AddrHigh)
-        print "Timing Propertied Re-Calculated in units of samples:"
-        print " Unit Width (samples): " + str(self.unitWidth_samp)
-        print " Inter-Packet Width (samples): " + str(self.interPacketWidth_samp)
-        print " Preamble Symbol Low (samples): " + str(self.preambleSymbolLow_samp)
-        print " Preamble Symbol High (samples): " + str(self.preambleSymbolHigh_samp)
-        print " Header Width (samples): " + str(self.headerWidth_samp)
-        print " PWM 1 Symbol (samples): " + str(self.pwmOneSymbol_samp)
-        print " PWM 1 Symbol (samples): " + str(self.pwmZeroSymbol_samp)
-        print " PWM Symbol Size (samples): " + str(self.pwmSymbolSize_samp)
+    def fullProtocolString(self):
+        outString = "Protocol ID:" + str(self.protocolId) + "\n"
+        outString +=  "Device Make:" + str(self.deviceMake) + "\n"
+        outString += "Device Model:" + str(self.deviceModel) + "\n"
+        outString += "Device Year:" + str(self.deviceYear) + "\n"
+        outString += "Device Type:" + str(self.deviceType) + "\n"
+        outString += "RF Properties:\n"
+        outString += " Frequency(MHz): " + str(self.frequency) + "\n"
+        outString += " Modulation: " + str(self.modulation) + "\n"
+        outString += " Channel Width(kHz): " + str(self.channelWidth) + "\n"
+        outString += " Transition Width(kHz): " + str(self.transitionWidth) + "\n"
+        outString += " FSK Deviation(kHz): " + str(self.fskDeviation) + "\n"
+        outString += " FSK Squelch Level (dB): " + str(self.fskSquelchLeveldB) + "\n"
+        outString += "Framing Properties:\n"
+        outString += " Time between transmissions(us): " + str(self.interPacketWidth) + "\n"
+        outString += " Preamble Type: " + str(self.preambleType) + "\n"
+        outString += " Preamble Low Time (us): " + str(self.preambleSymbolLow) + "\n"
+        outString += " Preamble High Time (us): " + str(self.preambleSymbolHigh) + "\n"
+        outString += " Preamble Length 1: " + str(self.preambleSize[0]) + "\n"
+        outString += " Preamble Length 2: " + str(self.preambleSize[1]) + "\n"
+        outString += " Arbitrary Preamble: " + str(self.arbPreambleList) + "\n"
+        outString += " Header Length: " + str(self.headerWidth) + "\n"
+        outString += " Preamble Pulse Count: " + str(self.preamblePulseCount) + "\n"
+        outString += "Demod Properties:\n"
+        outString += " Encoding: " + str(self.encodingType) + "\n"
+        outString += " PWM Symbol Order: " + str(self.pwmSymbolOrder01) + "\n"
+        outString += " PWM Symbol Size: " + str(self.pwmSymbolSize) + "\n"
+        outString += " PWM 1: " + str(self.pwmOneSymbol) + "\n"
+        outString += " PWM 0: " + str(self.pwmZeroSymbol) + "\n"
+        outString += " TX Size: " + str(self.packetSize) + "\n"
+        outString += "CRC Properties:\n"
+        outString += " CRC Low Addr: " + str(self.crcLow) + "\n"
+        outString += " CRC High Addr: " + str(self.crcHigh) + "\n"
+        outString += " CRC Low Data Addr: " + str(self.crcDataLow) + "\n"
+        outString += " CRC High Data Addr: " + str(self.crcDataHigh) + "\n"
+        outString += " CRC Poly: " + str(self.crcPoly) + "\n"
+        outString += " CRC Init: " + str(self.crcInit) + "\n"
+        outString += " CRC Bit Order: " + str(self.crcBitOrder) + "\n" 
+        outString += " CRC Reverse: " + str(self.crcReverseOut) + "\n"
+        outString += " CRC Final XOR: " + str(self.crcFinalXor) + "\n"
+        outString += " CRC Pad: " + str(self.crcPad) + "\n"
+        outString += " CRC Pad Count: " + str(self.crcPadCount) + "\n"
+        outString += " CRC Pad Val: " + str(self.crcPadVal) + "\n"
+        outString += " CRC Pad Count Options: " + str(self.crcPadCountOptions) + "\n"
+        outString += "Stat Properties:\n"
+        outString += " ID Addr Low: " + str(self.idAddrLow) + "\n"
+        outString += " ID Addr High: " + str(self.idAddrHigh) + "\n"
+        outString += " Value 1 Addr Low: " + str(self.val1AddrLow) + "\n"
+        outString += " value 1 Addr High: " + str(self.val1AddrHigh) + "\n"
+        outString += " Value 2 Addr Low: " + str(self.val2AddrLow) + "\n"
+        outString += " value 2 Addr High: " + str(self.val2AddrHigh) + "\n"
+        outString += " Value 3 Addr Low: " + str(self.val3AddrLow) + "\n"
+        outString += " value 3 Addr High: " + str(self.val3AddrHigh) + "\n"
+        outString += "Timing Propertied Re-Calculated in units of samples:\n"
+        outString += " Unit Width (samples): " + str(self.unitWidth_samp) + "\n"
+        outString += " Inter-Packet Width (samples): " + str(self.interPacketWidth_samp) + "\n"
+        outString += " Preamble Symbol Low (samples): " + str(self.preambleSymbolLow_samp) + "\n"
+        outString += " Preamble Symbol High (samples): " + str(self.preambleSymbolHigh_samp) + "\n"
+        outString += " Header Width (samples): " + str(self.headerWidth_samp) + "\n"
+        outString += " Arbitrary Preabmle List (samples): " + str(self.arbPreambleList_samp) + "\n"
+        outString += " PWM 1 Symbol (samples): " + str(self.pwmOneSymbol_samp) + "\n"
+        outString += " PWM 1 Symbol (samples): " + str(self.pwmZeroSymbol_samp) + "\n"
+        outString += " PWM Symbol Size (samples): " + str(self.pwmSymbolSize_samp) + "\n"
+        return outString
 
     # - write modified protocol to disk
     def saveProtocol(self):
@@ -230,7 +243,15 @@ class ProtocolDefinition(Base):
         copiedList = self.crcPadCountOptions[:]
         del self.crcPadCountOptions[:]
         self.crcPadCountOptions = copiedList
+        
+        copiedList = self.arbPreambleList[:]
+        del self.arbPreambleList[:]
+        self.arbPreambleList = copiedList
             
+        copiedList = self.arbPreambleList_samp[:]
+        del self.arbPreambleList_samp[:]
+        self.arbPreambleList_samp = copiedList
+
         try:
             protocolSession.merge(self)
         except:
@@ -251,9 +272,30 @@ class ProtocolDefinition(Base):
         self.pwmZeroSymbol_samp[0] = int(self.pwmZeroSymbol[0] * samplesPerMicrosecond)
         self.pwmZeroSymbol_samp[1] = int(self.pwmZeroSymbol[1] * samplesPerMicrosecond)
         self.pwmSymbolSize_samp = sum(self.pwmOneSymbol_samp)
+        
+        newArbList = []
+        for timingVal in self.arbPreambleList:
+            newArbList.append(int(timingVal * samplesPerMicrosecond))
+        self.arbPreambleList_samp = newArbList
+        
         return(0)
 
-
+    # write the contents of the protocol to the specified text file, with one line per protocol
+    # parameter; each line consists of the protocol variable name, a space and the associated value
+    def exportProtocolToTextFile(self, fileName):
+        # just use the existing print method and swap out stdout for the output file
+        print "got here 0"
+        print fileName
+        original_stdout = sys.stdout
+        outFile = file(fileName, "w")
+        sys.stdout = outFile
+        print "got here 1"
+        self.printProtocolFull()
+        print "got here 2"
+        sys.stdout = original_stdout
+        outFile.close()
+        
+    
     # produces the maximum size, in integer samples, that a transmission
     # using this protocol can have
     def maxTransmissionSize(self):
@@ -313,10 +355,10 @@ def getProtocolCount():
 # - return list of library elements, including the key parameters
 def listProtocols():
     global protocolSession
-    print '{:5s} {:5s} {:20s} {:20s}'.format("   ID", "Year", "Name", "Type")
+    print '{:5s} {:5s} {:20s} {:20s} {:20s}'.format("   ID", "Year", "Make", "Model", "Type")
     # get a list of items in database
     for proto in protocolSession.query(ProtocolDefinition):
-        print '{:5d} {:5s} {:20s} {:20s}'.format(proto.protocolId, proto.deviceYear, proto.deviceName, wcv.devTypeStrings[proto.deviceType]) 
+        print '{:5d} {:5s} {:20s} {:20s} {:20s}'.format(proto.protocolId, proto.deviceYear, proto.deviceMake, proto.deviceModel, wcv.devTypeStrings[proto.deviceType]) 
 
 def fetchProtocol(protocolId):
     global protocolSession

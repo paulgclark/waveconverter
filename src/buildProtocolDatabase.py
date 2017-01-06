@@ -13,7 +13,8 @@ def buildProtocolDatabase():
     protocol = ProtocolDefinition(getNextProtocolId())
     
     # ONLY EDIT THIS SECTION BELOW
-    protocol.deviceName = "Chevy Colorado"
+    protocol.deviceMake = "Chevrolet"
+    protocol.deviceModel = "Colorado"
     protocol.deviceYear = "2011"
     protocol.deviceType = getDeviceTypeStringKey("Key Fob")
     #protocol.protocolID = wcv.TEMP_PROTOCOL # this value reserved for current, unsaved protocol
@@ -35,12 +36,15 @@ def buildProtocolDatabase():
     protocol.interPacketWidth = 4000 
     protocol.interPacketSymbol = wcv.DATA_ZERO # PRO ONLY
     protocol.packetSize = 67
+    protocol.preambleType = wcv.PREAMBLE_REG
     protocol.preambleSync = False # PRO ONLY
     protocol.preambleSize = [10, 999]
     protocol.preambleSymbolLow = 500 # 200
     protocol.preambleSymbolHigh = 200 # 100
     protocol.headerLevel = wcv.DATA_ZERO # PRO ONLY
     protocol.headerWidth = 2400 # 960 #
+    protocol.arbPreambleList = []
+    protocol.preamblePulseCount = 0
     
     # Payload Info 
     protocol.encodingType = wcv.PWM
@@ -80,6 +84,7 @@ def buildProtocolDatabase():
     protocol.preambleSymbolLow_samp = 1
     protocol.preambleSymbolHigh_samp = 1
     protocol.headerWidth_samp = 1
+    protocol.arbPreambleList_samp = []
     protocol.pwmOneSymbol_samp = [1, 1]
     protocol.pwmZeroSymbol_samp = [1, 1]
     protocol.pwmSymbolSize_samp = 2
@@ -88,7 +93,8 @@ def buildProtocolDatabase():
     
 ########## second element in database
     protocol = ProtocolDefinition(getNextProtocolId())
-    protocol.deviceName = "Volvo S60"
+    protocol.deviceMake = "Volvo"
+    protocol.deviceModel = "S60"
     protocol.deviceYear = "2003"
     protocol.deviceType = getDeviceTypeStringKey("Key Fob")
     #protocol.protocolID = wcv.TEMP_PROTOCOL # this value reserved for current, unsaved protocol
@@ -110,12 +116,15 @@ def buildProtocolDatabase():
     protocol.interPacketWidth = 2500 # NEED to figure out correct value, or move to preamble sync 
     protocol.interPacketSymbol = wcv.DATA_ZERO # PRO ONLY
     protocol.packetSize = 71
+    protocol.preambleType = wcv.PREAMBLE_REG
     protocol.preambleSync = False # PRO ONLY
     protocol.preambleSize = [16, 70]
     protocol.preambleSymbolLow = protocol.unitWidth
     protocol.preambleSymbolHigh = protocol.unitWidth
     protocol.headerLevel = wcv.DATA_ZERO # PRO ONLY
     protocol.headerWidth = 4*protocol.unitWidth
+    protocol.arbPreambleList = []
+    protocol.preamblePulseCount = 0
     
     # Payload Info 
     protocol.encodingType = wcv.STD_MANCHESTER
@@ -154,6 +163,7 @@ def buildProtocolDatabase():
     protocol.preambleSymbolLow_samp = 1
     protocol.preambleSymbolHigh_samp = 1
     protocol.headerWidth_samp = 1
+    protocol.arbPreambleList_samp = []
     protocol.pwmOneSymbol_samp = [1, 1]
     protocol.pwmZeroSymbol_samp = [1, 1]
     protocol.pwmSymbolSize_samp = 2
@@ -162,7 +172,8 @@ def buildProtocolDatabase():
     
 ########## third element in database
     protocol = ProtocolDefinition(getNextProtocolId())
-    protocol.deviceName = "Leviton"
+    protocol.deviceMake = "Leviton"
+    protocol.deviceModel = "KUJCE9103"
     protocol.deviceYear = "2010"
     protocol.deviceType = getDeviceTypeStringKey("Fan Controller")
     #protocol.protocolID = wcv.TEMP_PROTOCOL # this value reserved for current, unsaved protocol
@@ -184,12 +195,15 @@ def buildProtocolDatabase():
     protocol.interPacketWidth = 3000 # NEED to figure out correct value, or move to preamble sync 
     protocol.interPacketSymbol = wcv.DATA_ZERO # PRO ONLY
     protocol.packetSize = 12
+    protocol.preambleType = wcv.PREAMBLE_REG
     protocol.preambleSync = False # PRO ONLY
     protocol.preambleSize = [1, 999]
     protocol.preambleSymbolLow = 400
     protocol.preambleSymbolHigh = 400
     protocol.headerLevel = wcv.DATA_ZERO # PRO ONLY
     protocol.headerWidth = -1
+    protocol.arbPreambleList = []
+    protocol.preamblePulseCount = 0
     
     # Payload Info 
     protocol.encodingType = wcv.PWM
@@ -229,6 +243,7 @@ def buildProtocolDatabase():
     protocol.preambleSymbolLow_samp = 1
     protocol.preambleSymbolHigh_samp = 1
     protocol.headerWidth_samp = 1
+    protocol.arbPreambleList_samp = []
     protocol.pwmOneSymbol_samp = [1, 1]
     protocol.pwmZeroSymbol_samp = [1, 1]
     protocol.pwmSymbolSize_samp = 2
@@ -237,7 +252,8 @@ def buildProtocolDatabase():
     
 ########## fourth element in database
     protocol = ProtocolDefinition(getNextProtocolId())
-    protocol.deviceName = "LaCrosse"
+    protocol.deviceMake = "LaCrosse"
+    protocol.deviceModel = "WS-7014CH"
     protocol.deviceYear = "2005"
     protocol.deviceType = getDeviceTypeStringKey("Weather Station")
     #protocol.protocolID = wcv.TEMP_PROTOCOL # this value reserved for current, unsaved protocol
@@ -259,12 +275,15 @@ def buildProtocolDatabase():
     protocol.interPacketWidth = 3000 # NEED to figure out correct value, or move to preamble sync 
     protocol.interPacketSymbol = wcv.DATA_ZERO # PRO ONLY
     protocol.packetSize = 42
+    protocol.preambleType = wcv.PREAMBLE_REG
     protocol.preambleSync = False # PRO ONLY
     protocol.preambleSize = [2, 999]
     protocol.preambleSymbolLow = 1150
     protocol.preambleSymbolHigh = 1150
     protocol.headerLevel = wcv.DATA_ZERO # PRO ONLY
     protocol.headerWidth = -1
+    protocol.arbPreambleList = []
+    protocol.preamblePulseCount = 0
     
     # Payload Info 
     protocol.encodingType = wcv.PWM
@@ -304,6 +323,7 @@ def buildProtocolDatabase():
     protocol.preambleSymbolLow_samp = 1
     protocol.preambleSymbolHigh_samp = 1
     protocol.headerWidth_samp = 1
+    protocol.arbPreambleList_samp = []
     protocol.pwmOneSymbol_samp = [1, 1]
     protocol.pwmZeroSymbol_samp = [1, 1]
     protocol.pwmSymbolSize_samp = 2
@@ -312,7 +332,8 @@ def buildProtocolDatabase():
     
 ########## fifth element in database
     protocol = ProtocolDefinition(getNextProtocolId())
-    protocol.deviceName = "Lexus"
+    protocol.deviceMake = "Lexus"
+    protocol.deviceModel = "RS430"
     protocol.deviceYear = "2012"
     protocol.deviceType = getDeviceTypeStringKey("Key Fob")
     #protocol.protocolID = wcv.TEMP_PROTOCOL # this value reserved for current, unsaved protocol
@@ -334,12 +355,15 @@ def buildProtocolDatabase():
     protocol.interPacketWidth = 3000 # NEED to figure out correct value, or move to preamble sync 
     protocol.interPacketSymbol = wcv.DATA_ZERO # PRO ONLY
     protocol.packetSize = 42
+    protocol.preambleType = wcv.PREAMBLE_REG
     protocol.preambleSync = False # PRO ONLY
     protocol.preambleSize = [8, 999]
     protocol.preambleSymbolLow = 700
     protocol.preambleSymbolHigh = 700
     protocol.headerLevel = wcv.DATA_ZERO # PRO ONLY
     protocol.headerWidth = -1
+    protocol.arbPreambleList = []
+    protocol.preamblePulseCount = 0
     
     # Payload Info 
     protocol.encodingType = wcv.STD_MANCHESTER
@@ -379,6 +403,7 @@ def buildProtocolDatabase():
     protocol.preambleSymbolLow_samp = 1
     protocol.preambleSymbolHigh_samp = 1
     protocol.headerWidth_samp = 1
+    protocol.arbPreambleList_samp = []
     protocol.pwmOneSymbol_samp = [1, 1]
     protocol.pwmZeroSymbol_samp = [1, 1]
     protocol.pwmSymbolSize_samp = 2
@@ -388,7 +413,8 @@ def buildProtocolDatabase():
     
 ########## sixth element in database
     protocol = ProtocolDefinition(getNextProtocolId())
-    protocol.deviceName = "Toyota Highlander"
+    protocol.deviceMake = "Toyota"
+    protocol.deviceModel = "Highlander"    
     protocol.deviceYear = "2015"
     protocol.deviceType = getDeviceTypeStringKey("Key Fob")
     #protocol.protocolID = wcv.TEMP_PROTOCOL # this value reserved for current, unsaved protocol
@@ -410,12 +436,15 @@ def buildProtocolDatabase():
     protocol.interPacketWidth = 3000 # NEED to figure out correct value, or move to preamble sync 
     protocol.interPacketSymbol = wcv.DATA_ZERO # PRO ONLY
     protocol.packetSize = 42
+    protocol.preambleType = wcv.PREAMBLE_REG
     protocol.preambleSync = False # PRO ONLY
     protocol.preambleSize = [8, 999]
     protocol.preambleSymbolLow = 700
     protocol.preambleSymbolHigh = 700
     protocol.headerLevel = wcv.DATA_ZERO # PRO ONLY
     protocol.headerWidth = -1
+    protocol.arbPreambleList = []
+    protocol.preamblePulseCount = 0
     
     # Payload Info 
     protocol.encodingType = wcv.STD_MANCHESTER
@@ -455,10 +484,90 @@ def buildProtocolDatabase():
     protocol.preambleSymbolLow_samp = 1
     protocol.preambleSymbolHigh_samp = 1
     protocol.headerWidth_samp = 1
+    protocol.arbPreambleList_samp = []
     protocol.pwmOneSymbol_samp = [1, 1]
     protocol.pwmZeroSymbol_samp = [1, 1]
     protocol.pwmSymbolSize_samp = 2
 
     protocol.saveProtocol() # add to database
     
+########## seventh element in database
+    protocol = ProtocolDefinition(getNextProtocolId())
+    protocol.deviceMake = "Chevrolet"
+    protocol.deviceModel = "Tahoe"    
+    protocol.deviceYear = "2014"
+    protocol.deviceType = getDeviceTypeStringKey("TPM Sensor")
+    #protocol.protocolID = wcv.TEMP_PROTOCOL # this value reserved for current, unsaved protocol
+    
+    # ONLY EDIT THIS SECTION BELOW
+    protocol.frequency = 312.91*1000000.0 ## TBD
+    protocol.modulation = wcv.MOD_OOK ##
+    protocol.fskDeviation = 30*1000.0 ##
+    protocol.channelWidth = 120*1000.0 ##
+    protocol.transitionWidth = 12*1000.0 ## 
+    protocol.threshold = 0.005 ##
+    protocol.fskSquelchLeveldB = -40
+    protocol.glitchFilterCount = 2
+
+    # Misc Properties
+    protocol.unitWidth = 700
+    
+    # Framing Info
+    protocol.interPacketWidth = 3000 # NEED to figure out correct value, or move to preamble sync 
+    protocol.interPacketSymbol = wcv.DATA_ZERO # PRO ONLY
+    protocol.packetSize = 38
+    protocol.preambleType = wcv.PREAMBLE_CNT
+    protocol.preambleSync = False # PRO ONLY
+    protocol.preambleSize = [8, 999]
+    protocol.preambleSymbolLow = 700
+    protocol.preambleSymbolHigh = 700
+    protocol.headerLevel = wcv.DATA_ZERO # PRO ONLY
+    protocol.headerWidth = -1
+    protocol.arbPreambleList = []
+    protocol.preamblePulseCount = 12
+    
+    # Payload Info 
+    protocol.encodingType = wcv.PWM
+    protocol.pwmSymbolOrder01 = False
+    protocol.pwmZeroSymbol = [380, 170]
+    protocol.pwmOneSymbol = [220, 350]
+    protocol.pwmSymbolSize = sum(protocol.pwmOneSymbol) # COMPUTED
+
+    # CRC Info
+    protocol.crcLow = -1 # COMPUTED
+    protocol.crcHigh = -1 #COMPUTED
+    protocol.crcDataLow = -1 #
+    protocol.crcDataHigh = -1 #
+    protocol.crcPoly = [] #
+    protocol.crcInit = 0 #
+    protocol.crcBitOrder = wcv.CRC_REFLECT # 
+    protocol.crcReverseOut = False #
+    protocol.crcFinalXor = [0, 0] #
+    protocol.crcPad = wcv.CRC_NOPAD #
+    protocol.crcPadCount = 8 #
+    protocol.crcPadVal = 0 # PRO ONLY
+    protocol.crcPadCountOptions = [0, 8, 16, 32]
+    
+    # Payload Data Addresses
+    protocol.idAddrLow = 1 # NEED
+    protocol.idAddrHigh = 2 # NEED
+    protocol.val1AddrLow = 1
+    protocol.val1AddrHigh = 2
+    protocol.val2AddrLow = 1
+    protocol.val2AddrHigh = 2
+    protocol.val3AddrLow = 1
+    protocol.val3AddrHigh = 2
+    
+    # provide initial values for these
+    protocol.unitWidth_samp = 1
+    protocol.interPacketWidth_samp = 1 
+    protocol.preambleSymbolLow_samp = 1
+    protocol.preambleSymbolHigh_samp = 1
+    protocol.headerWidth_samp = 1
+    protocol.arbPreambleList_samp = []
+    protocol.pwmOneSymbol_samp = [1, 1]
+    protocol.pwmZeroSymbol_samp = [1, 1]
+    protocol.pwmSymbolSize_samp = 2
+
+    protocol.saveProtocol() # add to database
     

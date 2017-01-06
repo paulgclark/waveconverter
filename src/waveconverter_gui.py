@@ -92,6 +92,7 @@ class TopWindow:
             wcv.protocol.fskDeviation = 0.0
         
         # get framing properties
+        wcv.protocol.preambleType = self.getIntFromEntryBox("preambleTypeEntryBox")
         wcv.protocol.preambleSymbolLow = self.getIntFromEntry("preambleLowEntry")
         wcv.protocol.preambleSymbolHigh = self.getIntFromEntry("preambleHighEntry")
         # the preamble size is a list of possible values
@@ -104,6 +105,8 @@ class TopWindow:
                 
         wcv.protocol.headerWidth  = self.getIntFromEntry("headerLengthEntry")
         wcv.protocol.interPacketWidth = self.getIntFromEntry("interPacketWidthEntry")
+        wcv.protocol.arbPreambleList = self.getListFromEntry("arbitraryPreambleTimingEntry")
+        wcv.protocol.preamblePulseCount = self.getIntFromEntry("preamblePulseCountEntry")
         
         # get decode properties
         wcv.protocol.encodingType = self.getIntFromEntryBox("encodingEntryBox")
@@ -161,7 +164,7 @@ class TopWindow:
             print "load protocol dialog started"
         
         # generate liststore from protocols in database
-        protocolStore = Gtk.ListStore(int, str, str, str, str, float) # ID, name, modulation, freq
+        protocolStore = Gtk.ListStore(int, str, str, str, str, str, int) # ID, type, make, model, year, modulation, freq
         for proto in protocolSession.query(ProtocolDefinition):
             # use strings to display modulation and device types
             if proto.modulation == 0:
@@ -170,14 +173,17 @@ class TopWindow:
                 modString = "FSK"
             devTypeString = wcv.devTypeStrings[proto.deviceType]
             protocolStore.append([proto.protocolId, 
-                                  devTypeString, #proto.deviceType,
-                                  proto.deviceName,
+                                  devTypeString,
+                                  proto.deviceMake,
+                                  proto.deviceModel,
                                   proto.deviceYear,
-                                  modString, 
+                                  modString,
                                   proto.frequency])
             if wcv.verbose:
                 print "adding protocol to selection list: " + str(proto.protocolId) + \
-                      "  " + proto.deviceName + "   " + modString + "   " + str(proto.frequency)
+                      "  " + devTypeString + \
+                      "  " + proto.deviceMake + "   " + proto.deviceModel + "  " + proto.deviceYear + \
+                      "   " + modString + "   " + str(proto.frequency)
          
         self.protocolTreeView.set_model(protocolStore)
         self.protocolName = self.protocolDialog.run()
@@ -219,7 +225,7 @@ class TopWindow:
         # store protocol in database under current ID
         wcv.protocol.saveProtocol()
         if wcv.verbose:
-            wcv.protocol.printProtocolFull()
+            print wcv.protocol.fullProtocolString()
         
     # this function is called when the toolbar "save as" button is clicked,
     # it brings up a dialog asking the user for a protocol name for the new
@@ -229,7 +235,8 @@ class TopWindow:
             print "save as protocol dialog started"
         
         # clear any existing text in dialog window (previously entered protocol info)
-        self.setEntry("protocolSaveAsDeviceNameEntry", "")
+        self.setEntry("protocolSaveAsDeviceMakeEntry", "")
+        self.setEntry("protocolSaveAsDeviceModelEntry", "")
         self.setEntry("protocolSaveAsDeviceYearEntry", "")
         self.setEntryBox("protocolSaveAsDeviceTypeEntryBox", -1)
         
@@ -246,11 +253,12 @@ class TopWindow:
         # pull in all the user-entered data and save to current protocol, plus protocol name
         wcv.protocol = ProtocolDefinition(getNextProtocolId())
         self.transferGUIDataToProtocol()
-        wcv.protocol.deviceName = self.getStringFromEntry("protocolSaveAsDeviceNameEntry") 
+        wcv.protocol.deviceMake = self.getStringFromEntry("protocolSaveAsDeviceMakeEntry") 
+        wcv.protocol.deviceModel = self.getStringFromEntry("protocolSaveAsDeviceModelEntry")
         wcv.protocol.deviceYear = self.getIntFromEntry("protocolSaveAsDeviceYearEntry")
         wcv.protocol.deviceType = self.getIntFromEntryBox("protocolSaveAsDeviceTypeEntryBox")
         if wcv.verbose:
-            wcv.protocol.printProtocolFull()
+            print wcv.protocol.fullProtocolString()
                     
         # store protocol in database under current ID
         wcv.protocol.saveProtocol()
@@ -515,12 +523,12 @@ class TopWindow:
 
     def getListFromEntry(self, widgetName):
         tempWidget = self.builder.get_object(widgetName)
-        listString = tempWidget.get_text().strip('[]') # resolves to comma-separated list of values
+        listString = tempWidget.get_text().strip('[]') # resolves to string of comma-separated values
         listItemsText = listString.split(',')
         tempList = []
         
         # first check if we have an empty list
-        if listItemsText:
+        if not listItemsText or listItemsText == ['']:
             return []
         
         # otherwise build the list and return it
@@ -723,6 +731,17 @@ class TopWindow:
         if wcv.verbose:
             print "Baseband separated into individual transmissions."
 
+    def on_modulationEntryBox_changed(self, data=None):
+        wcv.protocol.modulation = self.getBoolFromEntryBox("modulationEntryBox")
+        if wcv.protocol.modulation == wcv.MOD_OOK:
+            self.activateEntry("thresholdEntry")
+            self.deactivateEntry("fskDeviationEntry")
+            self.deactivateEntry("fskSquelchEntry")
+        elif wcv.protocol.modulation == wcv.MOD_FSK:
+            self.deactivateEntry("thresholdEntry")
+            self.activateEntry("fskDeviationEntry")
+            self.activateEntry("fskSquelchEntry")
+
     def on_encodingEntryBox_changed(self, data=None):
         wcv.protocol.encodingType = self.getIntFromEntryBox("encodingEntryBox")
         # if one of the Manchester types, deactivate the PWM entry boxes and activate the unit entry
@@ -740,6 +759,36 @@ class TopWindow:
             self.activateEntry("pwmOneLowEntry")
             self.activateEntry("pwmOneHighEntry")
              
+    # create signal from preamble type box and gray out all the unused properties
+    def on_preambleTypeEntryBox_changed(self, data=None):
+        wcv.protocol.preambleType = self.getIntFromEntryBox("preambleTypeEntryBox")
+        # if we are doing a regular preamble, then gray out the arbitrary entry
+        if wcv.protocol.preambleType == wcv.PREAMBLE_REG:
+            self.activateEntry("preambleLowEntry")
+            self.activateEntry("preambleHighEntry")
+            self.activateEntry("preambleSize1Entry")
+            self.activateEntry("preambleSize2Entry")
+            self.activateEntry("headerLengthEntry")
+            self.deactivateEntry("arbitraryPreambleTimingEntry")
+            self.deactivateEntry("preamblePulseCountEntry")
+        # else gray out everything but the arbitrary entry
+        elif wcv.protocol.preambleType == wcv.PREAMBLE_ARB:
+            self.deactivateEntry("preambleLowEntry")
+            self.deactivateEntry("preambleHighEntry")
+            self.deactivateEntry("preambleSize1Entry")
+            self.deactivateEntry("preambleSize2Entry")
+            self.deactivateEntry("headerLengthEntry")
+            self.activateEntry("arbitraryPreambleTimingEntry")
+            self.deactivateEntry("preamblePulseCountEntry")
+        else:            
+            self.deactivateEntry("preambleLowEntry")
+            self.deactivateEntry("preambleHighEntry")
+            self.deactivateEntry("preambleSize1Entry")
+            self.deactivateEntry("preambleSize2Entry")
+            self.deactivateEntry("headerLengthEntry")
+            self.deactivateEntry("arbitraryPreambleTimingEntry")
+            self.activateEntry("preamblePulseCountEntry")
+    
     # when the Decode button is pushed, we need to take all the settings 
     # that the user has entered into the gui and place them in the current 
     # protocol object; we then call the decoder engine to extract the payload
@@ -753,7 +802,7 @@ class TopWindow:
         
         if wcv.verbose:
             print "baseband sample rate:" + str(wcv.basebandSampleRate)
-            wcv.protocol.printProtocolFull()
+            print wcv.protocol.fullProtocolString()
             print "tx list length: " + str(len(wcv.txList))
           
         (wcv.txList, wcv.decodeOutputString) = decodeAllTx(protocol = wcv.protocol, 
@@ -854,13 +903,16 @@ class TopWindow:
         self.setEntry("fskSquelchEntry", wcv.protocol.fskSquelchLeveldB)
         
         # add preamble properties
+        self.setEntryBox("preambleTypeEntryBox", wcv.protocol.preambleType)
         self.setEntry("preambleLowEntry", wcv.protocol.preambleSymbolLow)
         self.setEntry("preambleHighEntry", wcv.protocol.preambleSymbolHigh)
         self.setEntry("preambleSize1Entry", int(wcv.protocol.preambleSize[0]))
         self.setEntry("preambleSize2Entry", int(wcv.protocol.preambleSize[1]))
         self.setEntry("headerLengthEntry", wcv.protocol.headerWidth)
         self.setEntry("interPacketWidthEntry", wcv.protocol.interPacketWidth)
-        
+        self.setEntry("arbitraryPreambleTimingEntry", wcv.protocol.arbPreambleList)
+        self.setEntry("preamblePulseCountEntry" , wcv.protocol.preamblePulseCount)
+                
         # add payload properties
         self.setEntryBox("encodingEntryBox", wcv.protocol.encodingType)
         self.setEntry("payloadUnitEntry", wcv.protocol.unitWidth)
@@ -958,17 +1010,20 @@ class TopWindow:
         renderer_type = Gtk.CellRendererText()
         column_type = Gtk.TreeViewColumn("Type", renderer_type, text=1)
         self.protocolTreeView.append_column(column_type)
-        renderer_device = Gtk.CellRendererText()
-        column_device = Gtk.TreeViewColumn("Device", renderer_device, text=2)
-        self.protocolTreeView.append_column(column_device)
+        renderer_make = Gtk.CellRendererText()
+        column_make = Gtk.TreeViewColumn("Make", renderer_make, text=2)
+        self.protocolTreeView.append_column(column_make)
+        renderer_model = Gtk.CellRendererText()
+        column_model = Gtk.TreeViewColumn("Model", renderer_model, text=3)
+        self.protocolTreeView.append_column(column_model)
         renderer_year = Gtk.CellRendererText()
-        column_year = Gtk.TreeViewColumn("Year", renderer_year, text=3)
+        column_year = Gtk.TreeViewColumn("Year", renderer_year, text=4)
         self.protocolTreeView.append_column(column_year)
         renderer_mod = Gtk.CellRendererText()
-        column_mod = Gtk.TreeViewColumn("Modulation", renderer_mod, text=4)
+        column_mod = Gtk.TreeViewColumn("Modulation", renderer_mod, text=5)
         self.protocolTreeView.append_column(column_mod)
         renderer_freq = Gtk.CellRendererText()
-        column_freq = Gtk.TreeViewColumn("Frequency", renderer_freq, text=5)
+        column_freq = Gtk.TreeViewColumn("Frequency", renderer_freq, text=6)
         self.protocolTreeView.append_column(column_freq)
         
         self.window = self.builder.get_object("window1")

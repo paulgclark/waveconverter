@@ -37,7 +37,7 @@ class TestCommandLine(unittest.TestCase):
             sys.stdout = cStringIO.StringIO()
 
         os.chdir('../src')
-        os.system("./packet_decode.py -p 4 -b ../input_files/weather_s100k.bb > ../test/tmp/tmp_output.txt")
+        os.system("./waveconverter.py -p 4 -b ../input_files/weather_s100k.bb > ../test/tmp/tmp_output.txt")
         os.chdir('../test')
 
         # now read back the info contained in the temp file

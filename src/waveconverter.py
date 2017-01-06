@@ -63,10 +63,28 @@ parser.add_argument("-t", "--time_between_tx", help="min time between tx in us",
 parser.add_argument("-e", "--timing_error", help="max allowable timing error percentage", type=int)
 parser.add_argument("-g", "--gui", help="brings up graphical interface", action="store_true")
 parser.add_argument("-d", "--db", help="build new database", action="store_true")
+parser.add_argument("-r", "--export_protocol", help="export specified protocol to a text file", type=int)
 args = parser.parse_args()
 
 # assign args to variables
-#wcv.iqFileName = args.iq
+wcv.outFileName = args.output
+if not args.export_protocol is None:
+    wcv.protocol_number = args.export_protocol
+    try:
+        wcv.protocol = protocol_lib.fetchProtocol(wcv.protocol_number)
+    except:
+        print "Protocol {} does not exist, please supply valid protocol ID for export".format(wcv.protocol_number)
+        exit(1)
+    try:
+        outFile = file(wcv.outFileName, "w")
+        outFile.write(wcv.protocol.fullProtocolString())
+        outFile.close()
+    except:
+        print "Error exporting protocol to file: {} \nPlease check if supplied file is writeable".format(wcv.outFileName)
+        exit(1)
+    print "Protocol {} exported successfully to {}".format(wcv.protocol_number, wcv.outFileName)
+    exit(0)
+
 try:
     wcv.runWithGui = args.gui
 except:
@@ -106,10 +124,11 @@ elif (wcv.center_freq < 0) and not wcv.runWithGui:
     print "Fatal Error: No center frequency given (or less than zero)"
     exit(0)
 
+if args.protocol is None:
+    wcv.protocol_number = -1    
+else:
+    wcv.protocol_number = args.protocol
 
-wcv.protocol_number = args.protocol
-
-wcv.outFileName = args.output
 try:
     wcv.verbose = args.verbose
 except:
@@ -196,7 +215,7 @@ else:
     print "attempting to retrieve protocol " + str(wcv.protocol_number) + " from database"
     wcv.protocol = protocol_lib.fetchProtocol(wcv.protocol_number)
     if wcv.verbose:
-        wcv.protocol.printProtocolFull()
+        print wcv.protocol.fullProtocolString()
 
 
 # if we were not given the GUI flag, run through in command line mode
