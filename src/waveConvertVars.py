@@ -69,6 +69,13 @@ MOD_UNDEFINED = -1
 MOD_OOK = 0
 MOD_FSK = 1
 
+# parameter types for import
+PARAM_BOOL = 0
+PARAM_INT = 1
+PARAM_FLOAT = 2
+PARAM_STR = 3
+PARAM_LIST = 4
+
 
 # enumerated type for symbols
 #from enum import Enum
@@ -118,3 +125,17 @@ CRC_NOPAD = 0
 CRC_PAD_TO_EVEN = 1 # pad packet so it will be an even multiple of the pad count
 CRC_PAD_ABS = 2 # pad packet with pad count worth of bits
 CRC_PAD_OPTIONS = [CRC_NOPAD, CRC_PAD_TO_EVEN, CRC_PAD_ABS]
+
+def stringToIntegerList(inputString):
+    listString = inputString.strip('[]') # resolves to string of comma-separated values
+    listItemsText = listString.split(',')
+    tempList = []
+        
+    # first check if we have an empty list
+    if not listItemsText or listItemsText == ['']:
+        return []
+        
+    # otherwise build the list and return it
+    for item in listItemsText:
+        tempList.append(int(item))
+    return tempList

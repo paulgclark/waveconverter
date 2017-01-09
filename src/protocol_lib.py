@@ -150,11 +150,11 @@ class ProtocolDefinition(Base):
         print "Device Type:" + str(self.deviceType)
 
     def fullProtocolString(self):
-        outString = "Protocol ID:" + str(self.protocolId) + "\n"
-        outString +=  "Device Make:" + str(self.deviceMake) + "\n"
-        outString += "Device Model:" + str(self.deviceModel) + "\n"
-        outString += "Device Year:" + str(self.deviceYear) + "\n"
-        outString += "Device Type:" + str(self.deviceType) + "\n"
+        outString = "Protocol ID: " + str(self.protocolId) + "\n"
+        outString +=  "Device Make: " + str(self.deviceMake) + "\n"
+        outString += "Device Model: " + str(self.deviceModel) + "\n"
+        outString += "Device Year: " + str(self.deviceYear) + "\n"
+        outString += "Device Type: " + str(self.deviceType) + "\n"
         outString += "RF Properties:\n"
         outString += " Frequency(MHz): " + str(self.frequency) + "\n"
         outString += " Modulation: " + str(self.modulation) + "\n"
@@ -162,6 +162,7 @@ class ProtocolDefinition(Base):
         outString += " Transition Width(kHz): " + str(self.transitionWidth) + "\n"
         outString += " FSK Deviation(kHz): " + str(self.fskDeviation) + "\n"
         outString += " FSK Squelch Level (dB): " + str(self.fskSquelchLeveldB) + "\n"
+        outString += " Threshold: " + str(self.threshold) + "\n"
         outString += "Framing Properties:\n"
         outString += " Time between transmissions(us): " + str(self.interPacketWidth) + "\n"
         outString += " Preamble Type: " + str(self.preambleType) + "\n"
@@ -172,12 +173,14 @@ class ProtocolDefinition(Base):
         outString += " Arbitrary Preamble: " + str(self.arbPreambleList) + "\n"
         outString += " Header Length: " + str(self.headerWidth) + "\n"
         outString += " Preamble Pulse Count: " + str(self.preamblePulseCount) + "\n"
+        outString += " Preamble Sync: " + str(self.preambleSync) + "\n"
         outString += "Demod Properties:\n"
         outString += " Encoding: " + str(self.encodingType) + "\n"
         outString += " PWM Symbol Order: " + str(self.pwmSymbolOrder01) + "\n"
         outString += " PWM Symbol Size: " + str(self.pwmSymbolSize) + "\n"
         outString += " PWM 1: " + str(self.pwmOneSymbol) + "\n"
         outString += " PWM 0: " + str(self.pwmZeroSymbol) + "\n"
+        outString += " Unit Width: " + str(self.unitWidth) + "\n"
         outString += " TX Size: " + str(self.packetSize) + "\n"
         outString += "CRC Properties:\n"
         outString += " CRC Low Addr: " + str(self.crcLow) + "\n"
@@ -197,21 +200,26 @@ class ProtocolDefinition(Base):
         outString += " ID Addr Low: " + str(self.idAddrLow) + "\n"
         outString += " ID Addr High: " + str(self.idAddrHigh) + "\n"
         outString += " Value 1 Addr Low: " + str(self.val1AddrLow) + "\n"
-        outString += " value 1 Addr High: " + str(self.val1AddrHigh) + "\n"
+        outString += " Value 1 Addr High: " + str(self.val1AddrHigh) + "\n"
         outString += " Value 2 Addr Low: " + str(self.val2AddrLow) + "\n"
-        outString += " value 2 Addr High: " + str(self.val2AddrHigh) + "\n"
+        outString += " Value 2 Addr High: " + str(self.val2AddrHigh) + "\n"
         outString += " Value 3 Addr Low: " + str(self.val3AddrLow) + "\n"
-        outString += " value 3 Addr High: " + str(self.val3AddrHigh) + "\n"
+        outString += " Value 3 Addr High: " + str(self.val3AddrHigh) + "\n"
         outString += "Timing Propertied Re-Calculated in units of samples:\n"
         outString += " Unit Width (samples): " + str(self.unitWidth_samp) + "\n"
         outString += " Inter-Packet Width (samples): " + str(self.interPacketWidth_samp) + "\n"
         outString += " Preamble Symbol Low (samples): " + str(self.preambleSymbolLow_samp) + "\n"
         outString += " Preamble Symbol High (samples): " + str(self.preambleSymbolHigh_samp) + "\n"
         outString += " Header Width (samples): " + str(self.headerWidth_samp) + "\n"
-        outString += " Arbitrary Preabmle List (samples): " + str(self.arbPreambleList_samp) + "\n"
+        outString += " Arbitrary Preamble List (samples): " + str(self.arbPreambleList_samp) + "\n"
         outString += " PWM 1 Symbol (samples): " + str(self.pwmOneSymbol_samp) + "\n"
-        outString += " PWM 1 Symbol (samples): " + str(self.pwmZeroSymbol_samp) + "\n"
+        outString += " PWM 0 Symbol (samples): " + str(self.pwmZeroSymbol_samp) + "\n"
         outString += " PWM Symbol Size (samples): " + str(self.pwmSymbolSize_samp) + "\n"
+        outString += "Currently Unused Parameters:\n"
+        outString += " glitchFilterCount: " + str(self.glitchFilterCount) + "\n"
+        outString += " interPacketSymbol: " + str(self.interPacketSymbol) + "\n"
+        outString += " headerLevel: " + str(self.headerLevel) + "\n"
+        outString += " preambleSync: " + str(self.preambleSync) + "\n"
         return outString
 
     # - write modified protocol to disk
@@ -280,22 +288,6 @@ class ProtocolDefinition(Base):
         
         return(0)
 
-    # write the contents of the protocol to the specified text file, with one line per protocol
-    # parameter; each line consists of the protocol variable name, a space and the associated value
-    def exportProtocolToTextFile(self, fileName):
-        # just use the existing print method and swap out stdout for the output file
-        print "got here 0"
-        print fileName
-        original_stdout = sys.stdout
-        outFile = file(fileName, "w")
-        sys.stdout = outFile
-        print "got here 1"
-        self.printProtocolFull()
-        print "got here 2"
-        sys.stdout = original_stdout
-        outFile.close()
-        
-    
     # produces the maximum size, in integer samples, that a transmission
     # using this protocol can have
     def maxTransmissionSize(self):
@@ -366,12 +358,103 @@ def fetchProtocol(protocolId):
     proto.convertTimingToSamples(wcv.basebandSampleRate)
     return proto
 
-"""
-# - export library to a text file(?)
-# is this needed?
-def exportProtocolToText(protocolId):
-    global protocolSession
-    proto = protocolSession.query(ProtocolDefinition).get(protocolId)
-    # output data to text file (should this be user readable?)
-"""    
+def parseProtocolText(inputString, parameterString, parameterType):
+    inputLines = inputString.split("\n")
+    for line in inputLines:
+        linePair = line.split(": ")
+        if linePair[0].strip() == parameterString:
+            if parameterType == wcv.PARAM_STR:
+                return linePair[1].strip()
+            elif parameterType == wcv.PARAM_INT:
+                return int(linePair[1].strip())
+            elif parameterType == wcv.PARAM_FLOAT:
+                return float(linePair[1].strip())
+            elif parameterType == wcv.PARAM_BOOL:
+                if int(linePair[1].strip()) == 1:
+                    return True
+                else:
+                    return False
+            elif parameterType == wcv.PARAM_LIST:
+                return wcv.stringToIntegerList(linePair[1].strip())
     
+    # if we reached here, then we did not fine the input parameter in the given protocol text
+    print "Can't find " + parameterString + " in input text file. Exiting..."
+    exit(1)
+    
+def createProtocolFromText(fileString):
+    # parse input text and assign values to protocol
+    protocol = ProtocolDefinition(getNextProtocolId())
+    protocol.deviceMake = parseProtocolText(fileString, "Device Make", wcv.PARAM_STR)
+    protocol.deviceModel = parseProtocolText(fileString, "Device Model", wcv.PARAM_STR)
+    protocol.deviceYear = parseProtocolText(fileString, "Device Year", wcv.PARAM_STR)
+    protocol.deviceType = parseProtocolText(fileString, "Device Type", wcv.PARAM_INT)
+    
+    protocol.frequency = parseProtocolText(fileString, "Frequency(MHz)", wcv.PARAM_FLOAT)
+    protocol.modulation = parseProtocolText(fileString, "Modulation", wcv.PARAM_INT)
+    protocol.channelWidth = parseProtocolText(fileString, "Channel Width(kHz)", wcv.PARAM_FLOAT)
+    protocol.transitionWidth = parseProtocolText(fileString, "Transition Width(kHz)", wcv.PARAM_FLOAT)
+    protocol.fskDeviation = parseProtocolText(fileString, "FSK Deviation(kHz)", wcv.PARAM_FLOAT)
+    protocol.fskSquelchLeveldB = parseProtocolText(fileString, "FSK Squelch Level (dB)", wcv.PARAM_FLOAT)
+    protocol.threshold = parseProtocolText(fileString, "Threshold", wcv.PARAM_FLOAT)
+        
+    protocol.interPacketWidth = parseProtocolText(fileString, "Time between transmissions(us)", wcv.PARAM_INT)
+    protocol.preambleType = parseProtocolText(fileString, "Preamble Type", wcv.PARAM_INT)
+    protocol.preambleSymbolLow = parseProtocolText(fileString, "Preamble Low Time (us)", wcv.PARAM_INT)
+    protocol.preambleSymbolHigh = parseProtocolText(fileString, "Preamble High Time (us)", wcv.PARAM_INT)
+    protocol.preambleSize[0] = parseProtocolText(fileString, "Preamble Length 1", wcv.PARAM_INT)
+    protocol.preambleSize[1] = parseProtocolText(fileString, "Preamble Length 2", wcv.PARAM_INT)
+    protocol.arbPreambleList = parseProtocolText(fileString, "Arbitrary Preamble", wcv.PARAM_LIST)
+    protocol.headerWidth = parseProtocolText(fileString, "Header Length", wcv.PARAM_INT)
+    protocol.preamblePulseCount = parseProtocolText(fileString, "Preamble Pulse Count", wcv.PARAM_INT)
+    protocol.preambleSync = parseProtocolText(fileString, "Preamble Sync", wcv.PARAM_BOOL)
+    
+    protocol.encodingType = parseProtocolText(fileString, "Encoding", wcv.PARAM_INT)
+    protocol.pwmSymbolOrder01 = parseProtocolText(fileString, "PWM Symbol Order", wcv.PARAM_BOOL)
+    protocol.pwmSymbolSize = parseProtocolText(fileString, "PWM Symbol Size", wcv.PARAM_INT)
+    protocol.pwmOneSymbol = parseProtocolText(fileString, "PWM 1", wcv.PARAM_LIST)
+    protocol.pwmZeroSymbol = parseProtocolText(fileString, "PWM 0", wcv.PARAM_LIST)
+    protocol.pwmSymbolSize = parseProtocolText(fileString, "PWM Symbol Size", wcv.PARAM_INT)
+    protocol.unitWidth = parseProtocolText(fileString, "Unit Width", wcv.PARAM_INT)
+    protocol.packetSize = parseProtocolText(fileString, "TX Size", wcv.PARAM_INT)
+    
+    protocol.crcLow = parseProtocolText(fileString, "CRC Low Addr", wcv.PARAM_INT)
+    protocol.crcHigh = parseProtocolText(fileString, "CRC High Addr", wcv.PARAM_INT)
+    protocol.crcDataLow = parseProtocolText(fileString, "CRC Low Data Addr", wcv.PARAM_INT)
+    protocol.crcDataHigh = parseProtocolText(fileString, "CRC High Data Addr", wcv.PARAM_INT)
+    protocol.crcPoly = parseProtocolText(fileString, "CRC Poly", wcv.PARAM_LIST)
+    protocol.crcInit = parseProtocolText(fileString, "CRC Init", wcv.PARAM_INT)
+    protocol.crcBitOrder = parseProtocolText(fileString, "CRC Bit Order", wcv.PARAM_INT)
+    protocol.crcReverseOut = parseProtocolText(fileString, "CRC Reverse", wcv.PARAM_BOOL)
+    protocol.crcFinalXor = parseProtocolText(fileString, "CRC Final XOR", wcv.PARAM_LIST)
+    protocol.crcPad = parseProtocolText(fileString, "CRC Pad", wcv.PARAM_INT)
+    protocol.crcPadCount = parseProtocolText(fileString, "CRC Pad Count", wcv.PARAM_INT)
+    protocol.crcPadVal = parseProtocolText(fileString, "CRC Pad Val", wcv.PARAM_INT)
+    protocol.crcPadCountOptions = parseProtocolText(fileString, "CRC Pad Count Options", wcv.PARAM_LIST)
+    
+    protocol.idAddrLow = parseProtocolText(fileString, "ID Addr Low", wcv.PARAM_INT)
+    protocol.idAddrHigh = parseProtocolText(fileString, "ID Addr High", wcv.PARAM_INT)
+    protocol.val1AddrLow = parseProtocolText(fileString, "Value 1 Addr Low", wcv.PARAM_INT)
+    protocol.val1AddrHigh = parseProtocolText(fileString, "Value 1 Addr High", wcv.PARAM_INT)
+    protocol.val2AddrLow = parseProtocolText(fileString, "Value 2 Addr Low", wcv.PARAM_INT)
+    protocol.val2AddrHigh = parseProtocolText(fileString, "Value 2 Addr High", wcv.PARAM_INT)
+    protocol.val3AddrLow = parseProtocolText(fileString, "Value 3 Addr Low", wcv.PARAM_INT)
+    protocol.val3AddrHigh = parseProtocolText(fileString, "Value 3 Addr High", wcv.PARAM_INT)
+    
+    protocol.unitWidth_samp = parseProtocolText(fileString, "Unit Width (samples)", wcv.PARAM_INT)
+    protocol.interPacketWidth_samp = parseProtocolText(fileString, "Inter-Packet Width (samples)", wcv.PARAM_INT)
+    protocol.preambleSymbolLow_samp = parseProtocolText(fileString, "Preamble Symbol Low (samples)", wcv.PARAM_INT)
+    protocol.preambleSymbolHigh_samp = parseProtocolText(fileString, "Preamble Symbol High (samples)", wcv.PARAM_INT)
+    protocol.headerWidth_samp = parseProtocolText(fileString, "Header Width (samples)", wcv.PARAM_INT)
+    protocol.arbPreambleList_samp = parseProtocolText(fileString, "Arbitrary Preamble List (samples)", wcv.PARAM_LIST)
+    protocol.pwmOneSymbol_samp = parseProtocolText(fileString, "PWM 1 Symbol (samples)", wcv.PARAM_LIST)
+    protocol.pwmZeroSymbol_samp = parseProtocolText(fileString, "PWM 0 Symbol (samples)", wcv.PARAM_LIST)
+    protocol.pwmSymbolSize_samp = parseProtocolText(fileString, "PWM Symbol Size (samples)", wcv.PARAM_INT)
+
+    # unused parameters that need to be set for sqllite to be happy
+    protocol.glitchFilterCount = 2
+    protocol.interPacketSymbol = 0
+    protocol.headerLevel = 0
+    
+    # write protocol to database
+    protocol.saveProtocol()
+    return 0

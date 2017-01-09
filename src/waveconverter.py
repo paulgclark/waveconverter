@@ -64,9 +64,23 @@ parser.add_argument("-e", "--timing_error", help="max allowable timing error per
 parser.add_argument("-g", "--gui", help="brings up graphical interface", action="store_true")
 parser.add_argument("-d", "--db", help="build new database", action="store_true")
 parser.add_argument("-r", "--export_protocol", help="export specified protocol to a text file", type=int)
+parser.add_argument("-j", "--import_protocol", help="import specified protocol from the specified text file")
 args = parser.parse_args()
 
 # assign args to variables
+if not args.import_protocol is None: # first check if we are importing a protocol
+    inFileName = args.import_protocol
+    try:
+        inFile = file(inFileName, "r")
+        protocolString = inFile.read()
+    except:
+        print "Trouble reading input text file {}, exiting...".format(inFileName)
+        exit(1)
+    protocol_lib.createProtocolFromText(protocolString)
+    print "Protocol import complete."
+    exit(0)
+        
+    
 wcv.outFileName = args.output
 if not args.export_protocol is None:
     wcv.protocol_number = args.export_protocol
