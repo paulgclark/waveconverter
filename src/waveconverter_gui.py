@@ -318,8 +318,7 @@ class TopWindow:
         os.chdir('../doc')
         docPath = os.getcwd()
         webbrowser.open('file://' + docPath + '/user_guide.pdf')
-        
-             
+                    
     def changeTxNumberToView(self, txNum):
         wcv.tMin = 0
         wcv.tMax = 100
@@ -398,8 +397,8 @@ class TopWindow:
         center += zoomSize/4
         
         # update extents and redraw
-        wcv.tMin = int((center - zoomSize/2.0) + 0.5)
-        wcv.tMax = int((center + zoomSize/2.0) + 0.5)
+        wcv.tMin = (center - zoomSize/2.0) # int((center - zoomSize/2.0) + 0.5)
+        wcv.tMax = (center + zoomSize/2.0) # int((center + zoomSize/2.0) + 0.5)
         
         # trap for panning right past max extent
         if wcv.tMax > 100:
@@ -424,8 +423,8 @@ class TopWindow:
         center -= zoomSize/4
         
         # update extents and redraw
-        wcv.tMin = int((center - zoomSize/2.0) + 0.5)
-        wcv.tMax = int((center + zoomSize/2.0) + 0.5)
+        wcv.tMin = (center - zoomSize/2.0) # int((center - zoomSize/2.0) + 0.5)
+        wcv.tMax = (center + zoomSize/2.0) # int((center + zoomSize/2.0) + 0.5)
         
         # trap for panning left past min extent
         if wcv.tMin < 0:
@@ -438,8 +437,8 @@ class TopWindow:
     def on_zoomFullButton_clicked(self, button, data=None):
         if wcv.verbose:
             print "Zooming Out Full"
-        wcv.tMin = 0
-        wcv.tMax = 100
+        wcv.tMin = 0.0 # 0
+        wcv.tMax = 100.0 # 100
         
         self.drawBasebandPlot(wcv.txList[wcv.txNum].waveformData, 
                               wcv.tMin, wcv.tMax, wcv.basebandSampleRate)
@@ -453,8 +452,8 @@ class TopWindow:
         # get current zoom size and cut in half
         zoomSize = (wcv.tMax - wcv.tMin)/2.0
         
-        wcv.tMin = int((center - zoomSize/2.0) + 0.5)
-        wcv.tMax = int((center + zoomSize/2.0) + 0.5)
+        wcv.tMin = (center - zoomSize/2.0) # int((center - zoomSize/2.0) + 0.5)
+        wcv.tMax = (center + zoomSize/2.0) # int((center + zoomSize/2.0) + 0.5)
         
         self.drawBasebandPlot(wcv.txList[wcv.txNum].waveformData, 
                               wcv.tMin, wcv.tMax, wcv.basebandSampleRate)
@@ -472,18 +471,18 @@ class TopWindow:
             print "center: " + str(center)
             print "zoomSize: " + str(zoomSize)
         
-        wcv.tMin = int((center - zoomSize/2.0) + 0.5)
-        wcv.tMax = int((center + zoomSize/2.0) + 0.5)
+        wcv.tMin = (center - zoomSize/2.0) # int((center - zoomSize/2.0) + 0.5)
+        wcv.tMax = (center + zoomSize/2.0) # int((center + zoomSize/2.0) + 0.5)
         if wcv.verbose:
             print "tMin: " + str(wcv.tMin)
             print "tMax: " + str(wcv.tMax)
         
         # trap for zoom out past max extent
         if wcv.tMin < 0:
-            wcv.tMin = 0
+            wcv.tMin = 0.0 # 0
             
         if wcv.tMax > 100:
-            wcv.tMax = 100
+            wcv.tMax = 100.0 # 100
         
         self.drawBasebandPlot(wcv.txList[wcv.txNum].waveformData, 
                               wcv.tMin, wcv.tMax, wcv.basebandSampleRate)

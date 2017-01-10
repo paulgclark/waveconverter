@@ -25,8 +25,8 @@ bitProbString = ""
 bitProbList = []
 
 # these variable maintain the zoom and waveform window positions
-tMin = 0
-tMax = 100
+tMin = 0.0
+tMax = 100.0
 txNum = 0
 
 # these global variables are associated with the current IQ File, not any
