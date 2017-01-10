@@ -301,7 +301,7 @@ def buildTxList(basebandData, basebandSampleRate, interTxTiming, glitchFilterCou
 
     return txList
 
-def decodeAllTx(protocol, txList, outputHex, timingError, glitchFilterCount, verbose):
+def decodeAllTx(protocol, txList, outputHex, timingError, glitchFilterCount, verbose, showAllTx):
 
     # call decode engine for each transmission
     formatString = '{:>6}   {}\n'
@@ -312,10 +312,11 @@ def decodeAllTx(protocol, txList, outputHex, timingError, glitchFilterCount, ver
             iTx.display()
         else:
             iTx.decodeTx(protocol, timingError, glitchFilterCount, verbose)
-        if outputHex:
-            decodeOutputString += formatString.format(str(i+1), iTx.hexString)
-        else:
-            decodeOutputString += formatString.format(str(i+1), iTx.binaryString)
+        if showAllTx or iTx.txValid:
+            if outputHex:
+                decodeOutputString += formatString.format(str(i+1), iTx.hexString)
+            else:
+                decodeOutputString += formatString.format(str(i+1), iTx.binaryString)
         i+=1
 
     return (txList, decodeOutputString)

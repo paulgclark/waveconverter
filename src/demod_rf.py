@@ -60,6 +60,7 @@ class ook_flowgraph(gr.top_block):
         
         # if directed, we also dump the baseband data into a file
         if len(dig_out_filename) > 0:
+            print "Outputing baseband to waveform to " + dig_out_filename
             self.blocks_file_sink_0 = blocks.file_sink(gr.sizeof_char*1, dig_out_filename, False)
             self.blocks_file_sink_0.set_unbuffered(False)
 

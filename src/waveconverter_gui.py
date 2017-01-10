@@ -2,6 +2,7 @@
 
 import os
 import waveConvertVars as wcv
+from breakWave import basebandFileToList
 from waveconverterEngine import decodeBaseband
 from waveconverterEngine import packetsToFormattedString
 from protocol_lib import ProtocolDefinition, getNextProtocolId
@@ -77,6 +78,8 @@ class TopWindow:
     # saving or using any protocol
     def transferGUIDataToProtocol(self):
         ## get all of the values entered on the demodulation tab
+        wcv.iqFileName = self.getStringFromEntry("iqFileNameEntry")
+        wcv.waveformFileName = self.getStringFromEntry("bbFileNameEntry")
         wcv.center_freq = 1000000.0 * self.getFloatFromEntry("centerFreqEntry")
         wcv.samp_rate = 1000000.0 * self.getFloatFromEntry("sampRateEntry")
         wcv.protocol.modulation = self.getIntFromEntryBox("modulationEntryBox")
@@ -287,6 +290,24 @@ class TopWindow:
             wcv.iqFileName = self.fcd.get_filename()
             iqFileNameEntryWidget = self.builder.get_object("iqFileNameEntry")
             Gtk.Entry.set_text(iqFileNameEntryWidget, str(wcv.iqFileName))
+            self.fcd.destroy()
+            
+    def on_gtk_bbFileOpen_activate(self, menuitem, data=None):
+        if wcv.verbose:
+            print "menu BB File Open"
+        self.fcd = Gtk.FileChooserDialog("Open BB File...",
+                                         None,
+                                         Gtk.FileChooserAction.OPEN,
+                                         (Gtk.STOCK_CANCEL,
+                                          Gtk.ResponseType.CANCEL,
+                                          Gtk.STOCK_OPEN,
+                                          Gtk.ResponseType.ACCEPT))
+        self.response = self.fcd.run()
+        if self.response == Gtk.ResponseType.ACCEPT:
+            print "Selected filepath: %s" % self.fcd.get_filename()
+            wcv.waveformFileName = self.fcd.get_filename()
+            bbFileNameEntryWidget = self.builder.get_object("bbFileNameEntry")
+            Gtk.Entry.set_text(bbFileNameEntryWidget, str(wcv.waveformFileName))
             self.fcd.destroy()
             
     def on_userGuideMenu_activate(self, menuitem, data=None):
@@ -669,8 +690,11 @@ class TopWindow:
             print "iq File Name          = " + wcv.iqFileName
             print "Waveform File Name    = " + wcv.waveformFileName
 
-        # demodulate the iq data
-        wcv.basebandData = demodIQFile(verbose = wcv.verbose,
+        # if we have a baseband file name, use it to get the bb data
+        if len(wcv.waveformFileName) > 0:
+            wcv.basebandData = basebandFileToList(wcv.waveformFileName)
+        elif len(wcv.iqFileName) > 0:
+            wcv.basebandData = demodIQFile(verbose = wcv.verbose,
                                        modulationType = wcv.protocol.modulation,
                                        iqSampleRate = wcv.samp_rate,
                                        basebandSampleRate = wcv.basebandSampleRate,
@@ -682,8 +706,12 @@ class TopWindow:
                                        fskSquelch = wcv.protocol.fskSquelchLeveldB,
                                        fskDeviation = wcv.protocol.fskDeviation,
                                        iqFileName = wcv.iqFileName,
-                                       waveformFileName = wcv.waveformFileName
+                                       waveformFileName = ""
                                        )
+        else:
+            print "No IQ or baseband file given"
+            return 0
+        
         # read baseband waveform data from file
         if wcv.verbose:
             print "baseband data length (raw): " + str(len(wcv.basebandData))
@@ -810,7 +838,8 @@ class TopWindow:
                                                            outputHex = wcv.outputHex,
                                                            timingError = wcv.timingError,
                                                            glitchFilterCount = wcv.glitchFilterCount,
-                                                           verbose = wcv.verbose)
+                                                           verbose = wcv.verbose,
+                                                           showAllTx = wcv.showAllTx)
         
         # update the display of tx valid flags
         interPacketValidCount = 0
@@ -863,8 +892,15 @@ class TopWindow:
         self.transferGUIDataToGlobals()
         self.transferGUIDataToProtocol()
 
-        (wcv.bitProbList, idListCounter, value1List) = computeStats(txList = wcv.txList, protocol = wcv.protocol, showAllTx = wcv.showAllTx)
-        (wcv.bitProbString, idStatString, valuesString) = buildStatStrings(bitProbList = wcv.bitProbList, idListCounter = idListCounter, value1List = value1List, outputHex = wcv.outputHex)
+        (wcv.bitProbList, idListCounter, value1List, value2List, value3List) = computeStats(txList = wcv.txList, 
+                                                                                            protocol = wcv.protocol, 
+                                                                                            showAllTx = wcv.showAllTx)
+        (wcv.bitProbString, idStatString, valuesString) = buildStatStrings(bitProbList = wcv.bitProbList, 
+                                                                           idListCounter = idListCounter, 
+                                                                           value1List = value1List, 
+                                                                           value2List = value2List, 
+                                                                           value3List = value3List, 
+                                                                           outputHex = wcv.outputHex)
         
         # display bit probabilities in correct GUI element
         self.bitProbTextViewWidget = self.builder.get_object("bitProbTextView")
@@ -894,6 +930,7 @@ class TopWindow:
         
         # add RF properties
         self.setEntry("iqFileNameEntry", wcv.iqFileName)
+        self.setEntry("bbFileNameEntry", wcv.waveformFileName)
         self.setEntry("frequencyEntry", wcv.protocol.frequency/1000000.0)
         self.setEntry("channelWidthEntry", wcv.protocol.channelWidth/1000.0)
         self.setEntry("transitionWidthEntry", wcv.protocol.transitionWidth/1000.0)

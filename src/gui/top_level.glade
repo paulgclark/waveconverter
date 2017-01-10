@@ -85,12 +85,13 @@
                       </object>
                     </child>
                     <child>
-                      <object class="GtkImageMenuItem" id="imagemenuitem3">
+                      <object class="GtkImageMenuItem" id="gtk_bbFileOpen">
                         <property name="label">gtk-save</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
+                        <signal name="activate" handler="on_gtk_bbFileOpen_activate" swapped="no"/>
                       </object>
                     </child>
                     <child>
@@ -384,192 +385,6 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkLabel" id="transitionWidthLabel">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Trans Width (kHz)</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">0</property>
-                        <property name="top_attach">8</property>
-                        <property name="width">1</property>
-                        <property name="height">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkEntry" id="transitionWidthEntry">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="halign">start</property>
-                        <property name="width_chars">10</property>
-                        <property name="input_purpose">number</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">1</property>
-                        <property name="top_attach">8</property>
-                        <property name="width">1</property>
-                        <property name="height">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel" id="channelWidthLabel">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Channel Width (kHz)</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">0</property>
-                        <property name="top_attach">7</property>
-                        <property name="width">1</property>
-                        <property name="height">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkEntry" id="channelWidthEntry">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="halign">start</property>
-                        <property name="width_chars">10</property>
-                        <property name="input_purpose">number</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">1</property>
-                        <property name="top_attach">7</property>
-                        <property name="width">1</property>
-                        <property name="height">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkEntry" id="frequencyEntry">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="halign">start</property>
-                        <property name="width_chars">10</property>
-                        <property name="input_purpose">number</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">1</property>
-                        <property name="top_attach">6</property>
-                        <property name="width">1</property>
-                        <property name="height">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel" id="frequencyLabel">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Frequency (MHz)</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">0</property>
-                        <property name="top_attach">6</property>
-                        <property name="width">1</property>
-                        <property name="height">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel" id="label9">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Modulation</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">0</property>
-                        <property name="top_attach">5</property>
-                        <property name="width">1</property>
-                        <property name="height">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel" id="rfHeadingLabel2">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">RF Tuning Properties</property>
-                        <attributes>
-                          <attribute name="style" value="italic"/>
-                          <attribute name="underline" value="True"/>
-                        </attributes>
-                      </object>
-                      <packing>
-                        <property name="left_attach">0</property>
-                        <property name="top_attach">4</property>
-                        <property name="width">1</property>
-                        <property name="height">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel" id="sampRateLabel">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Sample Rate (MHz)</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">0</property>
-                        <property name="top_attach">3</property>
-                        <property name="width">1</property>
-                        <property name="height">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkEntry" id="sampRateEntry">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="halign">start</property>
-                        <property name="width_chars">10</property>
-                        <property name="text" translatable="yes">8.0</property>
-                        <property name="input_purpose">number</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">1</property>
-                        <property name="top_attach">3</property>
-                        <property name="width">1</property>
-                        <property name="height">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkEntry" id="centerFreqEntry">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="halign">start</property>
-                        <property name="width_chars">10</property>
-                        <property name="text" translatable="yes">100.0</property>
-                        <property name="input_purpose">number</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">1</property>
-                        <property name="top_attach">2</property>
-                        <property name="width">1</property>
-                        <property name="height">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel" id="centerFreqLabel">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Center Freq (MHz)</property>
-                        <property name="lines">1</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">0</property>
-                        <property name="top_attach">2</property>
-                        <property name="width">1</property>
-                        <property name="height">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel" id="label24">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Input RF File Name</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">0</property>
-                        <property name="top_attach">1</property>
-                        <property name="width">1</property>
-                        <property name="height">1</property>
-                      </packing>
-                    </child>
-                    <child>
                       <object class="GtkEntry" id="iqFileNameEntry">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
@@ -579,24 +394,6 @@
                       <packing>
                         <property name="left_attach">1</property>
                         <property name="top_attach">1</property>
-                        <property name="width">1</property>
-                        <property name="height">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkComboBoxText" id="modulationEntryBox">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="halign">start</property>
-                        <items>
-                          <item id="0" translatable="yes">OOK</item>
-                          <item id="1" translatable="yes">FSK</item>
-                        </items>
-                        <signal name="changed" handler="on_modulationEntryBox_changed" swapped="no"/>
-                      </object>
-                      <packing>
-                        <property name="left_attach">1</property>
-                        <property name="top_attach">5</property>
                         <property name="width">1</property>
                         <property name="height">1</property>
                       </packing>
@@ -623,7 +420,7 @@
                       </object>
                       <packing>
                         <property name="left_attach">0</property>
-                        <property name="top_attach">14</property>
+                        <property name="top_attach">15</property>
                         <property name="width">1</property>
                         <property name="height">1</property>
                       </packing>
@@ -636,7 +433,7 @@
                       </object>
                       <packing>
                         <property name="left_attach">0</property>
-                        <property name="top_attach">13</property>
+                        <property name="top_attach">14</property>
                         <property name="width">1</property>
                         <property name="height">1</property>
                       </packing>
@@ -653,7 +450,155 @@
                       </object>
                       <packing>
                         <property name="left_attach">0</property>
+                        <property name="top_attach">13</property>
+                        <property name="width">1</property>
+                        <property name="height">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label69">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">FSK Squelch Level (dB)</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">0</property>
                         <property name="top_attach">12</property>
+                        <property name="width">1</property>
+                        <property name="height">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label22">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">FSK Deviation (kHz)</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">0</property>
+                        <property name="top_attach">11</property>
+                        <property name="width">1</property>
+                        <property name="height">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label23">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Threshold</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">0</property>
+                        <property name="top_attach">10</property>
+                        <property name="width">1</property>
+                        <property name="height">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="transitionWidthLabel">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Trans Width (kHz)</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">0</property>
+                        <property name="top_attach">9</property>
+                        <property name="width">1</property>
+                        <property name="height">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="channelWidthLabel">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Channel Width (kHz)</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">0</property>
+                        <property name="top_attach">8</property>
+                        <property name="width">1</property>
+                        <property name="height">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="frequencyLabel">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Frequency (MHz)</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">0</property>
+                        <property name="top_attach">7</property>
+                        <property name="width">1</property>
+                        <property name="height">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label9">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Modulation</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">0</property>
+                        <property name="top_attach">6</property>
+                        <property name="width">1</property>
+                        <property name="height">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="rfHeadingLabel2">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">RF Tuning Properties</property>
+                        <attributes>
+                          <attribute name="style" value="italic"/>
+                          <attribute name="underline" value="True"/>
+                        </attributes>
+                      </object>
+                      <packing>
+                        <property name="left_attach">0</property>
+                        <property name="top_attach">5</property>
+                        <property name="width">1</property>
+                        <property name="height">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="sampRateLabel">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Sample Rate (MHz)</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">0</property>
+                        <property name="top_attach">4</property>
+                        <property name="width">1</property>
+                        <property name="height">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="centerFreqLabel">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Center Freq (MHz)</property>
+                        <property name="lines">1</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">0</property>
+                        <property name="top_attach">3</property>
+                        <property name="width">1</property>
+                        <property name="height">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label24">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Input RF File Name</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">0</property>
+                        <property name="top_attach">1</property>
                         <property name="width">1</property>
                         <property name="height">1</property>
                       </packing>
@@ -668,7 +613,7 @@
                       </object>
                       <packing>
                         <property name="left_attach">1</property>
-                        <property name="top_attach">14</property>
+                        <property name="top_attach">15</property>
                         <property name="width">1</property>
                         <property name="height">1</property>
                       </packing>
@@ -683,20 +628,7 @@
                       </object>
                       <packing>
                         <property name="left_attach">1</property>
-                        <property name="top_attach">13</property>
-                        <property name="width">1</property>
-                        <property name="height">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel" id="label69">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">FSK Squelch Level (dB)</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">0</property>
-                        <property name="top_attach">11</property>
+                        <property name="top_attach">14</property>
                         <property name="width">1</property>
                         <property name="height">1</property>
                       </packing>
@@ -711,48 +643,7 @@
                       </object>
                       <packing>
                         <property name="left_attach">1</property>
-                        <property name="top_attach">11</property>
-                        <property name="width">1</property>
-                        <property name="height">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel" id="label22">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">FSK Deviation (kHz)</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">0</property>
-                        <property name="top_attach">10</property>
-                        <property name="width">1</property>
-                        <property name="height">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel" id="label23">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Threshold</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">0</property>
-                        <property name="top_attach">9</property>
-                        <property name="width">1</property>
-                        <property name="height">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkEntry" id="thresholdEntry">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="halign">start</property>
-                        <property name="width_chars">10</property>
-                        <property name="input_purpose">number</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">1</property>
-                        <property name="top_attach">9</property>
+                        <property name="top_attach">12</property>
                         <property name="width">1</property>
                         <property name="height">1</property>
                       </packing>
@@ -767,7 +658,145 @@
                       </object>
                       <packing>
                         <property name="left_attach">1</property>
+                        <property name="top_attach">11</property>
+                        <property name="width">1</property>
+                        <property name="height">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="thresholdEntry">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="halign">start</property>
+                        <property name="width_chars">10</property>
+                        <property name="input_purpose">number</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">1</property>
                         <property name="top_attach">10</property>
+                        <property name="width">1</property>
+                        <property name="height">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="transitionWidthEntry">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="halign">start</property>
+                        <property name="width_chars">10</property>
+                        <property name="input_purpose">number</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">1</property>
+                        <property name="top_attach">9</property>
+                        <property name="width">1</property>
+                        <property name="height">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="channelWidthEntry">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="halign">start</property>
+                        <property name="width_chars">10</property>
+                        <property name="input_purpose">number</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">1</property>
+                        <property name="top_attach">8</property>
+                        <property name="width">1</property>
+                        <property name="height">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="frequencyEntry">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="halign">start</property>
+                        <property name="width_chars">10</property>
+                        <property name="input_purpose">number</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">1</property>
+                        <property name="top_attach">7</property>
+                        <property name="width">1</property>
+                        <property name="height">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkComboBoxText" id="modulationEntryBox">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="halign">start</property>
+                        <items>
+                          <item id="0" translatable="yes">OOK</item>
+                          <item id="1" translatable="yes">FSK</item>
+                        </items>
+                        <signal name="changed" handler="on_modulationEntryBox_changed" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left_attach">1</property>
+                        <property name="top_attach">6</property>
+                        <property name="width">1</property>
+                        <property name="height">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="sampRateEntry">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="halign">start</property>
+                        <property name="width_chars">10</property>
+                        <property name="text" translatable="yes">8.0</property>
+                        <property name="input_purpose">number</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">1</property>
+                        <property name="top_attach">4</property>
+                        <property name="width">1</property>
+                        <property name="height">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="centerFreqEntry">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="halign">start</property>
+                        <property name="width_chars">10</property>
+                        <property name="text" translatable="yes">100.0</property>
+                        <property name="input_purpose">number</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">1</property>
+                        <property name="top_attach">3</property>
+                        <property name="width">1</property>
+                        <property name="height">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label81">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="halign">center</property>
+                        <property name="label" translatable="yes">BaseBand File Name</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">0</property>
+                        <property name="top_attach">2</property>
+                        <property name="width">1</property>
+                        <property name="height">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="bbFileNameEntry">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="halign">start</property>
+                        <property name="width_chars">10</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">1</property>
+                        <property name="top_attach">2</property>
                         <property name="width">1</property>
                         <property name="height">1</property>
                       </packing>
@@ -1012,7 +1041,7 @@ Number to Display</property>
                       <object class="GtkLabel" id="label5">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="halign">end</property>
+                        <property name="halign">center</property>
                         <property name="label" translatable="yes">Good Packets</property>
                         <property name="max_width_chars">20</property>
                       </object>
@@ -1027,7 +1056,7 @@ Number to Display</property>
                       <object class="GtkLabel" id="label6">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="halign">end</property>
+                        <property name="halign">center</property>
                         <property name="label" translatable="yes">Preamble Matches</property>
                         <property name="max_width_chars">20</property>
                       </object>
@@ -1042,7 +1071,7 @@ Number to Display</property>
                       <object class="GtkLabel" id="label7">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="halign">end</property>
+                        <property name="halign">center</property>
                         <property name="label" translatable="yes">Encoding Valid</property>
                         <property name="max_width_chars">20</property>
                       </object>
@@ -1057,7 +1086,7 @@ Number to Display</property>
                       <object class="GtkLabel" id="label8">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="halign">end</property>
+                        <property name="halign">center</property>
                         <property name="label" translatable="yes">CRC Pass</property>
                         <property name="max_width_chars">20</property>
                       </object>
@@ -1170,7 +1199,7 @@ Number to Display</property>
                       <object class="GtkLabel" id="label26">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="halign">end</property>
+                        <property name="halign">center</property>
                         <property name="label" translatable="yes">Timing (%)</property>
                         <property name="max_width_chars">20</property>
                       </object>
@@ -1214,7 +1243,7 @@ Number to Display</property>
                       <object class="GtkLabel" id="label27">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="halign">end</property>
+                        <property name="halign">center</property>
                         <property name="label" translatable="yes">Header Length (us)</property>
                         <property name="max_width_chars">20</property>
                       </object>
@@ -1229,7 +1258,7 @@ Number to Display</property>
                       <object class="GtkLabel" id="label14">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="halign">end</property>
+                        <property name="halign">center</property>
                         <property name="label" translatable="yes">Preamble Size 2</property>
                         <property name="max_width_chars">20</property>
                       </object>
@@ -1244,7 +1273,7 @@ Number to Display</property>
                       <object class="GtkLabel" id="label12">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="halign">end</property>
+                        <property name="halign">center</property>
                         <property name="label" translatable="yes">Preamble Size</property>
                         <property name="max_width_chars">20</property>
                       </object>
@@ -1259,7 +1288,7 @@ Number to Display</property>
                       <object class="GtkLabel" id="label11">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="halign">end</property>
+                        <property name="halign">center</property>
                         <property name="label" translatable="yes">Preamble High (us)</property>
                         <property name="max_width_chars">20</property>
                       </object>
@@ -1274,7 +1303,7 @@ Number to Display</property>
                       <object class="GtkLabel" id="label3">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="halign">end</property>
+                        <property name="halign">center</property>
                         <property name="label" translatable="yes">Preamble Low (us)</property>
                         <property name="max_width_chars">20</property>
                       </object>
@@ -1289,7 +1318,7 @@ Number to Display</property>
                       <object class="GtkLabel" id="label70">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="halign">end</property>
+                        <property name="halign">center</property>
                         <property name="label" translatable="yes">Preamble Definition</property>
                         <property name="max_width_chars">20</property>
                       </object>
@@ -1398,7 +1427,7 @@ Number to Display</property>
                       <object class="GtkLabel" id="label71">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="halign">end</property>
+                        <property name="halign">center</property>
                         <property name="label" translatable="yes">Arbitrary Timing List</property>
                         <property name="max_width_chars">20</property>
                       </object>
@@ -1427,6 +1456,7 @@ Number to Display</property>
                       <object class="GtkLabel" id="label79">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="halign">center</property>
                         <property name="label" translatable="yes">Pulse Count</property>
                       </object>
                       <packing>
@@ -2013,7 +2043,6 @@ Number to Display</property>
                           <item id="1" translatable="yes">Manchester</item>
                           <item id="2" translatable="yes">Manch - Inv</item>
                           <item id="3" translatable="yes">PWM/PIE</item>
-                          <item id="4" translatable="yes">PPM</item>
                         </items>
                         <signal name="changed" handler="on_encodingEntryBox_changed" swapped="no"/>
                       </object>

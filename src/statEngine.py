@@ -64,6 +64,7 @@ def computeStats(txList, protocol, showAllTx):
     # need to trap for bad indices
     value1List = []
     value2List = []
+    value3List = []
     for iTx in txList2:
         # if any of the transmissions are too short to include the value bit range, skip
         if protocol.val1AddrLow < len(iTx.fullBasebandData) or protocol.val1AddrHigh < iTx.fullBasebandData:
@@ -75,12 +76,33 @@ def computeStats(txList, protocol, showAllTx):
                 value = (value << 1) | bit
             # add to list
             value1List.append(int(value))
-    # need to add values 2 and 3 (or make into a list)
             
-    return (bitProbList, idListCounter, value1List)
+        # repeat for value 2
+        if protocol.val2AddrLow < len(iTx.fullBasebandData) or protocol.val2AddrHigh < iTx.fullBasebandData:
+            # get bits that comprise the value
+            bitList = iTx.fullBasebandData[protocol.val2AddrLow:protocol.val2AddrHigh]
+            # convert bits to number
+            value = 0
+            for bit in bitList:
+                value = (value << 1) | bit
+            # add to list
+            value2List.append(int(value))
+
+        # repeat for value 3
+        if protocol.val3AddrLow < len(iTx.fullBasebandData) or protocol.val3AddrHigh < iTx.fullBasebandData:
+            # get bits that comprise the value
+            bitList = iTx.fullBasebandData[protocol.val3AddrLow:protocol.val3AddrHigh]
+            # convert bits to number
+            value = 0
+            for bit in bitList:
+                value = (value << 1) | bit
+            # add to list
+            value3List.append(int(value))
+            
+    return (bitProbList, idListCounter, value1List, value2List, value3List)
 
 
-def buildStatStrings(bitProbList, idListCounter, value1List, outputHex):
+def buildStatStrings(bitProbList, idListCounter, value1List, value2List, value3List, outputHex):
 
     # build string for display of bit probabilities, one per line
     bitProbString = "Bit: Probability %\n"
@@ -112,6 +134,28 @@ def buildStatStrings(bitProbList, idListCounter, value1List, outputHex):
         valuesString += "  Average:  " + str(sum(value1List)/len(value1List)) + "\n" 
         valuesString += "  Low Val:  " + str(min(value1List)) + "\n"
         valuesString += "  High Val: " + str(max(value1List)) + "\n\n"
+        
+    # repeat for value #2
+    if value2List == []:
+        valuesString += "Value 2: Undefined"
+    elif value2List[0] == -1:
+        valuesString += "Value 2: Illegal Values"
+    else:
+        valuesString += "Value 2:\n"
+        valuesString += "  Average:  " + str(sum(value2List)/len(value2List)) + "\n" 
+        valuesString += "  Low Val:  " + str(min(value2List)) + "\n"
+        valuesString += "  High Val: " + str(max(value2List)) + "\n\n"
+
+    # repeat for value #3
+    if value3List == []:
+        valuesString += "Value 3: Undefined"
+    elif value3List[0] == -1:
+        valuesString += "Value 3: Illegal Values"
+    else:
+        valuesString += "Value 3:\n"
+        valuesString += "  Average:  " + str(sum(value3List)/len(value3List)) + "\n" 
+        valuesString += "  Low Val:  " + str(min(value3List)) + "\n"
+        valuesString += "  High Val: " + str(max(value3List)) + "\n\n"
 
     return (bitProbString, idStatString, valuesString)
     

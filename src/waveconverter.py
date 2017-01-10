@@ -163,6 +163,8 @@ try:
     wcv.saveBasebandToFile = bool(args.bb_save)
     if not wcv.saveBasebandToFile:
         wcv.bbOutFileName = "" # signal to flowgraph not to output a bb file by not giving it a name
+    else:
+        wcv.bbOutFileName = wcv.iqFileName + ".bb"
 except:
     wcv.saveBasebandToFile = False
     wcv.bbOutFileName = "" # signal to flowgraph not to output a bb file by not giving it a name

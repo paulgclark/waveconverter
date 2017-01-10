@@ -10,6 +10,7 @@ import sys # NEED
 import io # NEED
 import os # NEED
 import waveConvertVars as wcv
+from sqlalchemy.dialects.mssql.base import BIT
 #from protocol_lib import maxTransmissionSize
 #from waveConvertVars import * # NEED
 #from config import * # NEED
@@ -40,13 +41,18 @@ def basebandFileToList(basebandFileName):
 #####################################
 # reads through the list representing the baseband data and divides it
 # into smaller lists (one for each transmission), also cutting out dead time
-def breakBaseband(basebandData, minTimeBetweenTx, glitchFilterCount, verbose):
+def breakBaseband(basebandData_preglitch, minTimeBetweenTx, glitchFilterCount, verbose):
     basebandTransmissionList = []
     newTx = []
     i = 0
     deadAirCount = 0
     currentStartIndex = 0
     consecutiveOnes = 0
+
+    if verbose:
+        print "Deglitching baseband..."
+        
+    basebandData = glitchFilterTimeDomain(basebandData_preglitch, glitchFilterCount)
     
     if verbose:
         print "Breaking baseband into individual transmissions..."
@@ -86,7 +92,10 @@ def breakBaseband(basebandData, minTimeBetweenTx, glitchFilterCount, verbose):
                 state = IN_DEAD_AIR
                 if verbose:
                     print "Got Tx starting at:" + str(currentStartIndex) + " ending at index: " + str(i) + "length = " + str(len(newTx))
-                    print "timestamp: " + str(len(basebandTransmissionList)/wcv.samp_rate)
+                    if wcv.samp_rate is None or wcv.samp_rate == 0:
+                        print "timestamp: " + str(len(basebandTransmissionList)/wcv.basebandSampleRate)
+                    else:
+                        print "timestamp: " + str(len(basebandTransmissionList)/wcv.samp_rate)
             elif (basebandData[i] == 1) and (consecutiveOnes > glitchFilterCount):
                 deadAirCount = 0
             else:
@@ -267,9 +276,10 @@ def breakdownWaveform2(protocol, waveformList, masterWidthList, glitchFilterCoun
         else:
             nextEdge = RISING_EDGE
 
-    if glitchFilterCount > 0:
-        # glitch filter behavior not part of protocol, but top level WC control from GUI or cmd line
-        glitchFilter(masterWidthList, glitchFilterCount) 
+    # move this to the front end of the process, where we divide the baseband into transmissions
+    #if glitchFilterCount > 0:
+    #    # glitch filter behavior not part of protocol, but top level WC control from GUI or cmd line
+    #    glitchFilter(masterWidthList, glitchFilterCount) 
 
     return(wcv.END_OF_FILE)
 
@@ -309,3 +319,35 @@ def glitchFilter(masterWidthList, glitchMax):
         del masterWidthList[-1]
  
     return(0)
+
+# this function processes a time-domain baseband waveform in list form,
+# returning a deglitched list
+def glitchFilterTimeDomain(basebandWaveform, glitchFilterCount):
+    
+    currentValue = basebandWaveform[0]
+    if currentValue == 1:
+        nextValue = 0
+    else:
+        nextValue = 1
+    valueCount = 0
+    basebandOut = []
+    
+    for b in basebandWaveform:
+        # first figure out how many of this value we've had in a row
+        if b == nextValue:
+            valueCount += 1
+        else:
+            valueCount = 0
+        
+        # if the count is higher than the glitch filter, then we change
+        # the output value    
+        if valueCount > glitchFilterCount:
+            currentValue = b
+            if b == 1:
+                nextValue = 0
+            else:
+                nextValue = 1
+        
+        basebandOut.append(currentValue)
+        
+    return basebandOut
