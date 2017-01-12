@@ -289,12 +289,13 @@ if not wcv.runWithGui:
                                                outputHex = wcv.outputHex,
                                                timingError = wcv.timingError,
                                                glitchFilterCount = wcv.glitchFilterCount,
-                                               verbose = wcv.verbose)
+                                               verbose = wcv.verbose,
+                                               showAllTx = wcv.showAllTx)
         
     # compute stats
-    (bitProbList, idListCounter, value1List) = computeStats(txList = txList, protocol = wcv.protocol, showAllTx = wcv.showAllTx)
+    (bitProbList, idListCounter, value1List, value2List, value3List) = computeStats(txList = txList, protocol = wcv.protocol, showAllTx = wcv.showAllTx)
     # compute stat string
-    (bitProbString, idStatString, valuesString) = buildStatStrings(bitProbList, idListCounter, value1List, wcv.outputHex)
+    (bitProbString, idStatString, valuesString) = buildStatStrings(bitProbList, idListCounter, value1List, value2List, value3List, wcv.outputHex)
 
     # output strings to stdio
     print decodeOutputString

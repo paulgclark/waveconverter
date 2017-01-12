@@ -21,6 +21,7 @@ import cStringIO
 
 # globals
 debug = False
+#debug = True
 
 class TestFullFlow(unittest.TestCase):
     def loadBasicTestParameters(self):
@@ -78,9 +79,9 @@ class TestFullFlow(unittest.TestCase):
         # suppress stdio during waveconverter execution by shunting it to a string object
         # we will then turn it back on for unittest output
         saved_stdout = sys.stdout
-        if not self.verbose:
+        if not self.verbose and not debug:
             sys.stdout = cStringIO.StringIO()
-        
+ 
         # demodulate
         self.basebandData = demodIQFile(verbose = self.verbose,
                                         modulationType = self.protocol.modulation,
@@ -108,15 +109,16 @@ class TestFullFlow(unittest.TestCase):
                                                              outputHex = self.outputHex,
                                                              timingError = self.timingError,
                                                              glitchFilterCount = self.glitchFilterCount,
-                                                             verbose = self.verbose)
+                                                             verbose = self.verbose,
+                                                             showAllTx = self.showAllTx)
         
         # compute stats
-        (self.bitProbList, self.idListCounter, self.value1List) = computeStats(txList = self.txList, protocol = self.protocol, showAllTx = self.showAllTx)
+        (self.bitProbList, self.idListCounter, self.value1List, self.value2List, self.value3List) = computeStats(txList = self.txList, protocol = self.protocol, showAllTx = self.showAllTx)
         # compute stat string
-        (self.bitProbString, self.idStatString, self.valuesString) = buildStatStrings(self.bitProbList, self.idListCounter, self.value1List, self.outputHex)
+        (self.bitProbString, self.idStatString, self.valuesString) = buildStatStrings(self.bitProbList, self.idListCounter, self.value1List, self.value2List, self.value3List, self.outputHex)
 
         # turn stdout back on
-        if not self.verbose:
+        if not self.verbose and not debug:
             sys.stdout = saved_stdout
         
         pass

@@ -96,12 +96,13 @@ class TestFullFlow(unittest.TestCase):
                                                              outputHex = self.outputHex,
                                                              timingError = self.timingError,
                                                              glitchFilterCount = self.glitchFilterCount,
-                                                             verbose = self.verbose)
+                                                             verbose = self.verbose,
+                                                             showAllTx = self.showAllTx)
         
         # compute stats
-        (self.bitProbList, self.idListCounter, self.value1List) = computeStats(txList = self.txList, protocol = self.protocol, showAllTx = self.showAllTx)
+        (self.bitProbList, self.idListCounter, self.value1List, self.value2List, self.value3List) = computeStats(txList = self.txList, protocol = self.protocol, showAllTx = self.showAllTx)
         # compute stat string
-        (self.bitProbString, self.idStatString, self.valuesString) = buildStatStrings(self.bitProbList, self.idListCounter, self.value1List, self.outputHex)
+        (self.bitProbString, self.idStatString, self.valuesString) = buildStatStrings(self.bitProbList, self.idListCounter, self.value1List, self.value2List, self.value3List, self.outputHex)
 
         # turn stdout back on
         sys.stdout = saved_stdout
