@@ -69,7 +69,7 @@ def computeStats(txList, protocol, showAllTx):
         # if any of the transmissions are too short to include the value bit range, skip
         if protocol.val1AddrLow < len(iTx.fullBasebandData) or protocol.val1AddrHigh < iTx.fullBasebandData:
             # get bits that comprise the value
-            bitList = iTx.fullBasebandData[protocol.val1AddrLow:protocol.val1AddrHigh]
+            bitList = iTx.fullBasebandData[protocol.val1AddrLow:protocol.val1AddrHigh+1]
             # convert bits to number
             value = 0
             for bit in bitList:
@@ -80,7 +80,7 @@ def computeStats(txList, protocol, showAllTx):
         # repeat for value 2
         if protocol.val2AddrLow < len(iTx.fullBasebandData) or protocol.val2AddrHigh < iTx.fullBasebandData:
             # get bits that comprise the value
-            bitList = iTx.fullBasebandData[protocol.val2AddrLow:protocol.val2AddrHigh]
+            bitList = iTx.fullBasebandData[protocol.val2AddrLow:protocol.val2AddrHigh+1]
             # convert bits to number
             value = 0
             for bit in bitList:
@@ -91,7 +91,7 @@ def computeStats(txList, protocol, showAllTx):
         # repeat for value 3
         if protocol.val3AddrLow < len(iTx.fullBasebandData) or protocol.val3AddrHigh < iTx.fullBasebandData:
             # get bits that comprise the value
-            bitList = iTx.fullBasebandData[protocol.val3AddrLow:protocol.val3AddrHigh]
+            bitList = iTx.fullBasebandData[protocol.val3AddrLow:protocol.val3AddrHigh+1]
             # convert bits to number
             value = 0
             for bit in bitList:
@@ -126,9 +126,9 @@ def buildStatStrings(bitProbList, idListCounter, value1List, value2List, value3L
 
     # build string of values
     if value1List == []:
-        valuesString = "Value 1: Undefined"
+        valuesString = "Value 1: Undefined\n\n"
     elif value1List[0] == -1:
-        valuesString = "Value 1: Illegal Values"
+        valuesString = "Value 1: Illegal Values\n\n"
     else:
         valuesString = "Value 1:\n"
         valuesString += "  Average:  " + str(sum(value1List)/len(value1List)) + "\n" 
@@ -137,9 +137,9 @@ def buildStatStrings(bitProbList, idListCounter, value1List, value2List, value3L
         
     # repeat for value #2
     if value2List == []:
-        valuesString += "Value 2: Undefined"
+        valuesString += "Value 2: Undefined\n\n"
     elif value2List[0] == -1:
-        valuesString += "Value 2: Illegal Values"
+        valuesString += "Value 2: Illegal Values\n\n"
     else:
         valuesString += "Value 2:\n"
         valuesString += "  Average:  " + str(sum(value2List)/len(value2List)) + "\n" 
@@ -148,9 +148,9 @@ def buildStatStrings(bitProbList, idListCounter, value1List, value2List, value3L
 
     # repeat for value #3
     if value3List == []:
-        valuesString += "Value 3: Undefined"
+        valuesString += "Value 3: Undefined\n\n"
     elif value3List[0] == -1:
-        valuesString += "Value 3: Illegal Values"
+        valuesString += "Value 3: Illegal Values\n\n"
     else:
         valuesString += "Value 3:\n"
         valuesString += "  Average:  " + str(sum(value3List)/len(value3List)) + "\n" 

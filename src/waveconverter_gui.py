@@ -127,7 +127,7 @@ class TopWindow:
         # load CRC properties
         wcv.protocol.crcPoly = self.getListFromEntry("crcPolynomialEntry")
         wcv.protocol.crcLow = self.getIntFromEntry("crcStartAddrEntry")
-        wcv.protocol.crcHigh = wcv.protocol.crcLow + len(wcv.protocol.crcPoly)
+        wcv.protocol.crcHigh = wcv.protocol.crcLow + len(wcv.protocol.crcPoly) - 2 # poly is one longer than actual range
         wcv.protocol.crcDataLow = self.getIntFromEntry("addrDataLowEntry")
         wcv.protocol.crcDataHigh = self.getIntFromEntry("addrDataHighEntry")
         wcv.protocol.crcInit = self.getIntFromEntry("crcInitEntry")
@@ -154,7 +154,6 @@ class TopWindow:
         wcv.protocol.interPacketSymbol = 0
         wcv.protocol.headerLevel = 0
         wcv.protocol.preambleSync = False
-        wcv.protocol.crcHigh = 0
         wcv.protocol.crcPadVal = 0
                 
         # when we load new values for the protocol, we need to do the
@@ -856,20 +855,29 @@ class TopWindow:
             txValidCount += iTx.txValid
         
         numTx = len(wcv.txList)
+        if len(wcv.protocol.crcPoly) <= 0:
+            crcStringOut = "N/A"
+        else:
+            crcStringOut =  str(crcValidCount) + "/" + str(numTx)
         self.setLabel("guiGoodPackets1", str(txValidCount) + "/" + str(numTx))
         self.setLabel("guiPreambleMatches1", str(preambleValidCount) + "/" + str(numTx))
         self.setLabel("guiEncodingValid1", str(encodingValidCount) + "/" + str(numTx))
-        self.setLabel("guiCrcPass1", str(crcValidCount) + "/" + str(numTx))
+        self.setLabel("guiCrcPass1", crcStringOut)
         
         self.setLabel("guiGoodPackets2", str(txValidCount) + "/" + str(numTx))
         self.setLabel("guiPreambleMatches2", str(preambleValidCount) + "/" + str(numTx))
         self.setLabel("guiEncodingValid2", str(encodingValidCount) + "/" + str(numTx))
-        self.setLabel("guiCrcPass2", str(crcValidCount) + "/" + str(numTx))
+        self.setLabel("guiCrcPass2", crcStringOut)
         
         self.setLabel("guiGoodPackets3", str(txValidCount) + "/" + str(numTx))
         self.setLabel("guiPreambleMatches3", str(preambleValidCount) + "/" + str(numTx))
         self.setLabel("guiEncodingValid3", str(encodingValidCount) + "/" + str(numTx))
-        self.setLabel("guiCrcPass3", str(crcValidCount) + "/" + str(numTx))
+        self.setLabel("guiCrcPass3", crcStringOut)
+        
+        self.setLabel("guiGoodPackets4", str(txValidCount) + "/" + str(numTx))
+        self.setLabel("guiPreambleMatches4", str(preambleValidCount) + "/" + str(numTx))
+        self.setLabel("guiEncodingValid4", str(encodingValidCount) + "/" + str(numTx))
+        self.setLabel("guiCrcPass4", crcStringOut)
         
         # change the text in all windows (NEED a framed approach)
         self.decodeTextViewWidget1 = self.builder.get_object("decodeTextView1")

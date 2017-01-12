@@ -219,7 +219,7 @@ class TestFullFlow(unittest.TestCase):
         expectedValue1List = []
         for payload in self.expectedPayloadData:
             if len(payload) == self.protocol.packetSize: # only considering good transmissions
-                bitList = payload[self.protocol.val1AddrLow:self.protocol.val1AddrHigh]
+                bitList = payload[self.protocol.val1AddrLow:self.protocol.val1AddrHigh+1]
                 # convert bits to number
                 value = 0
                 for bit in bitList:

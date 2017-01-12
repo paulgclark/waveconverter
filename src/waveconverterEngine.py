@@ -162,6 +162,11 @@ class basebandTx:
                             self.headerValid
 
         # NEED: add protocol check to ensure bits are legal
+        print self.fullBasebandData
+        print protocol.crcLow
+        print protocol.crcHigh
+        print protocol.crcDataLow
+        print protocol.crcDataHigh
         try:
             self.crcBits = self.fullBasebandData[protocol.crcLow:protocol.crcHigh+1]
         except:
