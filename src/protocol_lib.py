@@ -458,3 +458,9 @@ def createProtocolFromText(fileString):
     # write protocol to database
     protocol.saveProtocol()
     return 0
+
+# this is used by both the buildProtocolLibrary and manualProtocol files
+def getDeviceTypeStringKey(deviceString):
+    for keyVal in wcv.devTypeStrings:
+        if wcv.devTypeStrings[keyVal] == deviceString:
+            return keyVal

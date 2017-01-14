@@ -1,14 +1,9 @@
 # This file is used to manually set up the database containing the protocol library.
 # This may need to be replaced eventually by a scheme that takes a gold database and 
 # modifies it as needed. For the early stages of development, this is easier.
-from protocol_lib import ProtocolDefinition, getNextProtocolId
+from protocol_lib import ProtocolDefinition, getNextProtocolId, getDeviceTypeStringKey
 import waveConvertVars as wcv
 
-def getDeviceTypeStringKey(deviceString):
-    for keyVal in wcv.devTypeStrings:
-        if wcv.devTypeStrings[keyVal] == deviceString:
-            return keyVal
-    
 def buildProtocolDatabase():
     protocol = ProtocolDefinition(getNextProtocolId())
     
