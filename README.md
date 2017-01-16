@@ -14,6 +14,8 @@ sudo apt-get install python-matplotlib
 
 sudo apt-get install python-gi-cairo
 
+sudo apt-get install gnuradio
+
 If you are contributing to development, you will also need glade:
 sudo apt-get install glade
 
