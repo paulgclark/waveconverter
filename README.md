@@ -4,7 +4,15 @@ WaveConverter is a Python application, built on GTK+ 3. The GUI has been
 implemented via Glade. A sqlite database has been implemented via
 sqlalchemy. Finally, waveform plotting uses matplotlib.
 
-To install pre-requisites for execution:
+You will need gnuradio installed for this software to work. While you
+can install this via:
+```
+sudo apt-get install gnuradio
+```
+You will benefit from a much more recent version if you follow the
+instructions at http://fieldxp.com/Chapter-2-Installing-the-Software.pdf
+
+To install the other pre-requisites for execution:
 
 ```
 sudo apt-get install python-sqlalchemy
