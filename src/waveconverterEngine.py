@@ -10,6 +10,7 @@ from breakWave import breakdownWaveform2
 from widthToBits import separatePackets
 from widthToBits import decodePacket
 from statEngine import checkCRC
+from statEngine import checkACS
 #from widthToBits import printPacket
 #from config import *
 from protocol_lib import ProtocolDefinition
@@ -39,10 +40,10 @@ def decodeBaseband(waveformFileName, basebandSampleRate, outFileName,
             # decode each packet and add it to the list
             i=0
             for packetWidths in packetWidthsList:
-                # print("Packet #" + str(i+1) + ": ")
-                # print(packetWidths)
                 decodedPacket = [] # move out of loop to main vars?
                 rawPacket = [] # move out of loop to main vars?
+                if wcv.verbose:
+                    print "TX Num: " + str(i+1) + ": "
                 decodePacket(protocol, packetWidths, decodedPacket, rawPacket, verbose)
                 # print "Raw and Decoded Packets:"
                 # print(rawPacket)
@@ -101,9 +102,11 @@ def packetToString(packet, outputHex):
             # add a break at certain points
             if (i % 8) == 0 and i != 0:
                 packetString += ' '
-
+            # add a separator if we've reached the end of the data section (denoted by bit=2)
+            if packet[i] == 2:
+                packetString += " --- "
             # write each bit in ASCII
-            if packet[i] == wcv.DATA_ZERO:
+            elif packet[i] == wcv.DATA_ZERO:
                 packetString += '0'
             elif packet[i] == wcv.DATA_ONE:
                 packetString += '1'
@@ -126,8 +129,6 @@ class basebandTx:
     crcValid = False
     txValid = False
     fullBasebandData = []
-    payloadData = []
-    crcBits = []
     id = []
     value1 = 0
     value2 = 0
@@ -142,7 +143,7 @@ class basebandTx:
         
     def decodeTx(self, protocol, glitchFilterCount, timingError, verbose):
         if verbose:
-            print "decoding transmission #" + str(self.txNum)
+            print "decoding transmission #" + str(self.txNum + 1)
                         
         # scan through waveform and get widths
         self.widthList = []
@@ -162,33 +163,20 @@ class basebandTx:
                             self.headerValid
 
         # NEED: add protocol check to ensure bits are legal
-        print self.fullBasebandData
-        print protocol.crcLow
-        print protocol.crcHigh
-        print protocol.crcDataLow
-        print protocol.crcDataHigh
-        try:
-            self.crcBits = self.fullBasebandData[protocol.crcLow:protocol.crcHigh+1]
-        except:
-            self.crcBits = []
-        try:
-            self.payloadData = self.fullBasebandData[protocol.crcDataLow:protocol.crcDataHigh+1]
-        except:
-            self.payloadData = []
-            
-        if verbose:
-            print "crcbits and payload"
-            print self.crcBits
-            print self.payloadData
-        
+        #print self.fullBasebandData
+        #print protocol.crcLow
+        #print protocol.crcHigh
+        #print protocol.crcDataLow
+        #print protocol.crcDataHigh
         if not self.framingValid:
             self.crcValid = False
         elif len(protocol.crcPoly) == 0: # if no CRC given, then assume valid
             self.crcValid = True
         else:
-            self.crcValid = checkCRC(protocol, self.crcBits, self.payloadData)
+            self.crcValid = checkCRC(protocol=protocol, fullData=self.fullBasebandData) and \
+                            checkACS(protocol=protocol, fullData=self.fullBasebandData)
 
-        if self.framingValid and self.encodingValid and self.crcValid and (len(self.fullBasebandData) == protocol.packetSize):
+        if self.framingValid and self.encodingValid and self.crcValid:
             self.txValid = True
             
         # NEED break out ID
@@ -214,10 +202,6 @@ class basebandTx:
         print self.widthList
         print "Full baseband data:"
         print self.fullBasebandData
-        print "Payload Data:"
-        print self.payloadData
-        print "CRC String:"
-        print self.crcBits
         print "ID:"
         print self.id
         print "Value 1: " + str(self.value1)
@@ -228,12 +212,27 @@ class basebandTx:
 
 from demod_rf import ook_flowgraph
 from demod_rf import fsk_flowgraph
-def demodIQFile(verbose, modulationType, iqSampleRate, basebandSampleRate, centerFreq, frequency, channelWidth, 
+from demod_rf import fsk_hopping_flowgraph
+def demodIQFile(verbose, modulationType, iqSampleRate, basebandSampleRate, centerFreq, frequency, frequencyHopList, channelWidth, 
                 transitionWidth, threshold, iqFileName, waveformFileName, fskDeviation = 0, fskSquelch = 0):
     # create flowgraph object and execute flowgraph
         try:
             if verbose:
                 print "Running Demodulation Flowgraph"
+                print "modulation (ook=0)    = " + str(modulationType)
+                print "samp_rate (Hz)        = " + str(iqSampleRate)
+                print "baseband rate (Hz)    = " + str(basebandSampleRate)
+                print "center_freq (Hz)      = " + str(centerFreq)
+                print "tune frequency (Hz)   = " + str(frequency)
+                print "freq hop list (Hz)    = " + str(frequencyHopList)
+                print "channel width (Hz)    = " + str(channelWidth)
+                print "transition width (Hz) = " + str(transitionWidth)
+                print "threshold             = " + str(threshold)
+                print "FSK Squelch Level(dB) = " + str(fskSquelch)
+                print "FSK Deviation (Hz)    = " + str(fskDeviation)
+                print "iq File Name          = " + iqFileName
+                print "Waveform File Name    = " + waveformFileName
+
             if modulationType == wcv.MOD_OOK:
                 flowgraphObject = ook_flowgraph(iqSampleRate, # rate_in
                                                 basebandSampleRate, # rate_out
@@ -252,7 +251,22 @@ def demodIQFile(verbose, modulationType, iqSampleRate, basebandSampleRate, cente
                                                 frequency, # tune_freq
                                                 channelWidth,
                                                 transitionWidth,
-                                                threshold,
+                                                0.0, # threshold, # no need for non-zero threshold in FSK
+                                                fskDeviation,
+                                                fskSquelch,
+                                                iqFileName, 
+                                                waveformFileName) # temp file
+                flowgraphObject.run()
+            elif modulationType == wcv.MOD_FSK_HOP:
+                flowgraphObject = fsk_hopping_flowgraph(iqSampleRate, # samp_rate_in 
+                                                basebandSampleRate, # rate_out 
+                                                centerFreq,
+                                                frequencyHopList[0], #432897500, # tune_freq 0
+                                                frequencyHopList[1], #433417500, # tune_freq 1
+                                                frequencyHopList[2], #433777500, # tune_freq 2
+                                                channelWidth,
+                                                transitionWidth,
+                                                0.0, # threshold, # no need for non-zero threshold in FSK
                                                 fskDeviation,
                                                 fskSquelch,
                                                 iqFileName, 
@@ -292,15 +306,15 @@ def demodIQFile(verbose, modulationType, iqSampleRate, basebandSampleRate, cente
 # this function takes the binary baseband data and breaks it into individual
 # transmissions, assigning each to a Tx Object along with a timestamp
 from breakWave import breakBaseband
-def buildTxList(basebandData, basebandSampleRate, interTxTiming, glitchFilterCount, verbose):
+def buildTxList(basebandData, basebandSampleRate, interTxTiming, glitchFilterCount, interTxLevel, verbose):
     
-    basebandDataByTx = breakBaseband(basebandData, interTxTiming, glitchFilterCount, verbose)
+    basebandDataByTx = breakBaseband(basebandData, interTxTiming, glitchFilterCount, interTxLevel, verbose)
     runningSampleCount = 0
     txList = []
 
     # build a list of transmission objects with timestamp
     for iTx in basebandDataByTx:
-        timeStamp_us = 1000000.0 * runningSampleCount/basebandSampleRate
+        timeStamp_us = 1000000.0 * runningSampleCount/basebandSampleRate # timestamps in microseconds
         runningSampleCount += len(iTx)
         txList.append(basebandTx(len(txList), timeStamp_us, iTx))
 

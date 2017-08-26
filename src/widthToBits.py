@@ -111,12 +111,18 @@ def decodePacket(protocol, packetWidths, decodedPacket, rawPacket, timingError, 
         except:
             print "    starting width   = N/A"
 
+        print "Full Tx Widths:",
+        print packetWidths  
+        print "Payload Widths:",
+        print packetWidths[dataStartIndex:]
+
     # if the preamble or header is broken, get out now
     if not preambleValid or not headerValid:
         encodingValid = False
         return(interPacketValid, preambleValid, headerValid, encodingValid)
     # set loop index to the start of the data portion of the packet
     i = dataStartIndex
+    
 
     # this should be tied to the interpacket width or preamble sync event
     if (i % 2) == 0:
@@ -236,9 +242,10 @@ def decodePacket(protocol, packetWidths, decodedPacket, rawPacket, timingError, 
 
         # go through each width pair and determine long or short duty cycle
         while i < len(packetWidths)-1:
-            print "i = " + str(i)
-            print "First half of symbol: " + str(packetWidths[i])
-            print "Second half of symbol: " + str(packetWidths[i+1])
+            if False: # debug only
+                print "i = " + str(i)
+                print "First half of symbol: " + str(packetWidths[i])
+                print "Second half of symbol: " + str(packetWidths[i+1])
             if (headerSymbolSwallow or (widthCheck(packetWidths[i], firstSymbolWidthZero, wcv.timingError, verbose)) and \
                 widthCheck(packetWidths[i+1], secondSymbolWidthZero, wcv.timingError, verbose)):
                 # we have a zero if both the high and low portions check out
@@ -265,10 +272,91 @@ def decodePacket(protocol, packetWidths, decodedPacket, rawPacket, timingError, 
         #print rawPacket
 
     elif protocol.encodingType == wcv.NO_ENCODING:
+        # move through remaining portion of the transmission and extract digital values directly from timing
+        # starting from "i", move through the width values in the list and convert each to one or more bits
+        
+        # flip level at the start because we have a signal that is usually high
+        # NO!!! THIS IS DEPENDENT ON THE HEADER AND/OR ARB preamble size
+        #if (currentLevel == wcv.DATA_ZERO):
+        #    currentLevel = wcv.DATA_ONE
+        #elif (currentLevel == wcv.DATA_ONE):
+        #    currentLevel = wcv.DATA_ZERO
+        
+        # figure out how much time was consumed by the preamble
+        timeElapsed = sum(packetWidths[0:i])
+            
+        encodingValid = True
+        beginNRZ = True
+        endNRZ = False
+        segmentDecodeOff = True
+        for j, width in enumerate(packetWidths):
+            if j >= i: # ignore the preamble
+                # figure out how many unit timings are in the current width
+                #n = width/protocol.unitWidth_samp # NEED to come up with a better approximation here
+                #n = int(0.5 + width/protocol.unitWidth_samp)
+                if currentLevel == wcv.DATA_ONE:
+                    unitTiming = protocol.pwmOneSymbol_samp[1]
+                elif currentLevel == wcv.DATA_ZERO:
+                    unitTiming = protocol.pwmZeroSymbol_samp[0]
+                else:
+                    print "ERROR: Level must be 0 or 1"
+
+                n = int(0.5 + 1.0*width/unitTiming)
+                # single cycle pulses can be shorter
+                if n == 0:
+                    encodingValid = False
+                    if wcv.verbose:
+                        print "Width#: {:>3}  Level: {} Width: {}  N={}   Error={}".format(j, currentLevel, width, n, "DIV0")
+                    n = 1                 
+
+                tError = abs(1.0*width - 1.0*n*unitTiming)/(1.0*n*unitTiming) 
+
+                # get rid of all this
+                timeElapsed += width
+                if not segmentDecodeOff:
+                    if beginNRZ and timeElapsed > 5200:
+                        beginNRZ = False
+                        rawPacket.append(2) # signifies that this is the end of the first data portion
+                    if (timeElapsed-width) > 19000:
+                        endNRZ = True
+
+                if segmentDecodeOff or beginNRZ or endNRZ:
+                #if timeElapsed < 5100 or (timeElapsed-width) > 14000:   
+                    if tError > wcv.timingError:
+                        if width < 80:
+                            #tError = abs(1.0*width - 1.0*n*55)/(1.0*n*61)
+                            # check again
+                            if tError > wcv.timingError*1.5:
+                                encodingValid = False
+                                if wcv.verbose:
+                                    print "b Width#: {:>3}  Level: {} Width: {}  N={}   Error={}".format(j, currentLevel, width, n, tError)
+                        else:
+                            encodingValid = False
+                            if wcv.verbose:
+                                print "Width#: {:>3}  Level: {} Width: {}  N={}   Error={}".format(j, currentLevel, width, n, tError)
+                            
+                    for _ in xrange(n):
+                        rawPacket.append(currentLevel)
+                
+                # flip level
+                if (currentLevel == wcv.DATA_ZERO):
+                    currentLevel = wcv.DATA_ONE
+                elif (currentLevel == wcv.DATA_ONE):
+                    currentLevel = wcv.DATA_ZERO
+                else:
+                    print("Error: Level isn't either one or zero")
+                    encodingValid = False
+                                                
+        decodedPacket += rawPacket
+        
+    elif protocol.encodingType == wcv.PAIRED00_01:
         decodedPacket += rawPacket
 
-    if protocol.packetSize > 0 and len(decodedPacket) != protocol.packetSize:
-        encodingValid = False
+    # if the length of the packet is greater than zero, we need to check length
+    if protocol.packetSize > 0:
+        # decoded packet must be greater than the specified length, but not too much greater
+        if len(decodedPacket) < protocol.packetSize or (len(decodedPacket) - protocol.packetSize) > 5:
+            encodingValid = False
 
     return(interPacketValid, preambleValid, headerValid, encodingValid)
 
@@ -410,7 +498,7 @@ def checkValidPacket(protocol, packetWidths, timingError, verbose):
         # build ideal timing list
         framingList = []
         # add the preamble
-        for n in range(0, protocol.preambleSize[0]):
+        for _ in range(0, protocol.preambleSize[0]):
             framingList.append(protocol.preambleSymbolLow_samp)
             framingList.append(protocol.preambleSymbolHigh_samp)
         
@@ -423,8 +511,9 @@ def checkValidPacket(protocol, packetWidths, timingError, verbose):
         startPayload = 1 + protocol.preamblePulseCount
         return (startPayload, True, True, True)
 
+    #verbose = True
     # debug only
-    if True: #verbose:
+    if verbose:
         print "Framing List:"
         print framingList
         print "Input List:"
@@ -438,7 +527,7 @@ def checkValidPacket(protocol, packetWidths, timingError, verbose):
     
     # check the second preamble
     # add the preamble
-    for i in range(0, protocol.preambleSize[1]):
+    for _ in range(0, protocol.preambleSize[1]):
         framingList.append(protocol.preambleSymbolLow_samp)
         framingList.append(protocol.preambleSymbolHigh_samp)
         
@@ -462,13 +551,12 @@ def checkValidPacket(protocol, packetWidths, timingError, verbose):
 # match withing the tolerance specified    
 def sequenceCompare(protocol, idealTxList, realTxList, timingError, verbose):
     for i in range(1, len(idealTxList)): # skip the first timing, as the zero gets swallowed up by the inter-packet timing
-        if verbose:
-            print "i = " + str(i)
         try:
             if not widthCheck(realTxList[i], idealTxList[i], wcv.timingError, verbose):
                 return(False)
         except:
             if verbose:
+                print "i = " + str(i)
                 print "NULL value encountered during sequence compare"
                 print "len(realTxList): " + str(len(realTxList))
                 print "len(idealTxList): " + str(len(idealTxList))

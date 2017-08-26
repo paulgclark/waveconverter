@@ -56,14 +56,16 @@ class ProtocolDefinition(Base):
     deviceType = Column(Integer)
       
     # RF demodulation vars
+    bb_samp_rate = Column(Integer)
     frequency = Column(Integer)
+    frequencyHopList = Column(PickleType)
     fskDeviation = Column(Integer)
     channelWidth = Column(Integer)
     transitionWidth = Column(Integer)
     modulation = Column(Integer)
     threshold = Column(Integer)
     fskSquelchLeveldB = Column(Integer)
-    glitchFilterCount = Column(Integer) #
+    glitchFilterCount = Column(Integer)
         
     # framing vars
     interPacketWidth = Column(Integer)
@@ -87,21 +89,13 @@ class ProtocolDefinition(Base):
     pwmZeroSymbol = Column(PickleType) # list with two elements
     pwmSymbolSize = Column(Integer)
         
-    # payload addresses for statistical analysis
-    idAddrLow = Column(Integer)
-    idAddrHigh = Column(Integer)
-    val1AddrLow = Column(Integer)
-    val1AddrHigh = Column(Integer)
-    val2AddrLow = Column(Integer)
-    val2AddrHigh = Column(Integer)
-    val3AddrLow = Column(Integer)
-    val3AddrHigh = Column(Integer)
+    # payload addresses for statistical analysis; each of these is a list of paired values
+    idAddr = Column(PickleType)
+    valAddr = Column(PickleType)
         
     # CRC vars
-    crcLow = Column(Integer)
-    crcHigh = Column(Integer)
-    crcDataLow = Column(Integer)
-    crcDataHigh = Column(Integer)
+    crcAddr = Column(PickleType) # 2-D list
+    crcData = Column(PickleType) # 2-D list
     crcPoly = Column(PickleType) # list
     crcInit = Column(Integer)
     crcBitOrder = Column(Integer)
@@ -112,6 +106,13 @@ class ProtocolDefinition(Base):
     crcPadVal = Column(Integer)
     crcPadCountOptions = Column(PickleType) # list
     
+    # Arithmetic CheckSum (ACS) properties
+    acsLength = Column(Integer)
+    acsInvertData = Column(Integer)
+    acsInitSum = Column(PickleType)
+    acsAddr = Column(PickleType)
+    acsData = Column(PickleType) # 2-dimensional list
+
     # These variables hold the current protocol's timing values in units of samples.
     # The protocol objects themselves hold the values in units of microseconds, but
     # the baseband waveforms may have different timescales due to the rate at which
@@ -140,6 +141,24 @@ class ProtocolDefinition(Base):
         self.crcFinalXor = []
         self.crcPadCountOptions = []
         self.crcPoly = []
+        self.idAddr = []
+        for i in xrange(wcv.NUM_ID_FIELDS): 
+            self.idAddr.append([0, 0])
+        self.valAddr = []
+        for i in xrange(wcv.NUM_VAL_FIELDS):
+            self.valAddr.append([0, 0])
+        self.crcAddr = []
+        self.crcData = []
+        for i in xrange(wcv.NUM_CRC):
+            self.crcAddr.append([0, 0])
+            self.crcData.append([0, 0])
+        self.acsInitSum = []
+        self.acsAddr = []
+        self.acsData = []
+        for i in xrange(wcv.NUM_ACS):
+            self.acsInitSum.append(0)
+            self.acsAddr.append([0, 0])
+            self.acsData.append([0, 0])
         # the rest of the features must be generated manually
     
     def printProtocolMinimal(self):
@@ -156,7 +175,9 @@ class ProtocolDefinition(Base):
         outString += "Device Year: " + str(self.deviceYear) + "\n"
         outString += "Device Type: " + str(self.deviceType) + "\n"
         outString += "RF Properties:\n"
+        outString += " Baseband Frequency(MHz): " + str(self.bb_samp_rate) + "\n"
         outString += " Frequency(MHz): " + str(self.frequency) + "\n"
+        outString += " Frequency Hop List (MHz): " + str(self.frequencyHopList) + "\n"
         outString += " Modulation: " + str(self.modulation) + "\n"
         outString += " Channel Width(kHz): " + str(self.channelWidth) + "\n"
         outString += " Transition Width(kHz): " + str(self.transitionWidth) + "\n"
@@ -177,16 +198,24 @@ class ProtocolDefinition(Base):
         outString += "Demod Properties:\n"
         outString += " Encoding: " + str(self.encodingType) + "\n"
         outString += " PWM Symbol Order: " + str(self.pwmSymbolOrder01) + "\n"
-        outString += " PWM Symbol Size: " + str(self.pwmSymbolSize) + "\n"
         outString += " PWM 1: " + str(self.pwmOneSymbol) + "\n"
         outString += " PWM 0: " + str(self.pwmZeroSymbol) + "\n"
         outString += " Unit Width: " + str(self.unitWidth) + "\n"
         outString += " TX Size: " + str(self.packetSize) + "\n"
         outString += "CRC Properties:\n"
-        outString += " CRC Low Addr: " + str(self.crcLow) + "\n"
-        outString += " CRC High Addr: " + str(self.crcHigh) + "\n"
-        outString += " CRC Low Data Addr: " + str(self.crcDataLow) + "\n"
-        outString += " CRC High Data Addr: " + str(self.crcDataHigh) + "\n"
+        for i in xrange(wcv.NUM_CRC):
+            outString += " CRC" + str(i+1) + " Low Addr: " + str(self.crcAddr[i][0]) + "\n"
+            outString += " CRC" + str(i+1) + " High Addr: " + str(self.crcAddr[i][1]) + "\n"
+            outString += " CRC" + str(i+1) + " Low Data Addr: " + str(self.crcData[i][0]) + "\n"
+            outString += " CRC" + str(i+1) + " High Data Addr: " + str(self.crcData[i][0]) + "\n"
+        outString += " ACS Length: " + str(self.acsLength) + "\n"
+        outString += " ACS Invert: " + str(self.acsInvertData) + "\n"
+        for i in xrange(wcv.NUM_ACS):
+            outString += " ACS" + str(i+1) + " Initial Sum: " + str(self.acsInitSum[i]) + "\n"
+            outString += " ACS" + str(i+1) + " Data Low: " + str(self.acsAddr[i][0]) + "\n"
+            outString += " ACS" + str(i+1) + " Data High: " + str(self.acsAddr[i][1]) + "\n"
+            outString += " ACS" + str(i+1) + " Data Addr Low: " + str(self.acsData[i][0]) + "\n"
+            outString += " ACS" + str(i+1) + " Data Addr High: " + str(self.acsData[i][1]) + "\n"
         outString += " CRC Poly: " + str(self.crcPoly) + "\n"
         outString += " CRC Init: " + str(self.crcInit) + "\n"
         outString += " CRC Bit Order: " + str(self.crcBitOrder) + "\n" 
@@ -197,15 +226,25 @@ class ProtocolDefinition(Base):
         outString += " CRC Pad Val: " + str(self.crcPadVal) + "\n"
         outString += " CRC Pad Count Options: " + str(self.crcPadCountOptions) + "\n"
         outString += "Stat Properties:\n"
-        outString += " ID Addr Low: " + str(self.idAddrLow) + "\n"
-        outString += " ID Addr High: " + str(self.idAddrHigh) + "\n"
-        outString += " Value 1 Addr Low: " + str(self.val1AddrLow) + "\n"
-        outString += " Value 1 Addr High: " + str(self.val1AddrHigh) + "\n"
-        outString += " Value 2 Addr Low: " + str(self.val2AddrLow) + "\n"
-        outString += " Value 2 Addr High: " + str(self.val2AddrHigh) + "\n"
-        outString += " Value 3 Addr Low: " + str(self.val3AddrLow) + "\n"
-        outString += " Value 3 Addr High: " + str(self.val3AddrHigh) + "\n"
-        outString += "Timing Propertied Re-Calculated in units of samples:\n"
+        outString += " ID 1 Addr Low: " + str(self.idAddr[0][0]) + "\n"
+        outString += " ID 1 Addr High: " + str(self.idAddr[0][1]) + "\n"
+        outString += " ID 2 Addr Low: " + str(self.idAddr[1][0]) + "\n"
+        outString += " ID 2 Addr High: " + str(self.idAddr[1][1]) + "\n"
+        outString += " ID 3 Addr Low: " + str(self.idAddr[2][0]) + "\n"
+        outString += " ID 3 Addr High: " + str(self.idAddr[2][1]) + "\n"
+        outString += " ID 4 Addr Low: " + str(self.idAddr[3][0]) + "\n"
+        outString += " ID 4 Addr High: " + str(self.idAddr[3][1]) + "\n"
+        outString += " ID 5 Addr Low: " + str(self.idAddr[4][0]) + "\n"
+        outString += " ID 5 Addr High: " + str(self.idAddr[4][1]) + "\n"
+        outString += " ID 6 Addr Low: " + str(self.idAddr[5][0]) + "\n"
+        outString += " ID 6 Addr High: " + str(self.idAddr[5][1]) + "\n"        
+        outString += " Value 1 Addr Low: " + str(self.valAddr[0][0]) + "\n"
+        outString += " Value 1 Addr High: " + str(self.valAddr[0][1]) + "\n"
+        outString += " Value 2 Addr Low: " + str(self.valAddr[1][0]) + "\n"
+        outString += " Value 2 Addr High: " + str(self.valAddr[1][1]) + "\n"
+        outString += " Value 3 Addr Low: " + str(self.valAddr[2][0]) + "\n"
+        outString += " Value 3 Addr High: " + str(self.valAddr[2][1]) + "\n"
+        outString += "Timing Properties Re-Calculated in units of samples:\n"
         outString += " Unit Width (samples): " + str(self.unitWidth_samp) + "\n"
         outString += " Inter-Packet Width (samples): " + str(self.interPacketWidth_samp) + "\n"
         outString += " Preamble Symbol Low (samples): " + str(self.preambleSymbolLow_samp) + "\n"
@@ -260,6 +299,18 @@ class ProtocolDefinition(Base):
         del self.arbPreambleList_samp[:]
         self.arbPreambleList_samp = copiedList
 
+        copiedList = self.idAddr[:]
+        del self.idAddr[:]
+        self.idAddr = copiedList
+        
+        copiedList = self.valAddr[:]
+        del self.valAddr[:]
+        self.valAddr = copiedList
+        
+        copiedList = self.frequencyHopList[:]
+        del self.frequencyHopList[:]
+        self.frequencyHopList = copiedList
+
         try:
             protocolSession.merge(self)
         except:
@@ -267,7 +318,12 @@ class ProtocolDefinition(Base):
         protocolSession.commit()
         
     # convert timing parameters from us to samples based on current sample rate
-    def convertTimingToSamples(self, basebandSampleRate):
+    def convertTimingToSamples(self, basebandSampleRateIn):
+        if self.bb_samp_rate > 0:
+            basebandSampleRate = self.bb_samp_rate
+        else:
+            basebandSampleRate = wcv.basebandSampleRate
+            
         #microsecondsPerSample = 1000000.0/samp_rate
         samplesPerMicrosecond = basebandSampleRate/1000000.0
         self.unitWidth_samp = int(self.unitWidth * samplesPerMicrosecond)
@@ -288,29 +344,6 @@ class ProtocolDefinition(Base):
         
         return(0)
 
-    # produces the maximum size, in integer samples, that a transmission
-    # using this protocol can have
-    def maxTransmissionSize(self):
-        maxSize = 0
-        
-        # add the preamble size
-        maxSize += (self.preambleSymbolLow_samp + self.preambleSymbolHigh_samp) * max(self.preambleSize)
-        
-        # add the header
-        maxSize += self.headerWidth_samp 
-        
-        # add the payload and CRC
-        if self.encodingType == 3: # make this PWM
-            maxSize += self.pwmSymbolSize_samp * self.packetSize
-            maxSize += self.pwmSymbolSize_samp * (self.crcHigh - self.crcLow)
-        else: # assume it's a Manchester variant
-            maxSize += (self.unitWidth_samp * 2) * self.packetSize
-            maxSize += (self.unitWidth_samp * 2) * (self.crcHigh - self.crcLow)
-            
-        # scale up by max timing error and additional fudge factor
-        maxSize = maxSize * (wcv.timingError + 0.05)
-        
-        return(int(maxSize))
     
     # this produces the max legal duration (in samples) of a signal level equal to zero
     # we'll use this to distinguish between a legal zero level within a transmission
@@ -389,7 +422,9 @@ def createProtocolFromText(fileString):
     protocol.deviceYear = parseProtocolText(fileString, "Device Year", wcv.PARAM_STR)
     protocol.deviceType = parseProtocolText(fileString, "Device Type", wcv.PARAM_INT)
     
+    protocol.bb_samp_rate = parseProtocolText(fileString, "Baseband Frequency(MHz)", wcv.PARAM_FLOAT)
     protocol.frequency = parseProtocolText(fileString, "Frequency(MHz)", wcv.PARAM_FLOAT)
+    protocol.frequencyHopList = parseProtocolText(fileString, "Frequency(MHz)", wcv.PARAM_LIST)    
     protocol.modulation = parseProtocolText(fileString, "Modulation", wcv.PARAM_INT)
     protocol.channelWidth = parseProtocolText(fileString, "Channel Width(kHz)", wcv.PARAM_FLOAT)
     protocol.transitionWidth = parseProtocolText(fileString, "Transition Width(kHz)", wcv.PARAM_FLOAT)
@@ -417,10 +452,20 @@ def createProtocolFromText(fileString):
     protocol.unitWidth = parseProtocolText(fileString, "Unit Width", wcv.PARAM_INT)
     protocol.packetSize = parseProtocolText(fileString, "TX Size", wcv.PARAM_INT)
     
-    protocol.crcLow = parseProtocolText(fileString, "CRC Low Addr", wcv.PARAM_INT)
-    protocol.crcHigh = parseProtocolText(fileString, "CRC High Addr", wcv.PARAM_INT)
-    protocol.crcDataLow = parseProtocolText(fileString, "CRC Low Data Addr", wcv.PARAM_INT)
-    protocol.crcDataHigh = parseProtocolText(fileString, "CRC High Data Addr", wcv.PARAM_INT)
+    for i in xrange(wcv.NUM_CRC):
+        protocol.crcAddr[i][0] = parseProtocolText(fileString, "CRC" + str(i+1) + " Addr Low", wcv.PARAM_INT)
+        protocol.crcAddr[i][1] = parseProtocolText(fileString, "CRC" + str(i+1) + " Addr High", wcv.PARAM_INT)
+        protocol.crcData[i][0] = parseProtocolText(fileString, "CRC" + str(i+1) + " Data Addr Low", wcv.PARAM_INT)
+        protocol.crcData[i][1] = parseProtocolText(fileString, "CRC" + str(i+1) + " Data Addr High", wcv.PARAM_INT)
+    protocol.acsLength = parseProtocolText(fileString, "ACS Length", wcv.PARAM_INT)
+    protocol.acsInvertData = parseProtocolText(fileString, "ACS Invert", wcv.PARAM_BOOL)
+    for i in xrange(wcv.NUM_ACS):
+        protocol.acsInitSum[i] = parseProtocolText(fileString, "ACS" + str(i+1) + " Length", wcv.PARAM_INT)
+        protocol.acsAddr[i][0] = parseProtocolText(fileString, "ACS" + str(i+1) + " Addr Low", wcv.PARAM_INT)
+        protocol.acsAddr[i][1] = parseProtocolText(fileString, "ACS" + str(i+1) + " Addr High", wcv.PARAM_INT)
+        protocol.acsData[i][0] = parseProtocolText(fileString, "ACS" + str(i+1) + " Data Addr Low", wcv.PARAM_INT)
+        protocol.acsData[i][1] = parseProtocolText(fileString, "ACS" + str(i+1) + " Data Addr High", wcv.PARAM_INT)
+        
     protocol.crcPoly = parseProtocolText(fileString, "CRC Poly", wcv.PARAM_LIST)
     protocol.crcInit = parseProtocolText(fileString, "CRC Init", wcv.PARAM_INT)
     protocol.crcBitOrder = parseProtocolText(fileString, "CRC Bit Order", wcv.PARAM_INT)
@@ -431,14 +476,8 @@ def createProtocolFromText(fileString):
     protocol.crcPadVal = parseProtocolText(fileString, "CRC Pad Val", wcv.PARAM_INT)
     protocol.crcPadCountOptions = parseProtocolText(fileString, "CRC Pad Count Options", wcv.PARAM_LIST)
     
-    protocol.idAddrLow = parseProtocolText(fileString, "ID Addr Low", wcv.PARAM_INT)
-    protocol.idAddrHigh = parseProtocolText(fileString, "ID Addr High", wcv.PARAM_INT)
-    protocol.val1AddrLow = parseProtocolText(fileString, "Value 1 Addr Low", wcv.PARAM_INT)
-    protocol.val1AddrHigh = parseProtocolText(fileString, "Value 1 Addr High", wcv.PARAM_INT)
-    protocol.val2AddrLow = parseProtocolText(fileString, "Value 2 Addr Low", wcv.PARAM_INT)
-    protocol.val2AddrHigh = parseProtocolText(fileString, "Value 2 Addr High", wcv.PARAM_INT)
-    protocol.val3AddrLow = parseProtocolText(fileString, "Value 3 Addr Low", wcv.PARAM_INT)
-    protocol.val3AddrHigh = parseProtocolText(fileString, "Value 3 Addr High", wcv.PARAM_INT)
+    protocol.idAddr = parseProtocolText(fileString, "ID Addr", wcv.PARAM_LIST)
+    protocol.valAddr = parseProtocolText(fileString, "Value Addr", wcv.PARAM_LIST)
     
     protocol.unitWidth_samp = parseProtocolText(fileString, "Unit Width (samples)", wcv.PARAM_INT)
     protocol.interPacketWidth_samp = parseProtocolText(fileString, "Inter-Packet Width (samples)", wcv.PARAM_INT)
@@ -452,7 +491,6 @@ def createProtocolFromText(fileString):
 
     # unused parameters that need to be set for sqllite to be happy
     protocol.glitchFilterCount = 2
-    protocol.interPacketSymbol = 0
     protocol.headerLevel = 0
     
     # write protocol to database

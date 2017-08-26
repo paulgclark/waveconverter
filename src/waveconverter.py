@@ -51,6 +51,7 @@ parser.add_argument("-b", "--baseband", help="digital baseband input file name")
 parser.add_argument("-n", "--bb_save", help="save baseband to file", action="store_true")
 parser.add_argument("-o", "--output", help="output file name")
 parser.add_argument("-s", "--samp_rate", help="sample rate (Hz), minimum of 100,000Hz", type=int)
+parser.add_argument("-y", "--bb_samp_rate", help="baseband sample rate (Hz), minimum of 100,000Hz", type=int)
 parser.add_argument("-c", "--center_freq", help="center frequency in Hz",type=int)
 parser.add_argument("-p", "--protocol", help="protocol for decode - listed by number, enter 0 for list", type=int)
 parser.add_argument("-v", "--verbose", help="increase output verbosity", action="store_true")
@@ -58,6 +59,7 @@ parser.add_argument("-x", "--hex_out", help="output data in hex format", action=
 parser.add_argument("-z", "--hide_bad", help="hide bad transmissions from output", action="store_true")
 parser.add_argument("-i", "--glitch_count", help="glitch filter in 10us samples", type=int)
 parser.add_argument("-f", "--freq", help="frequency of target in Hz", type=int)
+parser.add_argument("-u", "--squelch", help="FSK squelch level in negative dB", type=int)
 parser.add_argument("-l", "--threshold", help="threshold value", type=float)
 parser.add_argument("-t", "--time_between_tx", help="min time between tx in us", type=int)
 parser.add_argument("-e", "--timing_error", help="max allowable timing error percentage", type=int)
@@ -105,7 +107,7 @@ except:
     wcv.runWithGui = False
 if args.baseband: # if not argument passed, use default
     wcv.waveformFileName = args.baseband
-    print wcv.waveformFileName
+
 if args.iq:
     wcv.iqFileName = args.iq
     # try to parse the file name to see if if contains the iq parameters
@@ -117,7 +119,7 @@ if args.iq:
     except:
         wcv.center_freq = -1
         wcv.samp_rate = -1
-    print wcv.center_freq
+
 # can't run from command line without input file
 elif not wcv.runWithGui:
     if (args.protocol != 0) and not args.db and len(wcv.waveformFileName) <= 0: # these commands do not require an IQ file
@@ -137,6 +139,10 @@ if args.center_freq > 0:
 elif (wcv.center_freq < 0) and not wcv.runWithGui:
     print "Fatal Error: No center frequency given (or less than zero)"
     exit(0)
+
+# default baseband sample rate already set in wcv, but override if cmd line value
+if args.bb_samp_rate > 0:
+    wcv.basebandSampleRate = args.bb_samp_rate * 1.0
 
 if args.protocol is None:
     wcv.protocol_number = -1    
@@ -181,6 +187,10 @@ try:
 except:
     wcv.frequency = -1.0 # allow protocol to supply value
 try:
+    wcv.squelch = args.squelch * -1.0
+except:
+    wcv.squelch = -1.0 # allow protocol to supply value    
+try:
     wcv.timingError = args.timing_error / 100.0
 except:
     wcv.timingError = 0.2
@@ -203,6 +213,7 @@ if wcv.verbose:
     print 'TIMING ERROR   :', wcv.timingError
     print 'TIME BTW TX    :', wcv.timeBetweenTx
     print 'TUNE FREQ      :', wcv.frequency
+    print 'SQUELCH        :', wcv.squelch
     print 'GLITCH FILT    :', wcv.glitchFilterCount
     print 'SHOW ALL       :', wcv.showAllTx
     print 'THRESHOLD      :', wcv.threshold
@@ -228,8 +239,11 @@ elif wcv.protocol_number == 0:
 # do nothing
 # fetch from database
 else:
-    print "attempting to retrieve protocol " + str(wcv.protocol_number) + " from database"
+    if wcv.verbose:
+        print "attempting to retrieve protocol " + str(wcv.protocol_number) + " from database"
     wcv.protocol = protocol_lib.fetchProtocol(wcv.protocol_number)
+    if wcv.verbose:
+        print "successfully retrieved protocol"
     if wcv.verbose:
         print wcv.protocol.fullProtocolString()
 
@@ -247,17 +261,25 @@ if not wcv.runWithGui:
             wcv.frequency = wcv.protocol.frequency
         if wcv.threshold < 0:
             wcv.threshold = wcv.protocol.threshold
+        if wcv.squelch == -1.0:
+            wcv.squelch = wcv.protocol.fskSquelchLeveldB
+            
+        # need to get baseband sample rate from protocol
+        wcv.basebandSampleRate = wcv.protocol.bb_samp_rate
+        
         # since we have an I-Q input file, we will generate the baseband waveform
         basebandData = demodIQFile(verbose = wcv.verbose,
                                    modulationType = wcv.protocol.modulation,
                                    iqSampleRate = wcv.samp_rate,
-                                   basebandSampleRate = wcv.basebandSampleRate,
+                                   basebandSampleRate = wcv.protocol.bb_samp_rate,
                                    centerFreq = wcv.center_freq,
                                    frequency = wcv.frequency,
                                    channelWidth = wcv.protocol.channelWidth,
                                    transitionWidth = wcv.protocol.transitionWidth,
                                    threshold = wcv.threshold,
                                    fskDeviation = wcv.protocol.fskDeviation,
+                                   fskSquelch = wcv.squelch,
+                                   frequencyHopList = wcv.protocol.frequencyHopList,
                                    iqFileName = wcv.iqFileName,
                                    waveformFileName = wcv.bbOutFileName)
 
@@ -281,7 +303,13 @@ if not wcv.runWithGui:
                          basebandSampleRate =  wcv.basebandSampleRate,
                          interTxTiming = timeBetweenTx_samp,
                          glitchFilterCount = wcv.glitchFilterCount,
-                         verbose = wcv.verbose)    
+                         interTxLevel = wcv.protocol.interPacketSymbol,
+                         verbose = wcv.verbose)
+
+    if wcv.verbose:       
+        print "Number of transmissions broken down: " + str(len(txList))
+        for tx in txList:
+            print "tx waveform list length: " + str(len(tx.waveformData)) 
 
     # decode
     (txList, decodeOutputString) = decodeAllTx(protocol = wcv.protocol, 
@@ -293,15 +321,24 @@ if not wcv.runWithGui:
                                                showAllTx = wcv.showAllTx)
         
     # compute stats
-    (bitProbList, idListCounter, value1List, value2List, value3List) = computeStats(txList = txList, protocol = wcv.protocol, showAllTx = wcv.showAllTx)
+    (bitProbList, idListMaster, valListMaster, payloadLenList) = computeStats(txList = txList,
+                                                                              protocol = wcv.protocol, 
+                                                                              showAllTx = wcv.showAllTx)
     # compute stat string
-    (bitProbString, idStatString, valuesString) = buildStatStrings(bitProbList, idListCounter, value1List, value2List, value3List, wcv.outputHex)
-
+    (bitProbString, idStatString, valuesString) = buildStatStrings(bitProbList, 
+                                                                   idListMaster, 
+                                                                   valListMaster, 
+                                                                   payloadLenList, 
+                                                                   wcv.outputHex)
+    
     # output strings to stdio
+    print "Raw Transmission Data:"
     print decodeOutputString
+    print "End Raw Transmission Data"
     print bitProbString
     print idStatString
     print valuesString
+    
 
 else: # start up the GUI
     if __name__ == "__main__":

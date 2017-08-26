@@ -37,14 +37,21 @@ inputFileObject = None
 center_freq = 0.0
 samp_rate = 0.0
 glitchFilterCount = 2
-timingError = 0.2
+timingError = 0.20
 showAllTx = True
 timeBetweenTx = -1 # this value overrides that of the protocol; -1 means no value has been passed
 frequency = -1.0 # another override value
-threshold = 0.1 # another override value
+threshold = -0.1 # another override value
+squelch = -1.0 # another override value
 
 # this value is used for the sample rate of the digital baseband file
-basebandSampleRate = 100000.0 # good default rate
+basebandSampleRate = 100000.0  #100000.0*10#5 # good default rate
+
+# GUI parameters
+NUM_ID_FIELDS = 6
+NUM_VAL_FIELDS = 3
+NUM_CRC = 2
+NUM_ACS = 2
 
 # define a global protocol variable
 from protocol_lib import ProtocolDefinition
@@ -68,6 +75,7 @@ TEMP_PROTOCOL = 0
 MOD_UNDEFINED = -1
 MOD_OOK = 0
 MOD_FSK = 1
+MOD_FSK_HOP = 2
 
 # parameter types for import
 PARAM_BOOL = 0
@@ -75,7 +83,6 @@ PARAM_INT = 1
 PARAM_FLOAT = 2
 PARAM_STR = 3
 PARAM_LIST = 4
-
 
 # enumerated type for symbols
 #from enum import Enum
@@ -108,7 +115,8 @@ NO_ENCODING = 0
 STD_MANCHESTER = 1
 INV_MANCHESTER = 2
 PWM = 3
-ENCODING_OPTIONS = [NO_ENCODING, STD_MANCHESTER, INV_MANCHESTER, PWM]
+PAIRED00_01 = 4
+ENCODING_OPTIONS = [NO_ENCODING, STD_MANCHESTER, INV_MANCHESTER, PWM, PAIRED00_01]
 
 # CRC Status
 CRC_PASS = 1

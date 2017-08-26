@@ -58,7 +58,7 @@ class TestCommandLine(unittest.TestCase):
         regexStringList.append(r"1\s+11010111\s+11101000\s+11100010\s+11101010\s+00101110\s+01")
         regexStringList.append(r"2\s+11010111\s+11101000\s+11100010\s+11101010\s+00101110\s+01")
         # check that the ID count is correct
-        regexStringList.append(r"Count\s+ID\s+2\s+0101")
+        regexStringList.append(r"Count for ID 1\n\s+2\s+0101")
 
         for regexString in regexStringList:
             self.assertRegexpMatches(self.outputString, regexString)

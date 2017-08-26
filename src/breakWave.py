@@ -41,13 +41,17 @@ def basebandFileToList(basebandFileName):
 #####################################
 # reads through the list representing the baseband data and divides it
 # into smaller lists (one for each transmission), also cutting out dead time
-def breakBaseband(basebandData_preglitch, minTimeBetweenTx, glitchFilterCount, verbose):
+def breakBaseband(basebandData_preglitch, minTimeBetweenTx, glitchFilterCount, idleSignalLevel, verbose):
     basebandTransmissionList = []
     newTx = []
     i = 0
     deadAirCount = 0
     currentStartIndex = 0
-    consecutiveOnes = 0
+    consecutiveIdleCycles = 0
+    if idleSignalLevel == 0:
+        activeSignalLevel = 1
+    else:
+        activeSignalLevel = 0
 
     if verbose:
         print "Deglitching baseband..."
@@ -70,7 +74,7 @@ def breakBaseband(basebandData_preglitch, minTimeBetweenTx, glitchFilterCount, v
             if i >= len(basebandData):
                 break
             # have we encountered a transmission?
-            if (basebandData[i] == 1) and (consecutiveOnes > glitchFilterCount):
+            if (basebandData[i] == activeSignalLevel) and (consecutiveIdleCycles > glitchFilterCount):
                 if verbose:
                     print "Encountered TX at: " + str(i)
                 state = IN_TX # move to signal found state
@@ -96,7 +100,7 @@ def breakBaseband(basebandData_preglitch, minTimeBetweenTx, glitchFilterCount, v
                         print "timestamp: " + str(len(basebandTransmissionList)/wcv.basebandSampleRate)
                     else:
                         print "timestamp: " + str(len(basebandTransmissionList)/wcv.samp_rate)
-            elif (basebandData[i] == 1) and (consecutiveOnes > glitchFilterCount):
+            elif (basebandData[i] == activeSignalLevel) and (consecutiveIdleCycles > glitchFilterCount):
                 deadAirCount = 0
             else:
                 deadAirCount += 1
@@ -105,10 +109,10 @@ def breakBaseband(basebandData_preglitch, minTimeBetweenTx, glitchFilterCount, v
             return(1)
         # regardless of state or transition, keep a count of the consecutive ones
         # and increment the index
-        if basebandData[i] == 1:
-            consecutiveOnes += 1
+        if basebandData[i] == idleSignalLevel:
+            consecutiveIdleCycles += 1
         else:
-            consecutiveOnes = 0            
+            consecutiveIdleCycles = 0            
         i += 1
 
     if verbose:
@@ -243,10 +247,17 @@ def breakdownWaveform(protocol, waveformFile, masterWidthList):
 # NEED: If a period longer than the interpacket comes up, resync to IPSYMBOL
 def breakdownWaveform2(protocol, waveformList, masterWidthList, glitchFilterCount):
 
+    # if the first value is zero, look for rising edge next
+    if waveformList[0] == wcv.DATA_ZERO:
+        nextEdge = RISING_EDGE 
+    elif waveformList[0] == wcv.DATA_ONE:
+        nextEdge = FALLING_EDGE
+    """
     if protocol.interPacketSymbol == wcv.DATA_ZERO:
         nextEdge = RISING_EDGE 
     elif protocol.interPacketSymbol == wcv.DATA_ONE:
-        nextEdge = FALLING_EDGE 
+        nextEdge = FALLING_EDGE
+    """ 
     width = 0
 
     # run through file and catalog all transition widths

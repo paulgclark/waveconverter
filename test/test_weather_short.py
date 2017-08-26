@@ -80,6 +80,8 @@ class TestFullFlow(unittest.TestCase):
                                         transitionWidth = self.protocol.transitionWidth,
                                         threshold = self.threshold,
                                         fskDeviation = self.protocol.fskDeviation,
+                                        fskSquelch = self.protocol.fskSquelchLeveldB,
+                                        frequencyHopList = self.protocol.frequencyHopList,
                                         iqFileName = self.iqFileName,
                                         waveformFileName = self.waveformFileName)
 
@@ -88,6 +90,7 @@ class TestFullFlow(unittest.TestCase):
                                   basebandSampleRate =  self.basebandSampleRate,
                                   interTxTiming = self.timeBetweenTx_samp,
                                   glitchFilterCount = self.glitchFilterCount,
+                                  interTxLevel = self.protocol.interPacketSymbol,
                                   verbose = self.verbose)    
 
         # decode
@@ -100,9 +103,15 @@ class TestFullFlow(unittest.TestCase):
                                                              showAllTx = self.showAllTx)
         
         # compute stats
-        (self.bitProbList, self.idListCounter, self.value1List, self.value2List, self.value3List) = computeStats(txList = self.txList, protocol = self.protocol, showAllTx = self.showAllTx)
+        (self.bitProbList, self.idListMaster, self.valListMaster, self.payloadLenList) = computeStats(txList = self.txList, 
+                                                                                                      protocol = self.protocol, 
+                                                                                                      showAllTx = self.showAllTx)
         # compute stat string
-        (self.bitProbString, self.idStatString, self.valuesString) = buildStatStrings(self.bitProbList, self.idListCounter, self.value1List, self.value2List, self.value3List, self.outputHex)
+        (self.bitProbString, self.idStatString, self.valuesString) = buildStatStrings(self.bitProbList, 
+                                                                                      self.idListMaster, 
+                                                                                      self.valListMaster, 
+                                                                                      self.payloadLenList,
+                                                                                      self.outputHex)
 
         # turn stdout back on
         sys.stdout = saved_stdout
@@ -172,7 +181,7 @@ class TestFullFlow(unittest.TestCase):
         # create list of just the IDs in string form
         idList = []
         for payload in self.expectedPayloadData:
-            idList.append(''.join(str(s) for s in payload[self.protocol.idAddrLow:self.protocol.idAddrHigh+1]))
+            idList.append(''.join(str(s) for s in payload[self.protocol.idAddr[0][0]:self.protocol.idAddr[0][1]+1]))
         # now create dictionary of IDs and their counts
         expectedIdCountDict = {}
         for id in idList:
@@ -184,31 +193,32 @@ class TestFullFlow(unittest.TestCase):
 
         # now compare ID counts to expected values
         if debug:
-            print self.idListCounter
+            #print self.idListCounter
+            print self.idListMaster
             print expectedIdCountDict
-        self.assertEqual(len(self.idListCounter), len(expectedIdCountDict), "ERROR: expected length of ID count list mismatch")
-        for (idVal, idCount) in self.idListCounter.most_common():
-            self.assertEqual(self.idListCounter[idVal], expectedIdCountDict[idVal], "ERROR: ID count mismatch")
+        self.assertEqual(len(self.idListMaster[0]), len(expectedIdCountDict), "ERROR: expected length of ID count list mismatch")
+        for (idVal, idCount) in self.idListMaster[0].most_common():
+            self.assertEqual(self.idListMaster[0][idVal], expectedIdCountDict[idVal], "ERROR: ID count mismatch")
         
         
         # build list of values from expected data
-        expectedValue1List = []
+        expectedValueList = []
         for payload in self.expectedPayloadData:
             if len(payload) == self.protocol.packetSize: # only considering good transmissions
-                bitList = payload[self.protocol.val1AddrLow:self.protocol.val1AddrHigh+1]
+                bitList = payload[self.protocol.valAddr[0][0]:self.protocol.valAddr[0][1]+1]
                 # convert bits to number
                 value = 0
                 for bit in bitList:
                     value = (value << 1) | bit
                 # add to list
-                expectedValue1List.append(int(value))
+                expectedValueList.append(int(value))
         
         # compare values
         if debug:
-            print self.value1List
-            print expectedValue1List
-        self.assertEqual(len(self.value1List), len(expectedValue1List), "ERROR: expected length of Values 1 list mismatch")
-        for actual, expected in zip(self.value1List, expectedValue1List):
+            print self.valListMaster
+            print expectedValueList
+        self.assertEqual(len(self.valListMaster[0]), len(expectedValueList), "ERROR: expected length of Values 1 list mismatch")
+        for actual, expected in zip(self.valListMaster[0], expectedValueList):
             self.assertEqual(actual, expected, msg = "ERROR: Value mismatch")
 
         pass

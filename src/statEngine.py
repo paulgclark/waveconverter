@@ -10,13 +10,35 @@ import sys
 import io
 import os
 from collections import Counter
+from collections import deque
 from protocol_lib import ProtocolDefinition
 import waveConvertVars as wcv
+import itertools
+import crc_custom
+import bit_list_utilities as blu
 
 from waveConvertVars import *
 from config import *
 
+# check if there are any statistical plugins
+try:
+    import waveconverter_plugin_00 as wcp00
+    plugin_00 = True
+    print "Plugin Detected"
+except:
+    plugin_00 = False
 
+
+# if we were able to import a plugin, then this function calls the 
+# highest priority plugin installed and executes the code contained 
+# therein; otherwise it exits immediately
+def plugin_stats_stdout(txList, protocol, showAllTx):
+    if plugin_00:
+        wcp00.run_plugin(txList, protocol, showAllTx)
+                
+    
+# computes the bit probabilities, the ID frequencies and the 
+# analog value ranges
 def computeStats(txList, protocol, showAllTx):
     bitProbList = []
     
@@ -53,56 +75,46 @@ def computeStats(txList, protocol, showAllTx):
         i+=1
         
     # get ID value for each packet and save as string to a new list  
-    idList = []
-    for iTx in txList2:
-        binaryString = ''.join(str(s) for s in iTx.fullBasebandData[protocol.idAddrLow:protocol.idAddrHigh+1])
-        idList.append(binaryString)
-    idListCounter = Counter(idList)
-    
+    idListMaster = []
+    for idAddr in protocol.idAddr:
+        idList = []
+        idAddrLow = idAddr[0]
+        idAddrHigh = idAddr[1]
+        for iTx in txList2:
+            binaryString = ''.join(str(s) for s in iTx.fullBasebandData[idAddrLow:idAddrHigh+1])
+            idList.append(binaryString)
+        idListCounter = Counter(idList)
+        idListMaster.append(idListCounter)
 
     # build ranges of values    
     # need to trap for bad indices
-    value1List = []
-    value2List = []
-    value3List = []
-    for iTx in txList2:
-        # if any of the transmissions are too short to include the value bit range, skip
-        if protocol.val1AddrLow < len(iTx.fullBasebandData) or protocol.val1AddrHigh < iTx.fullBasebandData:
-            # get bits that comprise the value
-            bitList = iTx.fullBasebandData[protocol.val1AddrLow:protocol.val1AddrHigh+1]
-            # convert bits to number
-            value = 0
-            for bit in bitList:
-                value = (value << 1) | bit
-            # add to list
-            value1List.append(int(value))
-            
-        # repeat for value 2
-        if protocol.val2AddrLow < len(iTx.fullBasebandData) or protocol.val2AddrHigh < iTx.fullBasebandData:
-            # get bits that comprise the value
-            bitList = iTx.fullBasebandData[protocol.val2AddrLow:protocol.val2AddrHigh+1]
-            # convert bits to number
-            value = 0
-            for bit in bitList:
-                value = (value << 1) | bit
-            # add to list
-            value2List.append(int(value))
+    valListMaster = []
+    for valAddr in protocol.valAddr:
+        valList = []
+        valAddrLow = valAddr[0]
+        valAddrHigh = valAddr[1]
+        for iTx in txList2:
+            # if any of the transmissions are too short to include the value bit range, skip
+            if valAddrLow < len(iTx.fullBasebandData) or valAddrHigh < iTx.fullBasebandData:
+                # get bits that comprise the value
+                bitList = iTx.fullBasebandData[valAddrLow:valAddrHigh+1]
+                # convert bits to number
+                value = 0
+                for bit in bitList:
+                    value = (value << 1) | bit
+                # add to list
+                valList.append(int(value))
+        valListMaster.append(valList)
+        
+    # get all of the payload lengths and put them in a list
+    payloadLenList = []
+    for iTx in txList:
+        payloadLenList.append(len(iTx.fullBasebandData))
 
-        # repeat for value 3
-        if protocol.val3AddrLow < len(iTx.fullBasebandData) or protocol.val3AddrHigh < iTx.fullBasebandData:
-            # get bits that comprise the value
-            bitList = iTx.fullBasebandData[protocol.val3AddrLow:protocol.val3AddrHigh+1]
-            # convert bits to number
-            value = 0
-            for bit in bitList:
-                value = (value << 1) | bit
-            # add to list
-            value3List.append(int(value))
-            
-    return (bitProbList, idListCounter, value1List, value2List, value3List)
+    return (bitProbList, idListMaster, valListMaster, payloadLenList)
 
 
-def buildStatStrings(bitProbList, idListCounter, value1List, value2List, value3List, outputHex):
+def buildStatStrings(bitProbList, idListMaster, valListMaster, payloadLenList, outputHex):
 
     # build string for display of bit probabilities, one per line
     bitProbString = "Bit: Probability %\n"
@@ -111,52 +123,54 @@ def buildStatStrings(bitProbList, idListCounter, value1List, value2List, value3L
         bitProbString += '{:3d}'.format(i) + ": " + '{:6.2f}'.format(bitProb) + "\n"
         i+=1
 
-    # build string showing frequency of each ID value
-    idStatString = "Count ID\n" # NEED: make the whitespace match the length of the IDs
-    for (idVal, idCount) in idListCounter.most_common():
-        if outputHex:
-            try:
-                hexString = '%0*X' % ((len(idVal) + 3) // 4, int(idVal, 2))
-                idStatString += '{:5d}'.format(idCount) + "  " + hexString + "\n"
-                #idStatString += '{:5d}'.format(idCount) + "  " + hex(int(idVal, 2)) + "\n"
-            except:
-                idStatString += '{:5d}'.format(idCount) + "  " + "N/A" + "\n"
+    # for each ID definition
+    idStatString = ""
+    for i, idListCounter in enumerate(idListMaster):
+        # build string showing frequency of each ID value
+        idStatString += "Count for ID " + str(i+1) + "\n" # NEED: make the whitespace match the length of the IDs
+        for (idVal, idCount) in idListCounter.most_common():
+            if outputHex:
+                try:
+                    hexString = '%0*X' % ((len(idVal) + 3) // 4, int(idVal, 2))
+                    idStatString += '{:5d}'.format(idCount) + "  " + hexString + "\n"
+                    #idStatString += '{:5d}'.format(idCount) + "  " + hex(int(idVal, 2)) + "\n"
+                except:
+                    idStatString += '{:5d}'.format(idCount) + "  " + "N/A" + "\n"
+            else:
+                idStatString += '{:5d}'.format(idCount) + "  " + idVal + "\n"
+
+    # for each value definition
+    valuesString = ""
+    for i, valList in enumerate(valListMaster):
+        # build string of values
+        if valList == []:
+            valuesString += "Value " + str(i+1) + ": Undefined\n\n"
+        elif valList[0] == -1:
+            valuesString += "Value " + str(i+1) + ": Illegal Values\n\n"
         else:
-            idStatString += '{:5d}'.format(idCount) + "  " + idVal + "\n"
-
-    # build string of values
-    if value1List == []:
-        valuesString = "Value 1: Undefined\n\n"
-    elif value1List[0] == -1:
-        valuesString = "Value 1: Illegal Values\n\n"
-    else:
-        valuesString = "Value 1:\n"
-        valuesString += "  Average:  " + str(sum(value1List)/len(value1List)) + "\n" 
-        valuesString += "  Low Val:  " + str(min(value1List)) + "\n"
-        valuesString += "  High Val: " + str(max(value1List)) + "\n\n"
+            valuesString += "Value " + str(i+1) + ":\n"
+            valuesString += "  Average:  " + str(sum(valList)/len(valList)) + "\n" 
+            valuesString += "  Low Val:  " + str(min(valList)) + "\n"
+            valuesString += "  High Val: " + str(max(valList)) + "\n\n"
         
-    # repeat for value #2
-    if value2List == []:
-        valuesString += "Value 2: Undefined\n\n"
-    elif value2List[0] == -1:
-        valuesString += "Value 2: Illegal Values\n\n"
-    else:
-        valuesString += "Value 2:\n"
-        valuesString += "  Average:  " + str(sum(value2List)/len(value2List)) + "\n" 
-        valuesString += "  Low Val:  " + str(min(value2List)) + "\n"
-        valuesString += "  High Val: " + str(max(value2List)) + "\n\n"
-
-    # repeat for value #3
-    if value3List == []:
-        valuesString += "Value 3: Undefined\n\n"
-    elif value3List[0] == -1:
-        valuesString += "Value 3: Illegal Values\n\n"
-    else:
-        valuesString += "Value 3:\n"
-        valuesString += "  Average:  " + str(sum(value3List)/len(value3List)) + "\n" 
-        valuesString += "  Low Val:  " + str(min(value3List)) + "\n"
-        valuesString += "  High Val: " + str(max(value3List)) + "\n\n"
-
+    # report count of payload lengths
+    valuesString += "Payload Lengths:\n"
+    payloadLenCounter = Counter(payloadLenList)
+    for (lenVal, lenCount) in payloadLenCounter.most_common():
+        valuesString += '{:5d}'.format(lenCount) + "  " + str(lenVal) + "\n"
+    valuesString += "\n"
+    
+    # now list all the bits that had variation
+    valuesString += "Variable Bits:\n"
+    #valCount = 0
+    for i, bit in enumerate(bitProbList):
+        if bit < 100.0 and bit > 0.0:
+            valuesString += str(i) + "\n"
+        #    valCount += 1
+        #if valCount > 4:
+        #    valuesString += "\n"
+        #    valCount = 0
+            
     return (bitProbString, idStatString, valuesString)
     
 
@@ -269,28 +283,97 @@ def checkSum(packetList, lowAddr, highAddr, lowData, highData):
     # single for loop extracting values
     return(checkSumPassList)
 
-#####################################
-
-# Compute an individual CRC
-def checkCRC(protocol, crcBits, payload):
+#########################################
+# Check all CRCs for a given transmission
+def checkCRC(protocol, fullData):
     
-    crcValue = crcComputed(payload, protocol.crcPoly, protocol.crcBitOrder, 
-                           protocol.crcInit, protocol.crcReverseOut,
-                           protocol.crcFinalXor, protocol.crcPad, 
-                           protocol.crcPadCount, protocol.crcPadVal)
-    
-    print "CRC Computed:"
-    print crcValue
-    
-    if crcValue == crcBits:
+    # if there are no CRC polynomial defined, then say that it passed
+    if len(protocol.crcPoly) == 0:
         return True
-    else:
-        return False
+    
+    crcPass = True
+    for crcAddr, crcData in zip(protocol.crcAddr, protocol.crcData):
+        # only check if there's a CRC of greater than zero length
+        if crcAddr[1] >= crcAddr[0]:
+            # the crc field must be the same size as they poly-1
+            if (crcAddr[1] - crcAddr[0] + 1) != (len(protocol.crcPoly)-1):
+                crcPass = False
+                break
+            # also fail if any address is out of range
+            elif max(crcAddr + crcData) >= len(fullData):
+                crcPass = False
+                break
+            # else get on with the CRC
+            else:
+                crcObserved = fullData[crcAddr[0] : crcAddr[1]+1]
+                payload = fullData[crcData[0] : crcData[1]+1]
+                crcValue = crc_custom.crcCompute(payload=payload, 
+                                                 crcPoly=protocol.crcPoly, 
+                                                 inputBitOrder=protocol.crcBitOrder, 
+                                                 initVal=protocol.crcInit, 
+                                                 reverseFinal=protocol.crcReverseOut,
+                                                 finalXOR=protocol.crcFinalXor, 
+                                                 padType=protocol.crcPad, 
+                                                 padCount=protocol.crcPadCount, 
+                                                 padVal=protocol.crcPadVal)
+                if crcValue != crcObserved:
+                    crcPass = False
+                    break
+                
+    return crcPass
 
+#########################################
+# Check all arithmetic checksums (ACS) for a given transmission
+def checkACS(protocol, fullData):
+    acsPass = True
+    for acsAddr, acsData, acsInitSum in \
+        zip(protocol.acsAddr, protocol.acsData, protocol.acsInitSum):
+        # only check if there's a ACS field of greater than zero length
+        if acsAddr[1] >= acsAddr[0]:
+            # the acs field must be the same size as the acs length
+            if (acsAddr[1] - acsAddr[0] + 1) != protocol.acsLength:
+                acsPass = False
+                break
+            # also fail if any address is out of range
+            elif max(acsAddr + acsData) >= len(fullData):
+                acsPass = False
+                break
+            # else get on with the ACS check
+            else:
+                acsObserved = blu.bitsToDec(fullData[acsAddr[0] : acsAddr[1]+1])
+                payload = fullData[acsData[0] : acsData[1]+1]
+                acsValue = crc_custom.checksumCompute(dataList=fullData, 
+                                                      dataStart=acsData[0], 
+                                                      dataStop=acsData[1], 
+                                                      dataInvert = protocol.acsInvertData, 
+                                                      dataReverse = False, 
+                                                      numOutputBits = protocol.acsLength, 
+                                                      initSum=acsInitSum)
+
+                if acsValue != acsObserved:
+                    acsPass = False
+                    break                         
+    return acsPass
+"""
 #####################################
+# the payload, crcPoly and the finalXOR are lists of integers, 
+# each valued either 1 or 0
 def crcComputed(payload, crcPoly, inputBitOrder, initVal, reverseFinal,\
                 finalXOR, padType, padCount, padVal):
-# the payload and crcPoly are lists of integers, each valued either 1 or 0
+    
+    if False:
+        print "payload: ",
+        print payload
+        print "crcPoly: ",
+        print crcPoly
+        print "inputBitOrder: " + str(inputBitOrder)
+        print "initVal: " + str(initVal)
+        print "reverseFinal: " + str(reverseFinal)
+        print "finalXOR: ",
+        print finalXOR
+        print "padType: " + str(padType)
+        print "padCount: " + str(padCount)
+        print "padVal: " + str(padVal)
 
     # pad the packet as instructed
     payloadPad = payload[:];
@@ -358,7 +441,7 @@ def crcComputed(payload, crcPoly, inputBitOrder, initVal, reverseFinal,\
             crcXOR.append(0)
 
     return(crcXOR)
-
+"""
 
 #####################################
 # taking the CRC size from the address passed, this function will
@@ -448,3 +531,47 @@ def incrementList(inputList):
             carry = 0
         
     return(result)
+
+"""
+        # add display of width list info to GUI
+        # for now, just print to stdout
+        # first create a big list of all the widths:
+        allWidthsList = []
+        for iTx in wcv.txList:
+            allWidthsList += iTx.widthList
+        
+        # build a Counter list    
+        widthCount = Counter(allWidthsList)
+        
+        # get a python dictionary containing all the widths and their corresponding frequency in order of most common
+        orderedWidthDict = {}
+        for n in range(len(widthCount)):
+            newWidth = widthCount.most_common()[n][0]
+            newWidthCount = widthCount.most_common()[n][1]
+            #print "n={}\twidth={}\tcount={}".format(n, newWidth, newWidthCount)
+            mergedVal = False
+            # go through all the widths in the current list and check whether the new one is within the timing tolerance
+            for (widthVal, countVal) in orderedWidthDict.items():
+                if widthVal != 0:
+                    #print "Timing error with {}: {}".format(widthVal, abs(1.0*newWidth - widthVal)/widthVal)
+                    if (abs(1.0*newWidth - widthVal)/widthVal) <= wcv.timingError:
+                        orderedWidthDict[widthVal] += newWidthCount
+                        mergedVal = True
+                        break
+            if not mergedVal:
+                orderedWidthDict[newWidth] = newWidthCount
+            #print orderedWidthDict
+
+        if wcv.verbose:
+            print "Merged list of frequencies:"            
+            print orderedWidthDict
+        
+            print "Top N values:"
+            from collections import OrderedDict
+            from operator import itemgetter
+            #od = OrderedDict(sorted(orderedWidthDict.items(), key=itemgetter(1)))
+            od = sorted(orderedWidthDict.iteritems(), key=itemgetter(1), reverse=True)
+            print od
+            for width, count in od:
+                print "  {}: {}".format(width, count)
+"""

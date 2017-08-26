@@ -15,9 +15,12 @@ from waveconverterEngine import buildTxList
 from waveconverterEngine import decodeAllTx
 from statEngine import computeStats
 from statEngine import buildStatStrings
+from statEngine import plugin_stats_stdout
 from collections import Counter
 import numpy as np
 import webbrowser
+from operator import itemgetter
+from waveConvertVars import showAllTx
 
 # for plotting baseband
 try:
@@ -84,6 +87,7 @@ class TopWindow:
         wcv.samp_rate = 1000000.0 * self.getFloatFromEntry("sampRateEntry")
         wcv.protocol.modulation = self.getIntFromEntryBox("modulationEntryBox")
         wcv.protocol.frequency = 1000000.0 * self.getFloatFromEntry("frequencyEntry")
+        wcv.protocol.frequencyHopList = self.getListFromEntry("frequencyHopListEntry")
         wcv.protocol.channelWidth = 1000.0 * self.getFloatFromEntry("channelWidthEntry")
         wcv.protocol.transitionWidth = 1000.0 * self.getFloatFromEntry("transitionWidthEntry")
         wcv.protocol.threshold = self.getFloatFromEntry("thresholdEntry")
@@ -93,6 +97,11 @@ class TopWindow:
             wcv.protocol.fskDeviation = 1000.0 * self.getFloatFromEntry("fskDeviationEntry")
         except:
             wcv.protocol.fskDeviation = 0.0
+        # get baseband frequency from protocol
+        wcv.protocol.bb_samp_rate = 1000000.0 * self.getFloatFromEntry("bbSampRateEntry")
+        wcv.basebandSampleRate = wcv.protocol.bb_samp_rate
+        wcv.protocol.interPacketSymbol = self.getIntFromEntryBox("idleLevelEntryBox")
+        
         
         # get framing properties
         wcv.protocol.preambleType = self.getIntFromEntryBox("preambleTypeEntryBox")
@@ -126,32 +135,37 @@ class TopWindow:
         
         # load CRC properties
         wcv.protocol.crcPoly = self.getListFromEntry("crcPolynomialEntry")
-        wcv.protocol.crcLow = self.getIntFromEntry("crcStartAddrEntry")
-        wcv.protocol.crcHigh = wcv.protocol.crcLow + len(wcv.protocol.crcPoly) - 2 # poly is one longer than actual range
-        wcv.protocol.crcDataLow = self.getIntFromEntry("addrDataLowEntry")
-        wcv.protocol.crcDataHigh = self.getIntFromEntry("addrDataHighEntry")
+        for i in xrange(wcv.NUM_CRC):
+            wcv.protocol.crcAddr[i][0] = self.getIntFromEntry("crc" + str(i+1) + "StartAddrEntry")
+            wcv.protocol.crcAddr[i][1] = wcv.protocol.crcAddr[i][0] + len(wcv.protocol.crcPoly) - 2 # poly is one longer than actual range
+            wcv.protocol.crcData[i][0] = self.getIntFromEntry("crc" + str(i+1) + "DataLowEntry")
+            wcv.protocol.crcData[i][1] = self.getIntFromEntry("crc" + str(i+1) + "DataHighEntry")
         wcv.protocol.crcInit = self.getIntFromEntry("crcInitEntry")
         wcv.protocol.crcBitOrder = self.getIntFromEntryBox("crcReflectEntryBox")
-        if self.getIntFromEntryBox("crcReverseOutEntryBox") == 1:
-            wcv.protocol.crcReverseOut = True
-        else:
-            wcv.protocol.crcReverseOut = False
+        wcv.protocol.crcReverseOut = self.getIntFromEntryBox("crcReverseOutEntryBox")
         wcv.protocol.crcFinalXor = self.getListFromEntry("crcFinalXorEntry")
         wcv.protocol.crcPad = self.getIntFromEntryBox("crcPadEntryBox")
         wcv.protocol.crcPadCount = 8*self.getIntFromEntryBox("crcPadCountEntryBox")
         
+        # get ACS properties
+        wcv.protocol.acsLength = self.getIntFromEntry("acsBitLengthEntry")
+        wcv.protocol.acsInvertData = bool(self.getIntFromEntryBox("acsInvertEntryBox"))
+        for i in xrange(wcv.NUM_ACS):
+            wcv.protocol.acsInitSum[i] = self.getIntFromEntry("acs" + str(i+1) + "InitEntry")
+            wcv.protocol.acsAddr[i][0] = self.getIntFromEntry("acs" + str(i+1) + "AddrLowEntry")
+            wcv.protocol.acsAddr[i][1] = self.getIntFromEntry("acs" + str(i+1) + "AddrHighEntry")
+            wcv.protocol.acsData[i][0] = self.getIntFromEntry("acs" + str(i+1) + "DataLowEntry")
+            wcv.protocol.acsData[i][1] = self.getIntFromEntry("acs" + str(i+1) + "DataHighEntry")
+
         # get stats properties
-        wcv.protocol.idAddrLow = self.getIntFromEntry("idAddrLowEntry")
-        wcv.protocol.idAddrHigh = self.getIntFromEntry("idAddrHighEntry")
-        wcv.protocol.val1AddrLow = self.getIntFromEntry("val1AddrLowEntry")
-        wcv.protocol.val1AddrHigh = self.getIntFromEntry("val1AddrHighEntry")
-        wcv.protocol.val2AddrLow = self.getIntFromEntry("val2AddrLowEntry")
-        wcv.protocol.val2AddrHigh = self.getIntFromEntry("val2AddrHighEntry")
-        wcv.protocol.val3AddrLow = self.getIntFromEntry("val3AddrLowEntry")
-        wcv.protocol.val3AddrHigh = self.getIntFromEntry("val3AddrHighEntry")
-        
+        for i in xrange(wcv.NUM_ID_FIELDS):
+            wcv.protocol.idAddr[i][0] = self.getIntFromEntry("id"+str(i+1)+"AddrLowEntry")
+            wcv.protocol.idAddr[i][1] = self.getIntFromEntry("id"+str(i+1)+"AddrHighEntry")
+        for i in xrange(wcv.NUM_VAL_FIELDS):
+            wcv.protocol.valAddr[i][0] = self.getIntFromEntry("val"+str(i+1)+"AddrLowEntry")
+            wcv.protocol.valAddr[i][1] = self.getIntFromEntry("val"+str(i+1)+"AddrHighEntry")
+
         # these parameters are currently unused but must be in protocol to keep sqllite happy
-        wcv.protocol.interPacketSymbol = 0
         wcv.protocol.headerLevel = 0
         wcv.protocol.preambleSync = False
         wcv.protocol.crcPadVal = 0
@@ -383,7 +397,7 @@ class TopWindow:
             self.spinButtonPressed = -1
 
     def on_panRightButton_clicked(self, button, data=None):
-        if wcv.verbose:
+        if wcv.verboseZoom:
             print "Panning Right"
             
         # get center point of current plot
@@ -409,7 +423,7 @@ class TopWindow:
         
             
     def on_panLeftButton_clicked(self, button, data=None):
-        if wcv.verbose:
+        if wcv.verboseZoom:
             print "Panning Left"
             
         # get center point of current plot
@@ -434,7 +448,7 @@ class TopWindow:
                               wcv.tMin, wcv.tMax, wcv.basebandSampleRate)
             
     def on_zoomFullButton_clicked(self, button, data=None):
-        if wcv.verbose:
+        if wcv.verboseZoom:
             print "Zooming Out Full"
         wcv.tMin = 0.0 # 0
         wcv.tMax = 100.0 # 100
@@ -443,7 +457,7 @@ class TopWindow:
                               wcv.tMin, wcv.tMax, wcv.basebandSampleRate)
             
     def on_zoomInButton_clicked(self, button, data=None):
-        if wcv.verbose:
+        if wcv.verboseZoom:
             print "Zooming In"
             
         # get center point of current plot
@@ -458,7 +472,7 @@ class TopWindow:
                               wcv.tMin, wcv.tMax, wcv.basebandSampleRate)
         
     def on_zoomOutButton_clicked(self, button, data=None):
-        if wcv.verbose:
+        if wcv.verboseZoom:
             print "Zooming Out"
             
         # get center point of current plot
@@ -466,7 +480,7 @@ class TopWindow:
         # get current zoom size and double
         zoomSize = (wcv.tMax - wcv.tMin)*2.0
         
-        if wcv.verbose:
+        if wcv.verboseZoom:
             print "center: " + str(center)
             print "zoomSize: " + str(zoomSize)
         
@@ -490,7 +504,7 @@ class TopWindow:
     # 
     def on_showAllButton_toggled(self, button, data=None):
         wcv.showAllTx = self.getBoolFromToolToggle("showAllButton")
-        if wcv.verbose:
+        if wcv.verboseZoom:
             print "View Stats for All TX changed to " + str(wcv.showAllTx)
         # if stats are up, redo them
         if not wcv.bitProbString == "":
@@ -606,7 +620,7 @@ class TopWindow:
         # decimate large input lists; cairo can only handle 18980 point plots
         if len(waveformDataList) > 18000:
             # NEED to replace this with decimated waveform, not truncated
-            if wcv.verbose:
+            if wcv.verboseZoom:
                 print "Baseband waveform longer than 18k samples, decimating..."
             decimationFactor = 1 + int(len(waveformDataList)/18000)
             localWaveform = waveformDataList[::decimationFactor]
@@ -628,7 +642,7 @@ class TopWindow:
         startTime = startIndex * stepSize
         stopTime = stopIndex * stepSize
         
-        if True: #wcv.verboseZoom:
+        if wcv.verboseZoom:
             print "displaying new plot"
             print "list size = " + str(waveformLength)
             print "tMin(%) = " + str(tMin)
@@ -674,38 +688,25 @@ class TopWindow:
         self.transferGUIDataToGlobals()
         self.transferGUIDataToProtocol()
         
-        if wcv.verbose:
-            print "modulation (ook=0)    = " + str(wcv.protocol.modulation)
-            print "samp_rate (Hz)        = " + str(wcv.samp_rate)
-            print "baseband rate (Hz)    = " + str(wcv.basebandSampleRate)
-            print "center_freq (Hz)      = " + str(wcv.center_freq)
-            print "tune frequency (Hz)   = " + str(wcv.protocol.frequency)
-            print "channel width (Hz)    = " + str(wcv.protocol.channelWidth)
-            print "transition width (Hz) = " + str(wcv.protocol.transitionWidth)
-            print "threshold             = " + str(wcv.protocol.threshold)
-            print "FSK Squelch Level(dB) = " + str(wcv.protocol.fskSquelchLeveldB)
-            print "FSK Deviation (Hz)    = " + str(wcv.protocol.fskDeviation)
-            print "iq File Name          = " + wcv.iqFileName
-            print "Waveform File Name    = " + wcv.waveformFileName
-
         # if we have a baseband file name, use it to get the bb data
         if len(wcv.waveformFileName) > 0:
             wcv.basebandData = basebandFileToList(wcv.waveformFileName)
         elif len(wcv.iqFileName) > 0:
             wcv.basebandData = demodIQFile(verbose = wcv.verbose,
-                                       modulationType = wcv.protocol.modulation,
-                                       iqSampleRate = wcv.samp_rate,
-                                       basebandSampleRate = wcv.basebandSampleRate,
-                                       centerFreq = wcv.center_freq,
-                                       frequency = wcv.protocol.frequency,
-                                       channelWidth = wcv.protocol.channelWidth,
-                                       transitionWidth = wcv.protocol.transitionWidth,
-                                       threshold = wcv.protocol.threshold,
-                                       fskSquelch = wcv.protocol.fskSquelchLeveldB,
-                                       fskDeviation = wcv.protocol.fskDeviation,
-                                       iqFileName = wcv.iqFileName,
-                                       waveformFileName = ""
-                                       )
+                                           modulationType = wcv.protocol.modulation,
+                                           iqSampleRate = wcv.samp_rate,
+                                           basebandSampleRate = wcv.basebandSampleRate,
+                                           centerFreq = wcv.center_freq,
+                                           frequency = wcv.protocol.frequency,
+                                           frequencyHopList = wcv.protocol.frequencyHopList,
+                                           channelWidth = wcv.protocol.channelWidth,
+                                           transitionWidth = wcv.protocol.transitionWidth,
+                                           threshold = wcv.protocol.threshold,
+                                           fskSquelch = wcv.protocol.fskSquelchLeveldB,
+                                           fskDeviation = wcv.protocol.fskDeviation,
+                                           iqFileName = wcv.iqFileName,
+                                           waveformFileName = ""
+                                           )
         else:
             print "No IQ or baseband file given"
             return 0
@@ -720,8 +721,8 @@ class TopWindow:
                                  basebandSampleRate =  wcv.basebandSampleRate,
                                  interTxTiming = wcv.protocol.interPacketWidth_samp,
                                  glitchFilterCount = wcv.glitchFilterCount,
-                                 verbose = wcv.verbose
-                                 )
+                                 interTxLevel = wcv.protocol.interPacketSymbol,
+                                 verbose = wcv.verbose)
         
         # debug only
         if wcv.verbose:
@@ -771,12 +772,19 @@ class TopWindow:
     def on_encodingEntryBox_changed(self, data=None):
         wcv.protocol.encodingType = self.getIntFromEntryBox("encodingEntryBox")
         # if one of the Manchester types, deactivate the PWM entry boxes and activate the unit entry
-        if wcv.protocol.encodingType == 1 or wcv.protocol.encodingType == 2:
+        if wcv.protocol.encodingType == wcv.STD_MANCHESTER or wcv.protocol.encodingType == wcv.INV_MANCHESTER:
             self.activateEntry("payloadUnitEntry")
             self.deactivateEntry("pwmZeroLowEntry")
             self.deactivateEntry("pwmZeroHighEntry")
             self.deactivateEntry("pwmOneLowEntry")
             self.deactivateEntry("pwmOneHighEntry")
+        # for the NO ENCODING state, we need only the unit timing
+        elif wcv.protocol.encodingType == wcv.NO_ENCODING:
+            self.deactivateEntry("payloadUnitEntry")
+            self.activateEntry("pwmZeroLowEntry")
+            self.deactivateEntry("pwmZeroHighEntry")
+            self.deactivateEntry("pwmOneLowEntry")
+            self.activateEntry("pwmOneHighEntry")            
         # if PWM/PIE, deactivate unit entry boxes and activate the PWM entries
         else:
             self.deactivateEntry("payloadUnitEntry")
@@ -878,7 +886,7 @@ class TopWindow:
         self.setLabel("guiPreambleMatches4", str(preambleValidCount) + "/" + str(numTx))
         self.setLabel("guiEncodingValid4", str(encodingValidCount) + "/" + str(numTx))
         self.setLabel("guiCrcPass4", crcStringOut)
-        
+                        
         # change the text in all windows (NEED a framed approach)
         self.decodeTextViewWidget1 = self.builder.get_object("decodeTextView1")
         self.decodeTextViewWidget1.modify_font(Pango.font_description_from_string('Courier 12'))
@@ -899,14 +907,25 @@ class TopWindow:
         self.transferGUIDataToGlobals()
         self.transferGUIDataToProtocol()
 
-        (wcv.bitProbList, idListCounter, value1List, value2List, value3List) = computeStats(txList = wcv.txList, 
-                                                                                            protocol = wcv.protocol, 
-                                                                                            showAllTx = wcv.showAllTx)
+        (wcv.bitProbList, idListMaster, valListMaster, payloadLenList) = computeStats(txList = wcv.txList, 
+                                                                                      protocol = wcv.protocol, 
+                                                                                      showAllTx = wcv.showAllTx)
+        
+        # experimental new feature
+        #from statEngine import computeUavStats
+        plugin_stats_stdout(txList = wcv.txList,
+                            protocol = wcv.protocol,
+                            showAllTx = wcv.showAllTx)
+        """
+        uavValList = computeUavStats(txList = wcv.txList,
+                                     protocol = wcv.protocol,
+                                     showAllTx = wcv.showAllTx)
+        """
+
         (wcv.bitProbString, idStatString, valuesString) = buildStatStrings(bitProbList = wcv.bitProbList, 
-                                                                           idListCounter = idListCounter, 
-                                                                           value1List = value1List, 
-                                                                           value2List = value2List, 
-                                                                           value3List = value3List, 
+                                                                           idListMaster = idListMaster, 
+                                                                           valListMaster = valListMaster,
+                                                                           payloadLenList = payloadLenList, 
                                                                            outputHex = wcv.outputHex)
         
         # display bit probabilities in correct GUI element
@@ -939,12 +958,15 @@ class TopWindow:
         self.setEntry("iqFileNameEntry", wcv.iqFileName)
         self.setEntry("bbFileNameEntry", wcv.waveformFileName)
         self.setEntry("frequencyEntry", wcv.protocol.frequency/1000000.0)
+        self.setEntry("frequencyHopListEntry", wcv.protocol.frequencyHopList)
         self.setEntry("channelWidthEntry", wcv.protocol.channelWidth/1000.0)
         self.setEntry("transitionWidthEntry", wcv.protocol.transitionWidth/1000.0)
         self.setEntryBox("modulationEntryBox", wcv.protocol.modulation)
         self.setEntry("fskDeviationEntry", wcv.protocol.fskDeviation/1000.0)
         self.setEntry("thresholdEntry", wcv.protocol.threshold)
         self.setEntry("fskSquelchEntry", wcv.protocol.fskSquelchLeveldB)
+        self.setEntry("bbSampRateEntry", wcv.protocol.bb_samp_rate/1000000.0)
+        self.setEntryBox("idleLevelEntryBox", wcv.protocol.interPacketSymbol)
         
         # add preamble properties
         self.setEntryBox("preambleTypeEntryBox", wcv.protocol.preambleType)
@@ -973,9 +995,10 @@ class TopWindow:
 
         # add CRC properties
         self.setEntry("crcLengthEntry", len(wcv.protocol.crcPoly))
-        self.setEntry("crcStartAddrEntry", wcv.protocol.crcLow)
-        self.setEntry("addrDataLowEntry", wcv.protocol.crcDataLow)
-        self.setEntry("addrDataHighEntry", wcv.protocol.crcDataHigh)
+        for i in xrange(wcv.NUM_CRC):
+            self.setEntry("crc" + str(i+1) + "StartAddrEntry", wcv.protocol.crcAddr[i][0])
+            self.setEntry("crc" + str(i+1) + "DataLowEntry", wcv.protocol.crcData[i][0])
+            self.setEntry("crc" + str(i+1) + "DataHighEntry", wcv.protocol.crcData[i][1])
         self.setEntry("crcPolynomialEntry", wcv.protocol.crcPoly)
         self.setEntry("crcInitEntry", wcv.protocol.crcInit)
         self.setEntryBox("crcReflectEntryBox", wcv.protocol.crcBitOrder)
@@ -984,15 +1007,35 @@ class TopWindow:
         self.setEntryBox("crcPadEntryBox", wcv.protocol.crcPad)
         self.setEntryBox("crcPadCountEntryBox", wcv.protocol.crcPadCount/8)
         
+        # add the ACS properties
+        self.setEntry("acsBitLengthEntry", wcv.protocol.acsLength)
+        self.setEntryBox("acsInvertEntryBox", int(wcv.protocol.acsInvertData))
+        for i in xrange(wcv.NUM_ACS):
+            self.setEntry("acs" + str(i+1) + "InitEntry", wcv.protocol.acsInitSum[i])
+            self.setEntry("acs" + str(i+1) + "AddrLowEntry", wcv.protocol.acsAddr[i][0])
+            self.setEntry("acs" + str(i+1) + "AddrHighEntry", wcv.protocol.acsAddr[i][1])            
+            self.setEntry("acs" + str(i+1) + "DataLowEntry", wcv.protocol.acsData[i][0])
+            self.setEntry("acs" + str(i+1) + "DataHighEntry", wcv.protocol.acsData[i][1])
+
         # add payload statistics properties
-        self.setEntry("idAddrLowEntry", wcv.protocol.idAddrLow)
-        self.setEntry("idAddrHighEntry", wcv.protocol.idAddrHigh)
-        self.setEntry("val1AddrLowEntry", wcv.protocol.val1AddrLow)
-        self.setEntry("val1AddrHighEntry", wcv.protocol.val1AddrHigh)
-        self.setEntry("val2AddrLowEntry", wcv.protocol.val2AddrLow)
-        self.setEntry("val2AddrHighEntry", wcv.protocol.val2AddrHigh)
-        self.setEntry("val3AddrLowEntry", wcv.protocol.val3AddrLow)
-        self.setEntry("val3AddrHighEntry", wcv.protocol.val3AddrHigh)
+        self.setEntry("id1AddrLowEntry", wcv.protocol.idAddr[0][0])
+        self.setEntry("id1AddrHighEntry", wcv.protocol.idAddr[0][1])
+        self.setEntry("id2AddrLowEntry", wcv.protocol.idAddr[1][0])
+        self.setEntry("id2AddrHighEntry", wcv.protocol.idAddr[1][1])
+        self.setEntry("id3AddrLowEntry", wcv.protocol.idAddr[2][0])
+        self.setEntry("id3AddrHighEntry", wcv.protocol.idAddr[2][1])
+        self.setEntry("id4AddrLowEntry", wcv.protocol.idAddr[3][0])
+        self.setEntry("id4AddrHighEntry", wcv.protocol.idAddr[3][1])
+        self.setEntry("id5AddrLowEntry", wcv.protocol.idAddr[4][0])
+        self.setEntry("id5AddrHighEntry", wcv.protocol.idAddr[4][1])
+        self.setEntry("id6AddrLowEntry", wcv.protocol.idAddr[5][0])
+        self.setEntry("id6AddrHighEntry", wcv.protocol.idAddr[5][1])
+        self.setEntry("val1AddrLowEntry", wcv.protocol.valAddr[0][0])
+        self.setEntry("val1AddrHighEntry", wcv.protocol.valAddr[0][1])
+        self.setEntry("val2AddrLowEntry", wcv.protocol.valAddr[1][0])
+        self.setEntry("val2AddrHighEntry", wcv.protocol.valAddr[1][1])
+        self.setEntry("val3AddrLowEntry", wcv.protocol.valAddr[2][0])
+        self.setEntry("val3AddrHighEntry", wcv.protocol.valAddr[2][1])
             
         
     def __init__(self, protocol):

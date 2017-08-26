@@ -60,13 +60,14 @@ class TestFullFlow(unittest.TestCase):
         for n in xrange(8):
             self.expectedPayloadData.append([1, 1, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0]) # 31-38
         self.expectedPayloadData.append([])                                       # 39
+        self.expectedPayloadData.append([])                                       # 40
         for n in xrange(4):
-            self.expectedPayloadData.append([1, 1, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0]) # 40-43
-        self.expectedPayloadData.append([])                                       # 44
+            self.expectedPayloadData.append([1, 1, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0]) # 41-44
+        self.expectedPayloadData.append([])                                       # 45
         for n in xrange(8):
-            self.expectedPayloadData.append([1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0]) # 45-52
+            self.expectedPayloadData.append([1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0]) # 46-53
         for n in xrange(15):
-            self.expectedPayloadData.append([1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1]) # 53-67
+            self.expectedPayloadData.append([1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1]) # 54-68
             
         return(0)
         
@@ -93,6 +94,8 @@ class TestFullFlow(unittest.TestCase):
                                         transitionWidth = self.protocol.transitionWidth,
                                         threshold = self.threshold,
                                         fskDeviation = self.protocol.fskDeviation,
+                                        fskSquelch = self.protocol.fskSquelchLeveldB,
+                                        frequencyHopList = self.protocol.frequencyHopList,
                                         iqFileName = self.iqFileName,
                                         waveformFileName = self.waveformFileName)
 
@@ -101,6 +104,7 @@ class TestFullFlow(unittest.TestCase):
                                   basebandSampleRate =  self.basebandSampleRate,
                                   interTxTiming = self.timeBetweenTx_samp,
                                   glitchFilterCount = self.glitchFilterCount,
+                                  interTxLevel = self.protocol.interPacketSymbol,
                                   verbose = self.verbose)    
 
         # decode
@@ -113,9 +117,15 @@ class TestFullFlow(unittest.TestCase):
                                                              showAllTx = self.showAllTx)
         
         # compute stats
-        (self.bitProbList, self.idListCounter, self.value1List, self.value2List, self.value3List) = computeStats(txList = self.txList, protocol = self.protocol, showAllTx = self.showAllTx)
+        (self.bitProbList, self.idListMaster, self.valListMaster, self.payloadLenList) = computeStats(txList = self.txList, 
+                                                                                                      protocol = self.protocol, 
+                                                                                                      showAllTx = self.showAllTx)
         # compute stat string
-        (self.bitProbString, self.idStatString, self.valuesString) = buildStatStrings(self.bitProbList, self.idListCounter, self.value1List, self.value2List, self.value3List, self.outputHex)
+        (self.bitProbString, self.idStatString, self.valuesString) = buildStatStrings(self.bitProbList, 
+                                                                                      self.idListMaster, 
+                                                                                      self.valListMaster, 
+                                                                                      self.payloadLenList, 
+                                                                                      self.outputHex)
 
         # turn stdout back on
         if not self.verbose and not debug:
@@ -146,11 +156,12 @@ class TestFullFlow(unittest.TestCase):
         for n in xrange(8):
             expected.append([True, True, True, True, True, True])    # 31-38
         expected.append([False, False, False, False, False, False])   # 39
+        expected.append([False, False, False, False, False, False])   # 40
         for n in xrange(4):
-            expected.append([True, True, True, True, True, True])    # 40-43
-        expected.append([False, False, False, False, False, False])    # 44
+            expected.append([True, True, True, True, True, True])    # 41-44
+        expected.append([False, False, False, False, False, False])    # 45
         for n in xrange(23):
-            expected.append([True, True, True, True, True, True])    # 45-64
+            expected.append([True, True, True, True, True, True])    # 46-68
         
         i = 0
         for tx in self.txList:
@@ -196,7 +207,7 @@ class TestFullFlow(unittest.TestCase):
         # create list of just the IDs in string form
         idList = []
         for payload in self.expectedPayloadData:
-            idList.append(''.join(str(s) for s in payload[self.protocol.idAddrLow:self.protocol.idAddrHigh+1]))
+            idList.append(''.join(str(s) for s in payload[self.protocol.idAddr[0][0]:self.protocol.idAddr[0][1]+1]))
         # now create dictionary of IDs and their counts
         expectedIdCountDict = {}
         for id in idList:
@@ -208,18 +219,19 @@ class TestFullFlow(unittest.TestCase):
 
         # now compare ID counts to expected values
         if debug:
-            print self.idListCounter
+            print "\n"
+            print self.idListMaster[0]
             print expectedIdCountDict
-        self.assertEqual(len(self.idListCounter), len(expectedIdCountDict), "ERROR: expected length of ID count list mismatch")
-        for (idVal, idCount) in self.idListCounter.most_common():
-            self.assertEqual(self.idListCounter[idVal], expectedIdCountDict[idVal], "ERROR: ID count mismatch")
+        self.assertEqual(len(self.idListMaster[0]), len(expectedIdCountDict), "ERROR: expected length of ID count list mismatch")
+        for (idVal, idCount) in self.idListMaster[0].most_common():
+            self.assertEqual(self.idListMaster[0][idVal], expectedIdCountDict[idVal], "ERROR: ID count mismatch")
         
         
         # build list of values from expected data
         expectedValue1List = []
         for payload in self.expectedPayloadData:
             if len(payload) == self.protocol.packetSize: # only considering good transmissions
-                bitList = payload[self.protocol.val1AddrLow:self.protocol.val1AddrHigh+1]
+                bitList = payload[self.protocol.valAddr[0][0]:self.protocol.valAddr[0][1]+1]
                 # convert bits to number
                 value = 0
                 for bit in bitList:
@@ -229,10 +241,10 @@ class TestFullFlow(unittest.TestCase):
         
         # compare values
         if debug:
-            print self.value1List
+            print self.valListMaster[0]
             print expectedValue1List
-        self.assertEqual(len(self.value1List), len(expectedValue1List), "ERROR: expected length of Values 1 list mismatch")
-        for actual, expected in zip(self.value1List, expectedValue1List):
+        self.assertEqual(len(self.valListMaster[0]), len(expectedValue1List), "ERROR: expected length of Values 1 list mismatch")
+        for actual, expected in zip(self.valListMaster[0], expectedValue1List):
             self.assertEqual(actual, expected, msg = "ERROR: Value mismatch")
 
         pass
