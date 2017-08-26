@@ -14,6 +14,16 @@ instructions at:
 
 http://fieldxp.com/Chapter-2-Installing-the-Software.pdf
 
+NEW: waveconverter now relies on a collection of common, reusable
+code called "rf_utilities". For waveconverter to work, you must
+get this code and point your PYTHONPATH to its location. For Example:
+
+```
+git clone https://github.com/paulgclark/rf_utilities ~/code
+export PYTHONPATH="$PYTHONPATH:~/code"
+```
+(or better yet, add it to the end of ~/.bashrc)
+
 To install the other pre-requisites for execution:
 
 ```
