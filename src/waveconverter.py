@@ -59,7 +59,7 @@ parser.add_argument("-x", "--hex_out", help="output data in hex format", action=
 parser.add_argument("-z", "--hide_bad", help="hide bad transmissions from output", action="store_true")
 parser.add_argument("-i", "--glitch_count", help="glitch filter in 10us samples", type=int)
 parser.add_argument("-f", "--freq", help="frequency of target in Hz", type=int)
-parser.add_argument("-u", "--squelch", help="FSK squelch level in negative dB", type=int)
+parser.add_argument("-u", "--squelch", help="FSK squelch level in dB (usually negative)", type=int)
 parser.add_argument("-l", "--threshold", help="threshold value", type=float)
 parser.add_argument("-t", "--time_between_tx", help="min time between tx in us", type=int)
 parser.add_argument("-e", "--timing_error", help="max allowable timing error percentage", type=int)
@@ -187,7 +187,7 @@ try:
 except:
     wcv.frequency = -1.0 # allow protocol to supply value
 try:
-    wcv.squelch = args.squelch * -1.0
+    wcv.squelch = args.squelch * 1.0
 except:
     wcv.squelch = -1.0 # allow protocol to supply value    
 try:
